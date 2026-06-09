@@ -24,9 +24,25 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
   const [department, setDepartment] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [projectRole, setProjectRole] = useState<ProjectRole>('Frontend dev');
+  const [gender, setGender] = useState<'Male' | 'Female' | 'Other' | ''>('');
+  const [birthday, setBirthday] = useState('');
+  const [skills, setSkills] = useState('');
+  const [avatar, setAvatar] = useState('');
 
   // Filter pending timesheets
   const pendingEntries = timesheets.filter(ts => ts.status === 'Pending');
+
+  const calculateAge = (birthdayStr?: string) => {
+    if (!birthdayStr) return null;
+    const birthDate = new Date(birthdayStr);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
 
   const getProjectName = (id: string) => projects.find(p => p.id === id)?.name || 'Unknown Project';
   const getTaskName = (id?: string) => id ? (tasks.find(t => t.id === id)?.title || 'Unknown Task') : 'General';
@@ -49,6 +65,10 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
     setDepartment('');
     setSelectedProjectId('');
     setProjectRole('Frontend dev');
+    setGender('');
+    setBirthday('');
+    setSkills('');
+    setAvatar('');
     setIsModalOpen(true);
   };
 
@@ -58,6 +78,10 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
     setEmail(user.email);
     setGlobalRole(user.globalRole);
     setDepartment(user.department);
+    setGender(user.gender || '');
+    setBirthday(user.birthday || '');
+    setSkills(user.skills ? user.skills.join(', ') : '');
+    setAvatar(user.avatar || '');
     
     // Find current project membership
     const currentProj = projects.find(p => p.members && p.members.some(m => m.userId === user.id));
@@ -73,18 +97,34 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
     setIsModalOpen(true);
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatar(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSaveUser = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email) return alert('Name and Email are required');
 
     const userId = editingUser ? editingUser.id : 'u_' + Date.now();
+    const skillsArray = skills ? skills.split(',').map(s => s.trim()).filter(s => s.length > 0) : [];
+    
     const userData: User = {
       id: userId,
       name,
       email,
       globalRole,
       department,
-      avatar: editingUser ? editingUser.avatar : `https://i.pravatar.cc/150?u=${Date.now()}`
+      gender,
+      birthday,
+      skills: skillsArray,
+      avatar: avatar || `https://i.pravatar.cc/150?u=${userId}`
     };
 
     // 1. Update users list
@@ -225,9 +265,39 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                       <Shield size={12} color="var(--accent-primary)" />
                       <span>{user.globalRole} • {user.department}</span>
                     </div>
+                    
+                    {(user.gender || user.birthday) && (
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                        {user.gender && <span>{user.gender}</span>}
+                        {user.gender && user.birthday && <span> • </span>}
+                        {user.birthday && (
+                          <span>
+                            {user.birthday} ({calculateAge(user.birthday)} yrs)
+                          </span>
+                        )}
+                      </div>
+                    )}
+
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
                       {user.email}
                     </div>
+
+                    {user.skills && user.skills.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginTop: '0.5rem' }}>
+                        {user.skills.map((skill, idx) => (
+                          <span key={idx} style={{ 
+                            fontSize: '0.65rem', 
+                            padding: '0.1rem 0.4rem', 
+                            background: 'rgba(255, 255, 255, 0.05)', 
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            color: 'var(--text-secondary)', 
+                            borderRadius: 'var(--radius-sm)' 
+                          }}>
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     <button onClick={() => openEditModal(user)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
@@ -427,6 +497,65 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                     <option key={proj.id} value={proj.id}>{proj.name}</option>
                   ))}
                 </select>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Gender</label>
+                  <select 
+                    value={gender} 
+                    onChange={e => setGender(e.target.value as any)}
+                    style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
+                  >
+                    <option value="">Unspecified</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Birthday</label>
+                  <input 
+                    type="date" 
+                    value={birthday} 
+                    onChange={e => setBirthday(e.target.value)} 
+                    style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.45rem 0.75rem', color: 'var(--text-primary)', outline: 'none' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Skills (Comma-separated)</label>
+                <input 
+                  type="text" 
+                  value={skills} 
+                  placeholder="e.g. React, TypeScript, Node.js"
+                  onChange={e => setSkills(e.target.value)} 
+                  style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Profile Picture</label>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                  {avatar && <img src={avatar} alt="Preview" style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover' }} />}
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}
+                    />
+                    <input 
+                      type="text" 
+                      value={avatar} 
+                      placeholder="Or paste Image URL"
+                      onChange={e => setAvatar(e.target.value)} 
+                      style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.35rem 0.75rem', color: 'var(--text-primary)', outline: 'none', fontSize: '0.8rem' }}
+                    />
+                  </div>
+                </div>
               </div>
 
               {selectedProjectId && (

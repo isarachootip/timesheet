@@ -12,6 +12,9 @@ export interface User {
   avatar: string;
   globalRole: GlobalRole;
   department: string;
+  gender?: 'Male' | 'Female' | 'Other' | '';
+  birthday?: string;
+  skills?: string[];
 }
 
 export interface ProjectMember {
