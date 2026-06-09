@@ -255,11 +255,11 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                 return { projectName: p.name, role: member ? member.role : '' };
               });
 
-            return (
-              <div key={user.id} className="glass-panel hover-lift" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', position: 'relative' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+             return (
+              <div key={user.id} className="glass-panel hover-lift team-member-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', position: 'relative' }}>
+                <div className="member-card-header" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                   <img src={user.avatar} alt={user.name} style={{ width: '56px', height: '56px', borderRadius: '50%' }} />
-                  <div style={{ flex: 1 }}>
+                  <div className="member-info" style={{ flex: 1, minWidth: 0 }}>
                     <h3 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>{user.name}</h3>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                       <Shield size={12} color="var(--accent-primary)" />
@@ -278,7 +278,7 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                       </div>
                     )}
 
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                    <div className="member-email" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', wordBreak: 'break-all' }}>
                       {user.email}
                     </div>
 
@@ -299,7 +299,7 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                       </div>
                     )}
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <div className="member-actions" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     <button onClick={() => openEditModal(user)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
                       <Edit size={14} />
                     </button>
