@@ -157,30 +157,62 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
       {/* Tab Content */}
       {activeTab === 'team' ? (
         /* Team Directory */
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
-          {users.map(user => (
-            <div key={user.id} className="glass-panel hover-lift" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', position: 'relative' }}>
-              <img src={user.avatar} alt={user.name} style={{ width: '56px', height: '56px', borderRadius: '50%' }} />
-              <div style={{ flex: 1 }}>
-                <h3 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>{user.name}</h3>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                  <Shield size={12} color="var(--accent-primary)" />
-                  <span>{user.globalRole} • {user.department}</span>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
+          {users.map(user => {
+            const userProjectRoles = projects
+              .filter(p => p.members && p.members.some((m: any) => m.userId === user.id))
+              .map(p => {
+                const member = p.members.find((m: any) => m.userId === user.id);
+                return { projectName: p.name, role: member ? member.role : '' };
+              });
+
+            return (
+              <div key={user.id} className="glass-panel hover-lift" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', position: 'relative' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <img src={user.avatar} alt={user.name} style={{ width: '56px', height: '56px', borderRadius: '50%' }} />
+                  <div style={{ flex: 1 }}>
+                    <h3 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>{user.name}</h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                      <Shield size={12} color="var(--accent-primary)" />
+                      <span>{user.globalRole} • {user.department}</span>
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                      {user.email}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <button onClick={() => openEditModal(user)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                      <Edit size={14} />
+                    </button>
+                    <button onClick={() => handleDeleteUser(user.id)} style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer' }}>
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                  {user.email}
-                </div>
+
+                {/* Display Project Specific Roles */}
+                {userProjectRoles.length > 0 && (
+                  <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Project Roles:</span>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                      {userProjectRoles.map((pr, idx) => (
+                        <span key={idx} style={{ 
+                          fontSize: '0.7rem', 
+                          padding: '0.2rem 0.5rem', 
+                          background: 'rgba(99, 102, 241, 0.1)', 
+                          border: '1px solid rgba(99, 102, 241, 0.2)',
+                          color: 'var(--accent-primary)', 
+                          borderRadius: 'var(--radius-sm)' 
+                        }}>
+                          {pr.projectName} ({pr.role})
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <button onClick={() => openEditModal(user)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-                  <Edit size={14} />
-                </button>
-                <button onClick={() => handleDeleteUser(user.id)} style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer' }}>
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         /* Approvals Queue */
