@@ -539,14 +539,55 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                 <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Profile Picture</label>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                  {avatar && <img src={avatar} alt="Preview" style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover' }} />}
+                  {avatar ? (
+                    <img src={avatar} alt="Preview" style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--accent-primary)' }} />
+                  ) : (
+                    <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.75rem', border: '1px dashed var(--border-color)' }}>No Pic</div>
+                  )}
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    <input 
-                      type="file" 
-                      accept="image/*"
-                      onChange={handleFileChange}
-                      style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}
-                    />
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <label style={{ 
+                        flex: 1,
+                        background: 'var(--bg-tertiary)', 
+                        border: '1px solid var(--border-color)', 
+                        padding: '0.5rem', 
+                        borderRadius: 'var(--radius-md)', 
+                        fontSize: '0.75rem', 
+                        textAlign: 'center', 
+                        cursor: 'pointer',
+                        color: 'var(--text-primary)',
+                        display: 'block'
+                      }} className="hover-lift">
+                        📁 Choose Photo
+                        <input 
+                          type="file" 
+                          accept="image/*"
+                          onChange={handleFileChange}
+                          style={{ display: 'none' }}
+                        />
+                      </label>
+                      
+                      <label style={{ 
+                        flex: 1,
+                        background: 'var(--accent-primary)', 
+                        padding: '0.5rem', 
+                        borderRadius: 'var(--radius-md)', 
+                        fontSize: '0.75rem', 
+                        textAlign: 'center', 
+                        cursor: 'pointer',
+                        color: 'white',
+                        display: 'block'
+                      }} className="hover-lift">
+                        📸 Take Photo
+                        <input 
+                          type="file" 
+                          accept="image/*"
+                          capture="user"
+                          onChange={handleFileChange}
+                          style={{ display: 'none' }}
+                        />
+                      </label>
+                    </div>
                     <input 
                       type="text" 
                       value={avatar} 
