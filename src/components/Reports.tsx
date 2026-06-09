@@ -1,18 +1,28 @@
 import { useState } from 'react';
-import { mockTimesheets, mockProjects, mockUsers } from '../data/mockData';
 import { BarChart3, TrendingUp, Download } from 'lucide-react';
+import type { User, Project, TimesheetEntry } from '../types';
 
-export const Reports = () => {
+interface ReportsProps {
+  timesheets: TimesheetEntry[];
+  projects: Project[];
+  users: User[];
+}
+
+export const Reports = ({ timesheets, projects, users }: ReportsProps) => {
   const [reportType, setReportType] = useState<'daily' | 'monthly' | 'yearly'>('monthly');
   const [selectedProject, setSelectedProject] = useState<string>('all');
 
+  const filteredTimesheets = selectedProject === 'all'
+    ? timesheets
+    : timesheets.filter(ts => ts.projectId === selectedProject);
+
   // Calculations
-  const totalHours = mockTimesheets.reduce((sum, entry) => sum + entry.hours, 0);
-  const approvedHours = mockTimesheets.filter(ts => ts.status === 'Approved').reduce((sum, ts) => sum + ts.hours, 0);
+  const totalHours = filteredTimesheets.reduce((sum, entry) => sum + entry.hours, 0);
+  const approvedHours = filteredTimesheets.filter(ts => ts.status === 'Approved').reduce((sum, ts) => sum + ts.hours, 0);
   
   // Calculate hours by project
-  const projectStats = mockProjects.map(project => {
-    const hours = mockTimesheets
+  const projectStats = projects.map(project => {
+    const hours = timesheets
       .filter(ts => ts.projectId === project.id)
       .reduce((sum, ts) => sum + ts.hours, 0);
     return {
@@ -23,8 +33,8 @@ export const Reports = () => {
   });
 
   // Calculate hours by employee
-  const employeeStats = mockUsers.map(user => {
-    const hours = mockTimesheets
+  const employeeStats = users.map(user => {
+    const hours = filteredTimesheets
       .filter(ts => ts.userId === user.id)
       .reduce((sum, ts) => sum + ts.hours, 0);
     return {
@@ -89,7 +99,7 @@ export const Reports = () => {
             style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', outline: 'none', cursor: 'pointer', fontSize: '0.875rem' }}
           >
             <option value="all" style={{ background: 'var(--bg-secondary)' }}>All Projects</option>
-            {mockProjects.map(p => (
+            {projects.map(p => (
               <option key={p.id} value={p.id} style={{ background: 'var(--bg-secondary)' }}>{p.name}</option>
             ))}
           </select>
@@ -107,7 +117,7 @@ export const Reports = () => {
           <div style={{ fontSize: '1.875rem', fontWeight: 700, color: 'var(--accent-secondary)' }}>{approvedHours} hrs</div>
         </div>
         <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Utilization Rate</span>
+          <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Utilization Rate ({reportType})</span>
           <div style={{ fontSize: '1.875rem', fontWeight: 700 }}>82.5%</div>
         </div>
       </div>

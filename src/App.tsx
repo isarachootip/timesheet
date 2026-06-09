@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, CheckSquare, Clock, Users, Settings, LogOut, Briefcase, BarChart3 } from 'lucide-react';
 import { Dashboard } from './components/Dashboard';
@@ -7,13 +7,17 @@ import { Timesheet } from './components/Timesheet';
 import { Tasks } from './components/Tasks';
 import { TeamApprovals } from './components/TeamApprovals';
 import { Reports } from './components/Reports';
+import { mockUsers, mockProjects, mockTasks, mockTimesheets } from './data/mockData';
+import type { User, Project, Task, TimesheetEntry } from './types';
 import './index.css';
 
-// --- Mock Components for Routes ---
+// --- Helper to use LocalStorage with fallback ---
+const getLocalStorage = <T,>(key: string, fallback: T): T => {
+  const data = localStorage.getItem(key);
+  return data ? JSON.parse(data) : fallback;
+};
 
-
-// --- Layout Component ---
-const SidebarItem = ({ icon: Icon, label, path }: { icon: React.ElementType, label: string, path: string }) => {
+const SidebarItem = ({ icon: Icon, label, path }: { icon: any, label: string, path: string }) => {
   const location = useLocation();
   const isActive = location.pathname === path;
   
@@ -39,7 +43,7 @@ const SidebarItem = ({ icon: Icon, label, path }: { icon: React.ElementType, lab
   );
 };
 
-const AppLayout = ({ children }: { children: React.ReactNode }) => {
+const AppLayout = ({ children, currentUser }: { children: React.ReactNode, currentUser: User }) => {
   return (
     <div className="app-container">
       {/* Sidebar */}
@@ -62,12 +66,10 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
 
         <div style={{ padding: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-secondary)', cursor: 'pointer' }} className="hover-lift">
-            <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Users size={18} />
-            </div>
+            <img src={currentUser.avatar} alt="User Profile" style={{ width: '36px', height: '36px', borderRadius: '50%' }} />
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)' }}>John Doe</div>
-              <div style={{ fontSize: '0.75rem' }}>Project Manager</div>
+              <div style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)' }}>{currentUser.name}</div>
+              <div style={{ fontSize: '0.75rem' }}>{currentUser.globalRole}</div>
             </div>
             <LogOut size={18} />
           </div>
@@ -81,7 +83,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
             <h2 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 500 }}>System Overview</h2>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <button className="glass-panel hover-lift" style={{ padding: '0.5rem 1rem', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <button className="glass-panel hover-lift" style={{ padding: '0.5rem 1rem', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'transparent', outline: 'none' }}>
               <Settings size={18} />
               <span style={{ fontSize: '0.875rem' }}>Settings</span>
             </button>
@@ -97,16 +99,42 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
 };
 
 function App() {
+  // --- States initialized from LocalStorage ---
+  const [users, setUsers] = useState<User[]>(() => getLocalStorage('nt_users', mockUsers));
+  const [projects, setProjects] = useState<Project[]>(() => getLocalStorage('nt_projects', mockProjects));
+  const [tasks, setTasks] = useState<Task[]>(() => getLocalStorage('nt_tasks', mockTasks));
+  const [timesheets, setTimesheets] = useState<TimesheetEntry[]>(() => getLocalStorage('nt_timesheets', mockTimesheets));
+
+  // Current User Mock (First User in DB: John Doe)
+  const currentUser = users[0] || mockUsers[0];
+
+  // --- Sync with LocalStorage on State Change ---
+  useEffect(() => {
+    localStorage.setItem('nt_users', JSON.stringify(users));
+  }, [users]);
+
+  useEffect(() => {
+    localStorage.setItem('nt_projects', JSON.stringify(projects));
+  }, [projects]);
+
+  useEffect(() => {
+    localStorage.setItem('nt_tasks', JSON.stringify(tasks));
+  }, [tasks]);
+
+  useEffect(() => {
+    localStorage.setItem('nt_timesheets', JSON.stringify(timesheets));
+  }, [timesheets]);
+
   return (
     <Router>
-      <AppLayout>
+      <AppLayout currentUser={currentUser}>
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/projects" element={<Projects />} />
-          <Route path="/tasks" element={<Tasks />} />
-           <Route path="/timesheet" element={<Timesheet />} />
-          <Route path="/team" element={<TeamApprovals />} />
-          <Route path="/reports" element={<Reports />} />
+          <Route path="/" element={<Dashboard projects={projects} tasks={tasks} timesheets={timesheets} currentUser={currentUser} />} />
+          <Route path="/projects" element={<Projects projects={projects} setProjects={setProjects} users={users} />} />
+          <Route path="/tasks" element={<Tasks tasks={tasks} setTasks={setTasks} projects={projects} users={users} />} />
+          <Route path="/timesheet" element={<Timesheet timesheets={timesheets} setTimesheets={setTimesheets} projects={projects} tasks={tasks} currentUser={currentUser} />} />
+          <Route path="/team" element={<TeamApprovals users={users} setUsers={setUsers} timesheets={timesheets} setTimesheets={setTimesheets} projects={projects} tasks={tasks} />} />
+          <Route path="/reports" element={<Reports timesheets={timesheets} projects={projects} users={users} />} />
         </Routes>
       </AppLayout>
     </Router>

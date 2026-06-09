@@ -1,18 +1,21 @@
-
 import { Clock, CheckSquare, Briefcase, Calendar, ChevronRight } from 'lucide-react';
-import { mockTasks, mockProjects, mockTimesheets, mockUsers } from '../data/mockData';
+import type { User, Project, Task, TimesheetEntry } from '../types';
 
-export const Dashboard = () => {
-  // Current user mock (John Doe)
-  const currentUser = mockUsers[0];
-  
+interface DashboardProps {
+  projects: Project[];
+  tasks: Task[];
+  timesheets: TimesheetEntry[];
+  currentUser: User;
+}
+
+export const Dashboard = ({ projects, tasks, timesheets, currentUser }: DashboardProps) => {
   // Quick Stats
-  const activeTasksCount = mockTasks.filter(t => t.status !== 'Done' && t.assigneeId === currentUser.id).length;
-  const activeProjectsCount = mockProjects.filter(p => p.status === 'Active' && p.members.some(m => m.userId === currentUser.id)).length;
-  const pendingTimesheets = mockTimesheets.filter(ts => ts.status === 'Pending').length;
+  const activeTasksCount = tasks.filter(t => t.status !== 'Done' && t.assigneeId === currentUser.id).length;
+  const activeProjectsCount = projects.filter(p => p.status === 'Active' && p.members.some(m => m.userId === currentUser.id)).length;
+  const pendingTimesheets = timesheets.filter(ts => ts.status === 'Pending').length;
   
   // Recent Tasks
-  const recentTasks = mockTasks.filter(t => t.assigneeId === currentUser.id).slice(0, 3);
+  const recentTasks = tasks.filter(t => t.assigneeId === currentUser.id).slice(0, 3);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -67,23 +70,27 @@ export const Dashboard = () => {
           </div>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {recentTasks.map(task => (
-              <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: task.status === 'Done' ? 'var(--accent-secondary)' : task.status === 'In Progress' ? 'var(--accent-primary)' : 'var(--text-muted)' }} />
-                  <div>
-                    <div style={{ fontWeight: 500 }}>{task.title}</div>
-                    <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{task.description}</div>
+            {recentTasks.length === 0 ? (
+              <div style={{ padding: '1rem', color: 'var(--text-secondary)', textAlign: 'center' }}>No tasks assigned to you.</div>
+            ) : (
+              recentTasks.map(task => (
+                <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: task.status === 'Done' ? 'var(--accent-secondary)' : task.status === 'In Progress' ? 'var(--accent-primary)' : 'var(--text-muted)' }} />
+                    <div>
+                      <div style={{ fontWeight: 500 }}>{task.title}</div>
+                      <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{task.description}</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <span style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-sm)', color: 'var(--text-secondary)' }}>
+                      {task.priority}
+                    </span>
+                    <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>{task.estimatedHours}h</span>
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <span style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-sm)', color: 'var(--text-secondary)' }}>
-                    {task.priority}
-                  </span>
-                  <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>{task.estimatedHours}h</span>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
