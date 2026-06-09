@@ -7,6 +7,7 @@ import { Timesheet } from './components/Timesheet';
 import { Tasks } from './components/Tasks';
 import { TeamApprovals } from './components/TeamApprovals';
 import { Reports } from './components/Reports';
+import { Login } from './components/Login';
 import { mockUsers, mockProjects, mockTasks, mockTimesheets } from './data/mockData';
 import type { User, Project, Task, TimesheetEntry } from './types';
 import './index.css';
@@ -43,7 +44,7 @@ const SidebarItem = ({ icon: Icon, label, path }: { icon: any, label: string, pa
   );
 };
 
-const AppLayout = ({ children, currentUser }: { children: React.ReactNode, currentUser: User }) => {
+const AppLayout = ({ children, currentUser, onLogout }: { children: React.ReactNode, currentUser: User, onLogout: () => void }) => {
   return (
     <div className="app-container">
       {/* Sidebar */}
@@ -65,13 +66,13 @@ const AppLayout = ({ children, currentUser }: { children: React.ReactNode, curre
         </nav>
 
         <div style={{ padding: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-secondary)', cursor: 'pointer' }} className="hover-lift">
+          <div onClick={onLogout} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-secondary)', cursor: 'pointer' }} className="hover-lift" title="Log out">
             <img src={currentUser.avatar} alt="User Profile" style={{ width: '36px', height: '36px', borderRadius: '50%' }} />
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)' }}>{currentUser.name}</div>
               <div style={{ fontSize: '0.75rem' }}>{currentUser.globalRole}</div>
             </div>
-            <LogOut size={18} />
+            <LogOut size={18} color="var(--accent-danger)" />
           </div>
         </div>
       </aside>
@@ -104,9 +105,7 @@ function App() {
   const [projects, setProjects] = useState<Project[]>(() => getLocalStorage('nt_projects', mockProjects));
   const [tasks, setTasks] = useState<Task[]>(() => getLocalStorage('nt_tasks', mockTasks));
   const [timesheets, setTimesheets] = useState<TimesheetEntry[]>(() => getLocalStorage('nt_timesheets', mockTimesheets));
-
-  // Current User Mock (First User in DB: John Doe)
-  const currentUser = users[0] || mockUsers[0];
+  const [currentUser, setCurrentUser] = useState<User | null>(() => getLocalStorage<User | null>('nt_current_user', null));
 
   // --- Sync with LocalStorage on State Change ---
   useEffect(() => {
@@ -125,9 +124,33 @@ function App() {
     localStorage.setItem('nt_timesheets', JSON.stringify(timesheets));
   }, [timesheets]);
 
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('nt_current_user', JSON.stringify(currentUser));
+      // Auto-add line mock user to available users list if they don't exist
+      if (!users.some(u => u.id === currentUser.id)) {
+        setUsers(prev => [...prev, currentUser]);
+      }
+    } else {
+      localStorage.removeItem('nt_current_user');
+    }
+  }, [currentUser, users]);
+
+  const handleLogin = (user: User) => {
+    setCurrentUser(user);
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+  };
+
+  if (!currentUser) {
+    return <Login onLogin={handleLogin} availableUsers={users} />;
+  }
+
   return (
     <Router>
-      <AppLayout currentUser={currentUser}>
+      <AppLayout currentUser={currentUser} onLogout={handleLogout}>
         <Routes>
           <Route path="/" element={<Dashboard projects={projects} tasks={tasks} timesheets={timesheets} currentUser={currentUser} />} />
           <Route path="/projects" element={<Projects projects={projects} setProjects={setProjects} users={users} />} />
