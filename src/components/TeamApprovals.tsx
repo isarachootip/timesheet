@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { TimesheetEntry, User, GlobalRole } from '../types';
+import type { TimesheetEntry, User, GlobalRole, Project, ProjectRole } from '../types';
 import { Check, X, Shield, Clock, Award, Users, Plus, Edit, Trash2 } from 'lucide-react';
 
 interface TeamApprovalsProps {
@@ -7,11 +7,12 @@ interface TeamApprovalsProps {
   setUsers: React.Dispatch<React.SetStateAction<User[]>>;
   timesheets: TimesheetEntry[];
   setTimesheets: React.Dispatch<React.SetStateAction<TimesheetEntry[]>>;
-  projects: any[];
+  projects: Project[];
+  setProjects: React.Dispatch<React.SetStateAction<Project[]>>;
   tasks: any[];
 }
 
-export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, projects, tasks }: TeamApprovalsProps) => {
+export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, projects, setProjects, tasks }: TeamApprovalsProps) => {
   const [activeTab, setActiveTab] = useState<'team' | 'approvals'>('team');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -21,6 +22,8 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
   const [email, setEmail] = useState('');
   const [globalRole, setGlobalRole] = useState<GlobalRole>('Employee');
   const [department, setDepartment] = useState('');
+  const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [projectRole, setProjectRole] = useState<ProjectRole>('Frontend dev');
 
   // Filter pending timesheets
   const pendingEntries = timesheets.filter(ts => ts.status === 'Pending');
@@ -44,6 +47,8 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
     setEmail('');
     setGlobalRole('Employee');
     setDepartment('');
+    setSelectedProjectId('');
+    setProjectRole('Frontend dev');
     setIsModalOpen(true);
   };
 
@@ -53,6 +58,18 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
     setEmail(user.email);
     setGlobalRole(user.globalRole);
     setDepartment(user.department);
+    
+    // Find current project membership
+    const currentProj = projects.find(p => p.members && p.members.some(m => m.userId === user.id));
+    if (currentProj) {
+      setSelectedProjectId(currentProj.id);
+      const member = currentProj.members.find(m => m.userId === user.id);
+      setProjectRole(member ? member.role : 'Frontend dev');
+    } else {
+      setSelectedProjectId('');
+      setProjectRole('Frontend dev');
+    }
+    
     setIsModalOpen(true);
   };
 
@@ -60,8 +77,9 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
     e.preventDefault();
     if (!name || !email) return alert('Name and Email are required');
 
+    const userId = editingUser ? editingUser.id : 'u_' + Date.now();
     const userData: User = {
-      id: editingUser ? editingUser.id : 'u_' + Date.now(),
+      id: userId,
       name,
       email,
       globalRole,
@@ -69,11 +87,42 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
       avatar: editingUser ? editingUser.avatar : `https://i.pravatar.cc/150?u=${Date.now()}`
     };
 
+    // 1. Update users list
     if (editingUser) {
       setUsers(prev => prev.map(u => u.id === editingUser.id ? userData : u));
     } else {
       setUsers(prev => [...prev, userData]);
     }
+
+    // 2. Update projects membership
+    setProjects(prevProjects => {
+      return prevProjects.map(proj => {
+        // Remove user from this project if it's not the selected one
+        if (proj.id !== selectedProjectId) {
+          return {
+            ...proj,
+            members: proj.members ? proj.members.filter(m => m.userId !== userId) : []
+          };
+        }
+        
+        // If it is the selected project, add/update the user membership
+        const membersList = proj.members || [];
+        const isAlreadyMember = membersList.some(m => m.userId === userId);
+        
+        if (isAlreadyMember) {
+          return {
+            ...proj,
+            members: membersList.map(m => m.userId === userId ? { ...m, role: projectRole } : m)
+          };
+        } else {
+          return {
+            ...proj,
+            members: [...membersList, { userId, role: projectRole }]
+          };
+        }
+      });
+    });
+
     setIsModalOpen(false);
   };
 
@@ -365,6 +414,38 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                   <option value="Admin">Admin</option>
                 </select>
               </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Project Assignment</label>
+                <select 
+                  value={selectedProjectId} 
+                  onChange={e => setSelectedProjectId(e.target.value)}
+                  style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
+                >
+                  <option value="">None</option>
+                  {projects.map(proj => (
+                    <option key={proj.id} value={proj.id}>{proj.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedProjectId && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Role in Project</label>
+                  <select 
+                    value={projectRole} 
+                    onChange={e => setProjectRole(e.target.value as ProjectRole)}
+                    style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
+                  >
+                    <option value="PM">PM</option>
+                    <option value="SA">SA</option>
+                    <option value="Frontend dev">Frontend dev</option>
+                    <option value="Backend dev">Backend dev</option>
+                    <option value="QC">QC</option>
+                    <option value="Designer">Designer</option>
+                  </select>
+                </div>
+              )}
 
               <button type="submit" style={{ 
                 background: 'var(--accent-primary)', 

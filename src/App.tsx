@@ -156,7 +156,7 @@ function App() {
           <Route path="/projects" element={<Projects projects={projects} setProjects={setProjects} users={users} />} />
           <Route path="/tasks" element={<Tasks tasks={tasks} setTasks={setTasks} projects={projects} users={users} />} />
           <Route path="/timesheet" element={<Timesheet timesheets={timesheets} setTimesheets={setTimesheets} projects={projects} tasks={tasks} currentUser={currentUser} />} />
-          <Route path="/team" element={<TeamApprovals users={users} setUsers={setUsers} timesheets={timesheets} setTimesheets={setTimesheets} projects={projects} tasks={tasks} />} />
+          <Route path="/team" element={<TeamApprovals users={users} setUsers={setUsers} timesheets={timesheets} setTimesheets={setTimesheets} projects={projects} setProjects={setProjects} tasks={tasks} />} />
           <Route path="/reports" element={<Reports timesheets={timesheets} projects={projects} users={users} />} />
         </Routes>
       </AppLayout>
