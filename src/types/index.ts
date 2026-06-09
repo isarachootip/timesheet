@@ -1,5 +1,5 @@
 export type GlobalRole = 'Admin' | 'Manager' | 'Employee';
-export type ProjectRole = 'Project Manager' | 'System Analyst' | 'Developer' | 'QA' | 'Designer';
+export type ProjectRole = 'PM' | 'SA' | 'Frontend dev' | 'Backend dev' | 'QC' | 'Designer';
 export type TaskStatus = 'To Do' | 'In Progress' | 'Review' | 'Done';
 export type TaskPriority = 'Low' | 'Medium' | 'High' | 'Urgent';
 export type TimesheetStatus = 'Draft' | 'Pending' | 'Approved' | 'Rejected';

@@ -45,8 +45,8 @@ export const mockProjects: Project[] = [
     endDate: '2026-08-30',
     budget: 50000,
     members: [
-      { userId: 'u1', role: 'Project Manager' },
-      { userId: 'u2', role: 'Developer' },
+      { userId: 'u1', role: 'PM' },
+      { userId: 'u2', role: 'Frontend dev' },
       { userId: 'u3', role: 'Designer' }
     ]
   },
@@ -57,8 +57,8 @@ export const mockProjects: Project[] = [
     status: 'Planning',
     startDate: '2026-07-15',
     members: [
-      { userId: 'u1', role: 'Project Manager' },
-      { userId: 'u2', role: 'System Analyst' },
+      { userId: 'u1', role: 'PM' },
+      { userId: 'u2', role: 'SA' },
       { userId: 'u3', role: 'Designer' }
     ]
   }

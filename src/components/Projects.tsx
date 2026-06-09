@@ -23,7 +23,7 @@ export const Projects = ({ projects, setProjects, users }: ProjectsProps) => {
 
   // Member select helper state
   const [tempUserId, setTempUserId] = useState('');
-  const [tempRole, setTempRole] = useState<ProjectRole>('Developer');
+  const [tempRole, setTempRole] = useState<ProjectRole>('Frontend dev');
 
   const openAddModal = () => {
     setEditingProject(null);
@@ -303,10 +303,11 @@ export const Projects = ({ projects, setProjects, users }: ProjectsProps) => {
                     onChange={e => setTempRole(e.target.value as ProjectRole)}
                     style={{ width: '120px', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
                   >
-                    <option value="Project Manager">PM</option>
-                    <option value="System Analyst">SA</option>
-                    <option value="Developer">Dev</option>
-                    <option value="QA">QA</option>
+                    <option value="PM">PM</option>
+                    <option value="SA">SA</option>
+                    <option value="Frontend dev">Frontend dev</option>
+                    <option value="Backend dev">Backend dev</option>
+                    <option value="QC">QC</option>
                     <option value="Designer">Designer</option>
                   </select>
 
