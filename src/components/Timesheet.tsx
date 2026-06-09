@@ -103,7 +103,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '2rem' }}>
+      <div className="timesheet-row" style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '2rem' }}>
         
         {/* Left Column: Entries */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>

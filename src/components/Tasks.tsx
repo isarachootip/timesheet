@@ -150,7 +150,7 @@ export const Tasks = ({ tasks, setTasks, projects, users }: TasksProps) => {
       </div>
 
       {/* Kanban Board */}
-      <div style={{ 
+      <div className="kanban-board" style={{ 
         display: 'grid', 
         gridTemplateColumns: 'repeat(4, 1fr)', 
         gap: '1.25rem', 
@@ -161,7 +161,7 @@ export const Tasks = ({ tasks, setTasks, projects, users }: TasksProps) => {
         {statuses.map(colStatus => {
           const statusTasks = filteredTasks.filter(t => t.status === colStatus);
           return (
-            <div key={colStatus} className="glass-panel" style={{ 
+            <div key={colStatus} className="glass-panel kanban-column" style={{ 
               padding: '1.25rem', 
               background: 'rgba(22, 26, 34, 0.4)', 
               display: 'flex', 

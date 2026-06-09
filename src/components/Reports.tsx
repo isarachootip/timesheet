@@ -123,7 +123,7 @@ export const Reports = ({ timesheets, projects, users }: ReportsProps) => {
       </div>
 
       {/* Graphical Breakdown */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '2rem' }}>
+      <div className="reports-row" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '2rem' }}>
         
         {/* Project Breakdown Chart */}
         <div className="glass-panel" style={{ padding: '1.5rem' }}>

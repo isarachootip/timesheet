@@ -59,7 +59,7 @@ export const Dashboard = ({ projects, tasks, timesheets, currentUser }: Dashboar
       </div>
 
       {/* Recent Activity / Tasks Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
+      <div className="dashboard-row" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
         {/* Task List */}
         <div className="glass-panel" style={{ padding: '1.5rem' }}>
           <div className="flex-between" style={{ marginBottom: '1.5rem' }}>
