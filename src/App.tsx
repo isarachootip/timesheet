@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, CheckSquare, Clock, Users, Settings as SettingsIcon, LogOut, Briefcase, BarChart3, Menu, X } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, Clock, Users, Settings as SettingsIcon, LogOut, Briefcase, BarChart3, Menu, X, CalendarRange } from 'lucide-react';
 import { Dashboard } from './components/Dashboard';
 import { Projects } from './components/Projects';
 import { Timesheet } from './components/Timesheet';
@@ -9,6 +9,7 @@ import { TeamApprovals } from './components/TeamApprovals';
 import { Reports } from './components/Reports';
 import { Login } from './components/Login';
 import { Settings } from './components/Settings';
+import { ProjectPlan } from './components/ProjectPlan';
 import { mockUsers, mockProjects, mockTasks, mockTimesheets } from './data/mockData';
 import type { User, Project, Task, TimesheetEntry, TaskTemplate } from './types';
 import './index.css';
@@ -80,6 +81,7 @@ const AppLayout = ({ children, currentUser, onLogout }: { children: React.ReactN
         <nav style={{ padding: '1.5rem 0', display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }} onClick={() => setIsSidebarOpen(false)}>
           <SidebarItem icon={LayoutDashboard} label="Dashboard" path="/" />
           <SidebarItem icon={Briefcase} label="Projects" path="/projects" />
+          <SidebarItem icon={CalendarRange} label="Project Plan" path="/project-plan" />
           <SidebarItem icon={CheckSquare} label="Tasks" path="/tasks" />
           <SidebarItem icon={Clock} label="Timesheet" path="/timesheet" />
           <SidebarItem icon={Users} label="Team" path="/team" />
@@ -314,7 +316,8 @@ function App() {
       <AppLayout currentUser={currentUser} onLogout={handleLogout}>
         <Routes>
           <Route path="/" element={<Dashboard projects={projects} tasks={tasks} timesheets={timesheets} currentUser={currentUser} />} />
-          <Route path="/projects" element={<Projects projects={projects} setProjects={handleSetProjects} users={users} />} />
+          <Route path="/projects" element={<Projects projects={projects} setProjects={handleSetProjects} users={users} tasks={tasks} />} />
+          <Route path="/project-plan" element={<ProjectPlan projects={projects} tasks={tasks} users={users} />} />
           <Route path="/tasks" element={<Tasks tasks={tasks} setTasks={handleSetTasks} projects={projects} users={users} />} />
           <Route path="/timesheet" element={<Timesheet timesheets={timesheets} setTimesheets={handleSetTimesheets} projects={projects} tasks={tasks} currentUser={currentUser} />} />
           <Route path="/team" element={<TeamApprovals users={users} setUsers={handleSetUsers} timesheets={timesheets} setTimesheets={handleSetTimesheets} projects={projects} setProjects={handleSetProjects} tasks={tasks} />} />
