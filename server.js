@@ -555,7 +555,7 @@ app.get('/api/db-status', async (req, res) => {
 });
 
 // Wildcard routing to serve React index.html for UI routes
-app.get('*', (req, res) => {
+app.get('/(.*)', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
