@@ -1,6 +1,5 @@
 # Nixpacks configuration to build and run the full-stack Node.js server
-[providers]
-node = {}
+providers = ["node"]
 
 [phases.build]
 cmds = ["npm install", "npm run build"]
