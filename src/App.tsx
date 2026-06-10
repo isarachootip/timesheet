@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, CheckSquare, Clock, Users, Settings as SettingsIcon, LogOut, Briefcase, BarChart3, Menu, X, CalendarRange } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, Clock, Users, Settings as SettingsIcon, LogOut, Briefcase, BarChart3, Menu, X, CalendarRange, Bell, AlertTriangle, AlertCircle, CalendarClock } from 'lucide-react';
 import { Dashboard } from './components/Dashboard';
 import { Projects } from './components/Projects';
 import { Timesheet } from './components/Timesheet';
@@ -46,7 +46,93 @@ const SidebarItem = ({ icon: Icon, label, path }: { icon: any, label: string, pa
   );
 };
 
-const AppLayout = ({ children, currentUser, onLogout }: { children: React.ReactNode, currentUser: User, onLogout: () => void }) => {
+// ─── Notification Bell Component ───
+const NotificationBell = ({ tasks, currentUser }: { tasks: Task[], currentUser: User }) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const in3Days = new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000);
+  const in7Days = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+  const myTasks = tasks.filter(t => t.assigneeId === currentUser.id && t.status !== 'Done' && t.endDate);
+  const overdue = myTasks.filter(t => new Date(t.endDate!) < today);
+  const dueSoon = myTasks.filter(t => { const d = new Date(t.endDate!); return d >= today && d <= in3Days; });
+  const dueThisWeek = myTasks.filter(t => { const d = new Date(t.endDate!); return d > in3Days && d <= in7Days; });
+  const total = overdue.length + dueSoon.length + dueThisWeek.length;
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const NotifRow = ({ icon, color, label, tasks }: { icon: React.ReactNode, color: string, label: string, tasks: Task[] }) => (
+    tasks.length > 0 ? <>
+      <div style={{ padding: '0.6rem 1.25rem', fontSize: '0.72rem', fontWeight: 700, color, background: `${color}15`, letterSpacing: '0.05em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+        {icon} {label} ({tasks.length})
+      </div>
+      {tasks.map(t => (
+        <div key={t.id} className="notif-item">
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>{t.title}</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>Due: {new Date(t.endDate!).toLocaleDateString()}</div>
+          </div>
+        </div>
+      ))}
+    </> : null
+  );
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button className="notif-bell-btn" onClick={() => setOpen(o => !o)} title="Notifications">
+        <Bell size={20} />
+        {total > 0 && <span className="notif-badge">{total > 9 ? '9+' : total}</span>}
+      </button>
+      {open && (
+        <div className="notif-dropdown">
+          <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>🔔 My Task Alerts</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{total} items</span>
+          </div>
+          {total === 0 ? (
+            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>✅ All caught up! No urgent tasks.</div>
+          ) : (
+            <div style={{ maxHeight: '420px', overflowY: 'auto' }}>
+              <NotifRow icon={<AlertTriangle size={12} />} color="#ef4444" label="Overdue" tasks={overdue} />
+              <NotifRow icon={<AlertCircle size={12} />} color="#f59e0b" label="Due in 3 days" tasks={dueSoon} />
+              <NotifRow icon={<CalendarClock size={12} />} color="#3b82f6" label="Due this week" tasks={dueThisWeek} />
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Mobile Bottom Nav ───
+const MobileBottomNav = () => {
+  const location = useLocation();
+  const links = [
+    { path: '/', icon: LayoutDashboard, label: 'Home' },
+    { path: '/tasks', icon: CheckSquare, label: 'Tasks' },
+    { path: '/project-plan', icon: CalendarRange, label: 'Plan' },
+    { path: '/timesheet', icon: Clock, label: 'Time' },
+    { path: '/team', icon: Users, label: 'Team' },
+  ];
+  return (
+    <nav className="mobile-bottom-nav">
+      {links.map(({ path, icon: Icon, label }) => (
+        <Link key={path} to={path} className={location.pathname === path ? 'active' : ''}>
+          <Icon size={20} />
+          <span>{label}</span>
+        </Link>
+      ))}
+    </nav>
+  );
+};
+
+const AppLayout = ({ children, currentUser, tasks, onLogout }: { children: React.ReactNode, currentUser: User, tasks: Task[], onLogout: () => void }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
@@ -68,7 +154,6 @@ const AppLayout = ({ children, currentUser, onLogout }: { children: React.ReactN
             </div>
             <h1 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }} className="text-gradient">NexTime</h1>
           </div>
-          {/* Close button inside sidebar on mobile */}
           <button 
             className="mobile-close-btn"
             onClick={() => setIsSidebarOpen(false)}
@@ -105,7 +190,6 @@ const AppLayout = ({ children, currentUser, onLogout }: { children: React.ReactN
       <main className="main-content">
         <header className="header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            {/* Hamburger Button for Mobile */}
             <button 
               className="mobile-menu-btn"
               onClick={() => setIsSidebarOpen(true)}
@@ -115,7 +199,8 @@ const AppLayout = ({ children, currentUser, onLogout }: { children: React.ReactN
             </button>
             <h2 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 500 }}>System Overview</h2>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <NotificationBell tasks={tasks} currentUser={currentUser} />
             <Link to="/settings" className="glass-panel hover-lift" style={{ padding: '0.5rem 1rem', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'transparent', outline: 'none', textDecoration: 'none' }}>
               <SettingsIcon size={18} />
               <span className="hide-mobile" style={{ fontSize: '0.875rem' }}>Settings</span>
@@ -127,6 +212,9 @@ const AppLayout = ({ children, currentUser, onLogout }: { children: React.ReactN
           {children}
         </div>
       </main>
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav />
     </div>
   );
 };
@@ -313,7 +401,7 @@ function App() {
 
   return (
     <Router>
-      <AppLayout currentUser={currentUser} onLogout={handleLogout}>
+      <AppLayout currentUser={currentUser} tasks={tasks} onLogout={handleLogout}>
         <Routes>
           <Route path="/" element={<Dashboard projects={projects} tasks={tasks} timesheets={timesheets} currentUser={currentUser} />} />
           <Route path="/projects" element={<Projects projects={projects} setProjects={handleSetProjects} users={users} tasks={tasks} />} />
