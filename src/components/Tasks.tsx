@@ -105,16 +105,19 @@ function DraggableCard({
     transform: CSS.Translate.toString(transform),
     opacity: isDragging ? 0.3 : 1,
     transition: isDragging ? 'none' : 'opacity 0.2s ease',
+    cursor: isDragging ? 'grabbing' : 'grab',
+    touchAction: 'none',
   };
 
   return (
     <div
       ref={setNodeRef}
       style={style}
+      {...attributes}
+      {...listeners}
     >
       <TaskCardContent
         task={task}
-        dragHandleProps={{ ...attributes, ...listeners }}
         getProjectName={getProjectName}
         getParentTaskTitle={getParentTaskTitle}
         getUserAvatar={getUserAvatar}
@@ -132,7 +135,6 @@ function DraggableCard({
 // ── Task Card Content (reused in DragOverlay too) ─────────────────────────────
 interface TaskCardContentProps {
   task: Task;
-  dragHandleProps?: Record<string, unknown>;
   isOverlay?: boolean;
   getProjectName: (id: string) => string;
   getParentTaskTitle: (id?: string) => string;
@@ -147,7 +149,6 @@ interface TaskCardContentProps {
 
 function TaskCardContent({
   task,
-  dragHandleProps,
   isOverlay = false,
   getProjectName,
   getParentTaskTitle,
@@ -188,31 +189,28 @@ function TaskCardContent({
         </span>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-          {/* Drag Handle */}
+          {/* Grip icon — visual indicator only; entire card is draggable */}
           <span
-            {...dragHandleProps}
             style={{
               display: 'flex',
               alignItems: 'center',
               color: 'var(--text-muted)',
-              cursor: 'grab',
               padding: '2px',
-              borderRadius: '4px',
-              transition: 'color 0.15s',
+              pointerEvents: 'none',
             }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--accent-primary)'; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'; }}
           >
             <GripVertical size={14} />
           </span>
           <button
             onClick={() => onEdit(task)}
+            onPointerDown={(e) => e.stopPropagation()}
             style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: 0 }}
           >
             <Edit size={12} />
           </button>
           <button
             onClick={() => onDelete(task.id)}
+            onPointerDown={(e) => e.stopPropagation()}
             style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer', padding: 0 }}
           >
             <Trash2 size={12} />
@@ -308,6 +306,7 @@ function TaskCardContent({
           <select
             value={task.status}
             onChange={(e) => onMove(task.id, e.target.value as TaskStatus)}
+            onPointerDown={(e) => e.stopPropagation()}
             style={{
               background: 'var(--bg-tertiary)',
               border: '1px solid var(--border-color)',
