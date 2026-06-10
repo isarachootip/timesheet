@@ -24,6 +24,7 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
   const [department, setDepartment] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [projectRole, setProjectRole] = useState<ProjectRole>('Frontend dev');
+  const [customRole, setCustomRole] = useState('');
   const [gender, setGender] = useState<'Male' | 'Female' | 'Other' | ''>('');
   const [birthday, setBirthday] = useState('');
   const [skills, setSkills] = useState('');
@@ -65,6 +66,7 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
     setDepartment('');
     setSelectedProjectId('');
     setProjectRole('Frontend dev');
+    setCustomRole('');
     setGender('');
     setBirthday('');
     setSkills('');
@@ -88,10 +90,19 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
     if (currentProj) {
       setSelectedProjectId(currentProj.id);
       const member = currentProj.members.find(m => m.userId === user.id);
-      setProjectRole(member ? member.role : 'Frontend dev');
+      const role = member ? member.role : 'Frontend dev';
+      const defaultRoles = ['PM', 'SA', 'Team Lead', 'Frontend dev', 'Backend dev', 'DevOps', 'QC', 'Designer'];
+      if (defaultRoles.includes(role)) {
+        setProjectRole(role);
+        setCustomRole('');
+      } else {
+        setProjectRole('Custom');
+        setCustomRole(role);
+      }
     } else {
       setSelectedProjectId('');
       setProjectRole('Frontend dev');
+      setCustomRole('');
     }
     
     setIsModalOpen(true);
@@ -149,15 +160,17 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
         const membersList = proj.members || [];
         const isAlreadyMember = membersList.some(m => m.userId === userId);
         
+        const roleToAdd = projectRole === 'Custom' ? customRole : projectRole;
+        
         if (isAlreadyMember) {
           return {
             ...proj,
-            members: membersList.map(m => m.userId === userId ? { ...m, role: projectRole } : m)
+            members: membersList.map(m => m.userId === userId ? { ...m, role: roleToAdd } : m)
           };
         } else {
           return {
             ...proj,
-            members: [...membersList, { userId, role: projectRole }]
+            members: [...membersList, { userId, role: roleToAdd }]
           };
         }
       });
@@ -615,24 +628,33 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
               {selectedProjectId && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                   <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Role in Project</label>
-                  <input 
-                    type="text"
-                    list="project-roles"
-                    value={projectRole} 
-                    onChange={e => setProjectRole(e.target.value)}
-                    placeholder="e.g. PM, SA, DevOps, Team Lead"
-                    style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none' }}
-                  />
-                  <datalist id="project-roles">
-                    <option value="PM" />
-                    <option value="SA" />
-                    <option value="Team Lead" />
-                    <option value="Frontend dev" />
-                    <option value="Backend dev" />
-                    <option value="DevOps" />
-                    <option value="QC" />
-                    <option value="Designer" />
-                  </datalist>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <select 
+                      value={projectRole} 
+                      onChange={e => setProjectRole(e.target.value)}
+                      style={{ flex: 1, background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
+                    >
+                      <option value="Frontend dev">Frontend dev</option>
+                      <option value="Backend dev">Backend dev</option>
+                      <option value="PM">PM</option>
+                      <option value="SA">SA</option>
+                      <option value="Team Lead">Team Lead</option>
+                      <option value="DevOps">DevOps</option>
+                      <option value="QC">QC</option>
+                      <option value="Designer">Designer</option>
+                      <option value="Custom">Custom Role...</option>
+                    </select>
+
+                    {projectRole === 'Custom' && (
+                      <input 
+                        type="text" 
+                        placeholder="Type role..."
+                        value={customRole}
+                        onChange={e => setCustomRole(e.target.value)}
+                        style={{ flex: 1.5, background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
+                      />
+                    )}
+                  </div>
                 </div>
               )}
 

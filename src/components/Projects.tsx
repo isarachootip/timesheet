@@ -24,6 +24,7 @@ export const Projects = ({ projects, setProjects, users }: ProjectsProps) => {
   // Member select helper state
   const [tempUserId, setTempUserId] = useState('');
   const [tempRole, setTempRole] = useState<ProjectRole>('Frontend dev');
+  const [customRole, setCustomRole] = useState('');
 
   const formatNumberWithCommas = (value: string) => {
     const cleanValue = value.replace(/[^0-9.]/g, '');
@@ -92,8 +93,11 @@ export const Projects = ({ projects, setProjects, users }: ProjectsProps) => {
   const addMember = () => {
     if (!tempUserId) return alert('Select a user first');
     if (members.some(m => m.userId === tempUserId)) return alert('Member already added');
-    setMembers(prev => [...prev, { userId: tempUserId, role: tempRole }]);
+    const roleToAdd = tempRole === 'Custom' ? customRole : tempRole;
+    if (!roleToAdd) return alert('Please enter or select a role');
+    setMembers(prev => [...prev, { userId: tempUserId, role: roleToAdd }]);
     setTempUserId('');
+    setCustomRole('');
   };
 
   const removeMember = (userId: string) => {
@@ -309,24 +313,31 @@ export const Projects = ({ projects, setProjects, users }: ProjectsProps) => {
                     {users.map(u => <option key={u.id} value={u.id}>{u.name} ({u.department})</option>)}
                   </select>
 
-                  <input 
-                    type="text"
-                    list="project-roles"
+                  <select 
                     value={tempRole} 
                     onChange={e => setTempRole(e.target.value)}
-                    placeholder="Role..."
-                    style={{ width: '120px', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
-                  />
-                  <datalist id="project-roles">
-                    <option value="PM" />
-                    <option value="SA" />
-                    <option value="Team Lead" />
-                    <option value="Frontend dev" />
-                    <option value="Backend dev" />
-                    <option value="DevOps" />
-                    <option value="QC" />
-                    <option value="Designer" />
-                  </datalist>
+                    style={{ width: '130px', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
+                  >
+                    <option value="Frontend dev">Frontend dev</option>
+                    <option value="Backend dev">Backend dev</option>
+                    <option value="PM">PM</option>
+                    <option value="SA">SA</option>
+                    <option value="Team Lead">Team Lead</option>
+                    <option value="DevOps">DevOps</option>
+                    <option value="QC">QC</option>
+                    <option value="Designer">Designer</option>
+                    <option value="Custom">Custom Role...</option>
+                  </select>
+
+                  {tempRole === 'Custom' && (
+                    <input 
+                      type="text" 
+                      placeholder="Type role..."
+                      value={customRole}
+                      onChange={e => setCustomRole(e.target.value)}
+                      style={{ flex: 1, minWidth: '80px', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
+                    />
+                  )}
 
                   <button type="button" onClick={addMember} style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                     <Plus size={18} />
