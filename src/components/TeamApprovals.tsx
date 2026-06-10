@@ -431,7 +431,7 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
           justifyContent: 'center',
           zIndex: 99
         }}>
-          <div className="glass-panel" style={{ padding: '2rem', width: '550px', maxWidth: '95%', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div className="glass-panel" style={{ padding: '2rem', width: '650px', maxWidth: '95%', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div className="flex-between">
               <h2 className="text-gradient" style={{ fontSize: '1.5rem' }}>{editingUser ? 'Edit Employee' : 'Add Employee'}</h2>
               <button onClick={() => setIsModalOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>

@@ -25,6 +25,17 @@ export const Projects = ({ projects, setProjects, users }: ProjectsProps) => {
   const [tempUserId, setTempUserId] = useState('');
   const [tempRole, setTempRole] = useState<ProjectRole>('Frontend dev');
 
+  const formatNumberWithCommas = (value: string) => {
+    const cleanValue = value.replace(/[^0-9.]/g, '');
+    const parts = cleanValue.split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return parts.join('.');
+  };
+
+  const parseNumberFromCommas = (formattedValue: string) => {
+    return parseFloat(formattedValue.replace(/,/g, '')) || 0;
+  };
+
   const openAddModal = () => {
     setEditingProject(null);
     setName('');
@@ -44,7 +55,7 @@ export const Projects = ({ projects, setProjects, users }: ProjectsProps) => {
     setStatus(project.status);
     setStartDate(project.startDate);
     setEndDate(project.endDate || '');
-    setBudget(project.budget ? String(project.budget) : '');
+    setBudget(project.budget ? formatNumberWithCommas(String(project.budget)) : '');
     setMembers(project.members);
     setIsModalOpen(true);
   };
@@ -60,7 +71,7 @@ export const Projects = ({ projects, setProjects, users }: ProjectsProps) => {
       status,
       startDate,
       endDate: endDate || undefined,
-      budget: budget ? Number(budget) : undefined,
+      budget: budget ? parseNumberFromCommas(budget) : undefined,
       members
     };
 
@@ -207,7 +218,7 @@ export const Projects = ({ projects, setProjects, users }: ProjectsProps) => {
           justifyContent: 'center',
           zIndex: 99
         }}>
-          <div className="glass-panel" style={{ padding: '2rem', width: '550px', maxWidth: '95%', display: 'flex', flexDirection: 'column', gap: '1.5rem', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="glass-panel" style={{ padding: '2rem', width: '650px', maxWidth: '95%', display: 'flex', flexDirection: 'column', gap: '1.5rem', maxHeight: '90vh', overflowY: 'auto' }}>
             <div className="flex-between">
               <h2 className="text-gradient" style={{ fontSize: '1.5rem' }}>{editingProject ? 'Edit Project' : 'New Project'}</h2>
               <button onClick={() => setIsModalOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
@@ -254,9 +265,9 @@ export const Projects = ({ projects, setProjects, users }: ProjectsProps) => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                   <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Budget ($)</label>
                   <input 
-                    type="number" 
+                    type="text" 
                     value={budget} 
-                    onChange={e => setBudget(e.target.value)} 
+                    onChange={e => setBudget(formatNumberWithCommas(e.target.value))} 
                     style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none' }}
                   />
                 </div>
