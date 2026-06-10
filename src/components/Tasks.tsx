@@ -9,6 +9,57 @@ interface TasksProps {
   users: User[];
 }
 
+const taskTemplates = [
+  {
+    title: 'Requirement Analysis & Specs Drafting',
+    description: 'Gather, analyze, and detail project requirements. Deliverable: PRD / specification document.',
+    estimatedHours: '12',
+    priority: 'Medium'
+  },
+  {
+    title: 'Database & System Architecture Design',
+    description: 'Design database tables, indexes, entity relationships, and backend API endpoints structure.',
+    estimatedHours: '16',
+    priority: 'High'
+  },
+  {
+    title: 'Database Setup & Initial Schema Migration',
+    description: 'Create PostgreSQL database tables, define indexes, foreign keys, and seed initial values.',
+    estimatedHours: '6',
+    priority: 'High'
+  },
+  {
+    title: 'Backend API Development: Auth & CRUD Operations',
+    description: 'Implement API controllers, models, JWT authorization, and validation rules for core resources.',
+    estimatedHours: '24',
+    priority: 'High'
+  },
+  {
+    title: 'Frontend Page Layouts & Core UI Components',
+    description: 'Build responsive views, layouts, navigation, and reusable buttons, modals, cards.',
+    estimatedHours: '16',
+    priority: 'Medium'
+  },
+  {
+    title: 'Frontend State Management & Backend API Integration',
+    description: 'Connect frontend views to API endpoints using fetch/axios, handle loading states and local caching.',
+    estimatedHours: '20',
+    priority: 'High'
+  },
+  {
+    title: 'Comprehensive QA Testing & Bug Resolution',
+    description: 'Execute unit and integration tests, verify responsive display on mobile, fix discovered edge cases.',
+    estimatedHours: '16',
+    priority: 'High'
+  },
+  {
+    title: 'CI/CD Pipeline Setup & Production Deployment',
+    description: 'Configure build scripts, dockerize application, set environment variables, deploy to staging/production server.',
+    estimatedHours: '8',
+    priority: 'Urgent'
+  }
+];
+
 export const Tasks = ({ tasks, setTasks, projects, users }: TasksProps) => {
   const [selectedProject, setSelectedProject] = useState<string>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -279,6 +330,31 @@ export const Tasks = ({ tasks, setTasks, projects, users }: TasksProps) => {
             </div>
 
             <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {!editingTask && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Load from Template (Helps break down tasks under 3 days)</label>
+                  <select 
+                    onChange={e => {
+                      const idx = Number(e.target.value);
+                      if (!isNaN(idx) && taskTemplates[idx]) {
+                        const tpl = taskTemplates[idx];
+                        setTitle(tpl.title);
+                        setDescription(tpl.description);
+                        setEstimatedHours(tpl.estimatedHours);
+                        setPriority(tpl.priority as TaskPriority);
+                      }
+                    }}
+                    defaultValue=""
+                    style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
+                  >
+                    <option value="">-- Select a Template --</option>
+                    {taskTemplates.map((t, idx) => (
+                      <option key={idx} value={idx}>{t.title} ({t.estimatedHours}h)</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                 <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Task Title *</label>
                 <input 
