@@ -33,6 +33,11 @@ const pool = new pg.Pool(
       }
 );
 
+const dbHost = connectionString 
+  ? (connectionString.match(/@([^/:]+)/) ? connectionString.match(/@([^/:]+)/)[1] : 'DATABASE_URL (parsed)')
+  : (process.env.DB_HOST || 'localhost');
+console.log(`Connecting to PostgreSQL database host: ${dbHost}`);
+
 // Initialize DB schema & seed if empty
 const initDB = async () => {
   try {
@@ -524,6 +529,28 @@ app.delete('/api/task-templates/:id', async (req, res) => {
   } catch (err) {
     console.error('Error deleting task template:', err);
     res.status(500).json({ error: err.message });
+  }
+});
+
+// DB Connection Diagnostics API
+app.get('/api/db-status', async (req, res) => {
+  try {
+    const host = connectionString 
+      ? (connectionString.match(/@([^/:]+)/) ? connectionString.match(/@([^/:]+)/)[1] : 'DATABASE_URL')
+      : (process.env.DB_HOST || 'localhost');
+    
+    const testRes = await pool.query('SELECT NOW()');
+    res.json({
+      connected: true,
+      host: host,
+      time: testRes.rows[0].now,
+      usingConnectionString: !!connectionString
+    });
+  } catch (err) {
+    res.json({
+      connected: false,
+      error: err.message
+    });
   }
 });
 
