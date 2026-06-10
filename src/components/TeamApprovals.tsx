@@ -532,8 +532,21 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                   value={skills} 
                   placeholder="e.g. React, TypeScript, Node.js"
                   onChange={e => setSkills(e.target.value)} 
+                  list="common-skills"
                   style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none' }}
                 />
+                <datalist id="common-skills">
+                  <option value="React" />
+                  <option value="TypeScript" />
+                  <option value="Node.js" />
+                  <option value="Docker" />
+                  <option value="DevOps" />
+                  <option value="Go" />
+                  <option value="Python" />
+                  <option value="PostgreSQL" />
+                  <option value="Figma" />
+                  <option value="UI/UX" />
+                </datalist>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -602,18 +615,24 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
               {selectedProjectId && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                   <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Role in Project</label>
-                  <select 
+                  <input 
+                    type="text"
+                    list="project-roles"
                     value={projectRole} 
-                    onChange={e => setProjectRole(e.target.value as ProjectRole)}
-                    style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
-                  >
-                    <option value="PM">PM</option>
-                    <option value="SA">SA</option>
-                    <option value="Frontend dev">Frontend dev</option>
-                    <option value="Backend dev">Backend dev</option>
-                    <option value="QC">QC</option>
-                    <option value="Designer">Designer</option>
-                  </select>
+                    onChange={e => setProjectRole(e.target.value)}
+                    placeholder="e.g. PM, SA, DevOps, Team Lead"
+                    style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none' }}
+                  />
+                  <datalist id="project-roles">
+                    <option value="PM" />
+                    <option value="SA" />
+                    <option value="Team Lead" />
+                    <option value="Frontend dev" />
+                    <option value="Backend dev" />
+                    <option value="DevOps" />
+                    <option value="QC" />
+                    <option value="Designer" />
+                  </datalist>
                 </div>
               )}
 

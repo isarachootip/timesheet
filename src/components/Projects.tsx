@@ -298,18 +298,24 @@ export const Projects = ({ projects, setProjects, users }: ProjectsProps) => {
                     {users.map(u => <option key={u.id} value={u.id}>{u.name} ({u.department})</option>)}
                   </select>
 
-                  <select 
+                  <input 
+                    type="text"
+                    list="project-roles"
                     value={tempRole} 
-                    onChange={e => setTempRole(e.target.value as ProjectRole)}
+                    onChange={e => setTempRole(e.target.value)}
+                    placeholder="Role..."
                     style={{ width: '120px', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
-                  >
-                    <option value="PM">PM</option>
-                    <option value="SA">SA</option>
-                    <option value="Frontend dev">Frontend dev</option>
-                    <option value="Backend dev">Backend dev</option>
-                    <option value="QC">QC</option>
-                    <option value="Designer">Designer</option>
-                  </select>
+                  />
+                  <datalist id="project-roles">
+                    <option value="PM" />
+                    <option value="SA" />
+                    <option value="Team Lead" />
+                    <option value="Frontend dev" />
+                    <option value="Backend dev" />
+                    <option value="DevOps" />
+                    <option value="QC" />
+                    <option value="Designer" />
+                  </datalist>
 
                   <button type="button" onClick={addMember} style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                     <Plus size={18} />
