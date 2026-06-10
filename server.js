@@ -84,6 +84,21 @@ const initDB = async () => {
     `);
     await client.query(`
       ALTER TABLE tasks ADD COLUMN IF NOT EXISTS parent_id VARCHAR(50);
+      ALTER TABLE tasks ADD COLUMN IF NOT EXISTS start_date VARCHAR(50);
+      ALTER TABLE tasks ADD COLUMN IF NOT EXISTS end_date VARCHAR(50);
+    `);
+
+    // Create Task Templates Table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS task_templates (
+        id VARCHAR(50) PRIMARY KEY,
+        title VARCHAR(200) NOT NULL,
+        description TEXT,
+        priority VARCHAR(50) NOT NULL DEFAULT 'Medium',
+        start_percent NUMERIC NOT NULL DEFAULT 0,
+        end_percent NUMERIC NOT NULL DEFAULT 100,
+        estimated_hours NUMERIC NOT NULL DEFAULT 0
+      );
     `);
 
     // Create Timesheets Table
@@ -187,6 +202,32 @@ const initDB = async () => {
       console.log('Seeding finished successfully.');
     }
 
+    // Seed task templates if empty
+    const templateCount = await client.query('SELECT COUNT(*) FROM task_templates');
+    if (parseInt(templateCount.rows[0].count) === 0) {
+      console.log('Seeding default task templates...');
+      const defaultTemplates = [
+        { id: 'tpl_1', title: 'Kick off Meeting', description: 'Align project stakeholders, clarify roles, objectives, and communication guidelines.', priority: 'High', start_percent: 0, end_percent: 2, estimated_hours: 4 },
+        { id: 'tpl_2', title: 'SOW & Contract Sign off', description: 'Review, negotiate, and execute formal Statement of Work and contract agreements.', priority: 'High', start_percent: 2, end_percent: 6, estimated_hours: 8 },
+        { id: 'tpl_3', title: 'Get Requirements & User Stories', description: 'Conduct requirement gathering sessions, detail user stories and acceptances.', priority: 'Medium', start_percent: 6, end_percent: 20, estimated_hours: 16 },
+        { id: 'tpl_4', title: 'UX/UI Design & Prototyping', description: 'Design wireframes, mockups, design systems, and clickable prototypes.', priority: 'Medium', start_percent: 20, end_percent: 35, estimated_hours: 24 },
+        { id: 'tpl_5', title: 'Setup Cloud Infrastructure & Environments', description: 'Provision servers, networks, PostgreSQL database clusters, SSL certificates, staging environment.', priority: 'Medium', start_percent: 25, end_percent: 32, estimated_hours: 12 },
+        { id: 'tpl_6', title: 'API Contract & Backend Architecture Setup', description: 'Structure code repository, setup Express/Database config, write boilerplate APIs.', priority: 'High', start_percent: 32, end_percent: 40, estimated_hours: 16 },
+        { id: 'tpl_7', title: 'Core Backend & Frontend Development', description: 'Code the core logic, business logic controllers, database integration, UI state management.', priority: 'High', start_percent: 40, end_percent: 75, estimated_hours: 40 },
+        { id: 'tpl_8', title: 'Data Migration & Seeding', description: 'Develop ETL scripts, clean production dataset, perform dry-run imports.', priority: 'Medium', start_percent: 70, end_percent: 75, estimated_hours: 16 },
+        { id: 'tpl_9', title: 'SIT (System Integration Testing)', description: 'Conduct end-to-end integration tests, trace network logs, and resolve edge cases.', priority: 'High', start_percent: 75, end_percent: 85, estimated_hours: 16 },
+        { id: 'tpl_10', title: 'UAT (User Acceptance Testing)', description: 'User-facing validation testing, gather customer feedback, patch blocking bugs.', priority: 'Urgent', start_percent: 85, end_percent: 95, estimated_hours: 24 },
+        { id: 'tpl_11', title: 'Production Release & Handover', description: 'Deploy build artifacts to production, verify functionality, transfer credentials and documentation.', priority: 'Urgent', start_percent: 95, end_percent: 100, estimated_hours: 8 }
+      ];
+      for (const tpl of defaultTemplates) {
+        await client.query(
+          'INSERT INTO task_templates (id, title, description, priority, start_percent, end_percent, estimated_hours) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+          [tpl.id, tpl.title, tpl.description, tpl.priority, tpl.start_percent, tpl.end_percent, tpl.estimated_hours]
+        );
+      }
+      console.log('Seeded default task templates.');
+    }
+
     client.release();
   } catch (err) {
     console.error('Error initializing database:', err);
@@ -205,6 +246,7 @@ app.get('/api/initial-data', async (req, res) => {
     const projectsRes = await pool.query('SELECT * FROM projects');
     const tasksRes = await pool.query('SELECT * FROM tasks');
     const timesheetsRes = await pool.query('SELECT * FROM timesheets');
+    const templatesRes = await pool.query('SELECT * FROM task_templates');
 
     // Map DB column casing to JS camelCase
     const users = usersRes.rows.map(u => ({
@@ -240,7 +282,9 @@ app.get('/api/initial-data', async (req, res) => {
       priority: t.priority,
       estimatedHours: parseFloat(t.estimated_hours || '0'),
       createdAt: t.created_at,
-      parentId: t.parent_id
+      parentId: t.parent_id,
+      startDate: t.start_date,
+      endDate: t.end_date
     }));
 
     const timesheets = timesheetsRes.rows.map(ts => ({
@@ -256,7 +300,17 @@ app.get('/api/initial-data', async (req, res) => {
       approvedAt: ts.approved_at
     }));
 
-    res.json({ users, projects, tasks, timesheets });
+    const taskTemplates = templatesRes.rows.map(tpl => ({
+      id: tpl.id,
+      title: tpl.title,
+      description: tpl.description,
+      priority: tpl.priority,
+      startPercent: parseFloat(tpl.start_percent || '0'),
+      endPercent: parseFloat(tpl.end_percent || '100'),
+      estimatedHours: parseFloat(tpl.estimated_hours || '0')
+    }));
+
+    res.json({ users, projects, tasks, timesheets, taskTemplates });
   } catch (err) {
     console.error('Error fetching initial data:', err);
     res.status(500).json({ error: err.message });
@@ -303,6 +357,9 @@ app.delete('/api/users/:id', async (req, res) => {
 app.post('/api/projects', async (req, res) => {
   const { id, name, description, status, startDate, endDate, budget, members } = req.body;
   try {
+    const checkExist = await pool.query('SELECT 1 FROM projects WHERE id = $1', [id]);
+    const isNew = checkExist.rows.length === 0;
+
     await pool.query(
       `INSERT INTO projects (id, name, description, status, start_date, end_date, budget, members)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -316,6 +373,43 @@ app.post('/api/projects', async (req, res) => {
          members = EXCLUDED.members`,
       [id, name, description, status, startDate, endDate, budget, JSON.stringify(members)]
     );
+
+    // Auto-generate main tasks from templates for new projects
+    if (isNew && startDate && endDate) {
+      const templates = await pool.query('SELECT * FROM task_templates');
+      const startD = new Date(startDate);
+      const endD = new Date(endDate);
+      const totalMs = endD.getTime() - startD.getTime();
+      
+      for (const tpl of templates.rows) {
+        // Calculate proportional start and end dates
+        const taskStartMs = startD.getTime() + (totalMs * parseFloat(tpl.start_percent) / 100);
+        const taskEndMs = startD.getTime() + (totalMs * parseFloat(tpl.end_percent) / 100);
+        
+        // Format as YYYY-MM-DD
+        const taskStartStr = new Date(taskStartMs).toISOString().split('T')[0];
+        const taskEndStr = new Date(taskEndMs).toISOString().split('T')[0];
+        
+        const taskId = 't_' + Math.random().toString(36).substr(2, 9);
+        await pool.query(
+          `INSERT INTO tasks (id, project_id, assignee_id, title, description, status, priority, estimated_hours, created_at, start_date, end_date)
+           VALUES ($1, $2, NULL, $3, $4, $5, $6, $7, $8, $9, $10)`,
+          [
+            taskId,
+            id,
+            tpl.title,
+            tpl.description || '',
+            'To Do',
+            tpl.priority || 'Medium',
+            parseFloat(tpl.estimated_hours || '0'),
+            new Date().toISOString(),
+            taskStartStr,
+            taskEndStr
+          ]
+        );
+      }
+    }
+
     res.json({ success: true });
   } catch (err) {
     console.error('Error saving project:', err);
@@ -325,11 +419,11 @@ app.post('/api/projects', async (req, res) => {
 
 // Tasks REST API
 app.post('/api/tasks', async (req, res) => {
-  const { id, projectId, assigneeId, title, description, status, priority, estimatedHours, createdAt, parentId } = req.body;
+  const { id, projectId, assigneeId, title, description, status, priority, estimatedHours, createdAt, parentId, startDate, endDate } = req.body;
   try {
     await pool.query(
-      `INSERT INTO tasks (id, project_id, assignee_id, title, description, status, priority, estimated_hours, created_at, parent_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      `INSERT INTO tasks (id, project_id, assignee_id, title, description, status, priority, estimated_hours, created_at, parent_id, start_date, end_date)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        ON CONFLICT (id) DO UPDATE SET
          project_id = EXCLUDED.project_id,
          assignee_id = EXCLUDED.assignee_id,
@@ -339,8 +433,10 @@ app.post('/api/tasks', async (req, res) => {
          priority = EXCLUDED.priority,
          estimated_hours = EXCLUDED.estimated_hours,
          created_at = EXCLUDED.created_at,
-         parent_id = EXCLUDED.parent_id`,
-      [id, projectId, assigneeId, title, description, status, priority, estimatedHours, createdAt, parentId || null]
+         parent_id = EXCLUDED.parent_id,
+         start_date = EXCLUDED.start_date,
+         end_date = EXCLUDED.end_date`,
+      [id, projectId, assigneeId, title, description, status, priority, estimatedHours, createdAt, parentId || null, startDate || null, endDate || null]
     );
     res.json({ success: true });
   } catch (err) {
@@ -393,6 +489,40 @@ app.delete('/api/timesheets/:id', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('Error deleting timesheet:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Task Templates REST API
+app.post('/api/task-templates', async (req, res) => {
+  const { id, title, description, priority, startPercent, endPercent, estimatedHours } = req.body;
+  try {
+    await pool.query(
+      `INSERT INTO task_templates (id, title, description, priority, start_percent, end_percent, estimated_hours)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       ON CONFLICT (id) DO UPDATE SET
+         title = EXCLUDED.title,
+         description = EXCLUDED.description,
+         priority = EXCLUDED.priority,
+         start_percent = EXCLUDED.start_percent,
+         end_percent = EXCLUDED.end_percent,
+         estimated_hours = EXCLUDED.estimated_hours`,
+      [id, title, description, priority, startPercent, endPercent, estimatedHours]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error saving task template:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/task-templates/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query('DELETE FROM task_templates WHERE id = $1', [id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error deleting task template:', err);
     res.status(500).json({ error: err.message });
   }
 });

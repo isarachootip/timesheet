@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, CheckSquare, Clock, Users, Settings, LogOut, Briefcase, BarChart3, Menu, X } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, Clock, Users, Settings as SettingsIcon, LogOut, Briefcase, BarChart3, Menu, X } from 'lucide-react';
 import { Dashboard } from './components/Dashboard';
 import { Projects } from './components/Projects';
 import { Timesheet } from './components/Timesheet';
@@ -8,8 +8,9 @@ import { Tasks } from './components/Tasks';
 import { TeamApprovals } from './components/TeamApprovals';
 import { Reports } from './components/Reports';
 import { Login } from './components/Login';
+import { Settings } from './components/Settings';
 import { mockUsers, mockProjects, mockTasks, mockTimesheets } from './data/mockData';
-import type { User, Project, Task, TimesheetEntry } from './types';
+import type { User, Project, Task, TimesheetEntry, TaskTemplate } from './types';
 import './index.css';
 
 // --- Helper to use LocalStorage with fallback ---
@@ -83,6 +84,7 @@ const AppLayout = ({ children, currentUser, onLogout }: { children: React.ReactN
           <SidebarItem icon={Clock} label="Timesheet" path="/timesheet" />
           <SidebarItem icon={Users} label="Team" path="/team" />
           <SidebarItem icon={BarChart3} label="Reports" path="/reports" />
+          <SidebarItem icon={SettingsIcon} label="Settings" path="/settings" />
         </nav>
 
         <div style={{ padding: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
@@ -112,10 +114,10 @@ const AppLayout = ({ children, currentUser, onLogout }: { children: React.ReactN
             <h2 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 500 }}>System Overview</h2>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <button className="glass-panel hover-lift" style={{ padding: '0.5rem 1rem', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'transparent', outline: 'none' }}>
-              <Settings size={18} />
+            <Link to="/settings" className="glass-panel hover-lift" style={{ padding: '0.5rem 1rem', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'transparent', outline: 'none', textDecoration: 'none' }}>
+              <SettingsIcon size={18} />
               <span className="hide-mobile" style={{ fontSize: '0.875rem' }}>Settings</span>
-            </button>
+            </Link>
           </div>
         </header>
         
@@ -132,6 +134,7 @@ function App() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [timesheets, setTimesheets] = useState<TimesheetEntry[]>([]);
+  const [taskTemplates, setTaskTemplates] = useState<TaskTemplate[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(() => getLocalStorage<User | null>('nt_current_user', null));
   const [loading, setLoading] = useState(true);
 
@@ -144,6 +147,7 @@ function App() {
         setProjects(data.projects || []);
         setTasks(data.tasks || []);
         setTimesheets(data.timesheets || []);
+        setTaskTemplates(data.taskTemplates || []);
         setLoading(false);
       })
       .catch(err => {
@@ -152,6 +156,7 @@ function App() {
         setProjects(mockProjects);
         setTasks(mockTasks);
         setTimesheets(mockTimesheets);
+        setTaskTemplates([]);
         setLoading(false);
       });
   }, []);
@@ -259,6 +264,30 @@ function App() {
     });
   };
 
+  const handleSetTaskTemplates: React.Dispatch<React.SetStateAction<TaskTemplate[]>> = (value) => {
+    setTaskTemplates(prev => {
+      const nextTpl = typeof value === 'function' ? value(prev) : value;
+      if (nextTpl.length < prev.length) {
+        const deletedTpl = prev.find(p => !nextTpl.some(n => n.id === p.id));
+        if (deletedTpl) {
+          fetch(`/api/task-templates/${deletedTpl.id}`, { method: 'DELETE' });
+        }
+      } else {
+        nextTpl.forEach(nTpl => {
+          const prevTpl = prev.find(p => p.id === nTpl.id);
+          if (JSON.stringify(prevTpl) !== JSON.stringify(nTpl)) {
+            fetch('/api/task-templates', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(nTpl)
+            });
+          }
+        });
+      }
+      return nextTpl;
+    });
+  };
+
   const handleLogin = (user: User) => {
     setCurrentUser(user);
   };
@@ -290,6 +319,7 @@ function App() {
           <Route path="/timesheet" element={<Timesheet timesheets={timesheets} setTimesheets={handleSetTimesheets} projects={projects} tasks={tasks} currentUser={currentUser} />} />
           <Route path="/team" element={<TeamApprovals users={users} setUsers={handleSetUsers} timesheets={timesheets} setTimesheets={handleSetTimesheets} projects={projects} setProjects={handleSetProjects} tasks={tasks} />} />
           <Route path="/reports" element={<Reports timesheets={timesheets} projects={projects} users={users} />} />
+          <Route path="/settings" element={<Settings taskTemplates={taskTemplates} setTaskTemplates={handleSetTaskTemplates} />} />
         </Routes>
       </AppLayout>
     </Router>

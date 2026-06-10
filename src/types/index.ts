@@ -44,6 +44,18 @@ export interface Task {
   estimatedHours: number;
   createdAt: string;
   parentId?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface TaskTemplate {
+  id: string;
+  title: string;
+  description: string;
+  priority: TaskPriority;
+  startPercent: number;
+  endPercent: number;
+  estimatedHours: number;
 }
 
 export interface TimesheetEntry {

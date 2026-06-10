@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { Calendar, Users, DollarSign, Plus, X, Edit, Trash2 } from 'lucide-react';
-import type { User, Project, ProjectStatus, ProjectRole } from '../types';
+import type { User, Project, ProjectStatus, ProjectRole, Task } from '../types';
 
 interface ProjectsProps {
   projects: Project[];
   setProjects: React.Dispatch<React.SetStateAction<Project[]>>;
   users: User[];
+  tasks?: Task[];
 }
 
-export const Projects = ({ projects, setProjects, users }: ProjectsProps) => {
+export const Projects = ({ projects, setProjects, users, tasks }: ProjectsProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
 
@@ -203,6 +204,33 @@ export const Projects = ({ projects, setProjects, users }: ProjectsProps) => {
                 )}
               </div>
             </div>
+
+            {/* Collapsible Project Milestones Checklist */}
+            {(() => {
+              const projectTasks = tasks ? tasks.filter(t => t.projectId === project.id && !t.parentId) : [];
+              if (projectTasks.length === 0) return null;
+              return (
+                <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+                  <details style={{ cursor: 'pointer' }}>
+                    <summary style={{ fontSize: '0.85rem', color: 'var(--accent-secondary)', fontWeight: 500, outline: 'none' }}>
+                      📅 Auto-Generated Plan ({projectTasks.length} Milestones)
+                    </summary>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem', maxHeight: '150px', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                      {projectTasks.map(t => (
+                        <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', background: 'var(--bg-tertiary)', padding: '0.35rem 0.5rem', borderRadius: '4px' }}>
+                          <span style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px' }} title={t.title}>
+                            {t.title}
+                          </span>
+                          <span style={{ color: 'var(--text-secondary)' }}>
+                            {t.startDate ? `${new Date(t.startDate).toLocaleDateString(undefined, {month:'short', day:'numeric'})} - ${t.endDate ? new Date(t.endDate).toLocaleDateString(undefined, {month:'short', day:'numeric'}) : ''}` : ''}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                </div>
+              );
+            })()}
           </div>
         ))}
       </div>

@@ -75,6 +75,8 @@ export const Tasks = ({ tasks, setTasks, projects, users }: TasksProps) => {
   const [projectId, setProjectId] = useState('');
   const [taskCategory, setTaskCategory] = useState<'Main' | 'Sub'>('Main');
   const [parentId, setParentId] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   const statuses: TaskStatus[] = ['To Do', 'In Progress', 'Review', 'Done'];
 
@@ -121,6 +123,8 @@ export const Tasks = ({ tasks, setTasks, projects, users }: TasksProps) => {
     setProjectId(projects[0]?.id || '');
     setTaskCategory('Main');
     setParentId('');
+    setStartDate('');
+    setEndDate('');
     setIsModalOpen(true);
   };
 
@@ -135,6 +139,8 @@ export const Tasks = ({ tasks, setTasks, projects, users }: TasksProps) => {
     setProjectId(task.projectId);
     setTaskCategory(task.parentId ? 'Sub' : 'Main');
     setParentId(task.parentId || '');
+    setStartDate(task.startDate || '');
+    setEndDate(task.endDate || '');
     setIsModalOpen(true);
   };
 
@@ -173,7 +179,9 @@ export const Tasks = ({ tasks, setTasks, projects, users }: TasksProps) => {
       estimatedHours: est,
       assigneeId: assigneeId || undefined,
       createdAt: editingTask ? editingTask.createdAt : new Date().toISOString(),
-      parentId: parentVal
+      parentId: parentVal,
+      startDate: startDate || undefined,
+      endDate: endDate || undefined
     };
 
     if (editingTask) {
@@ -306,10 +314,15 @@ export const Tasks = ({ tasks, setTasks, projects, users }: TasksProps) => {
                     </p>
 
                     <div className="flex-between" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                           <Clock size={12} /> {task.estimatedHours}h
                         </span>
+                        {task.startDate && (
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                            📅 {task.startDate} {task.endDate ? `to ${task.endDate}` : ''}
+                          </span>
+                        )}
                       </div>
                       
                       {/* Move Quick Actions & Assignee */}
@@ -505,6 +518,28 @@ export const Tasks = ({ tasks, setTasks, projects, users }: TasksProps) => {
                     type="number" 
                     value={estimatedHours} 
                     onChange={e => setEstimatedHours(e.target.value)} 
+                    style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Start Date</label>
+                  <input 
+                    type="date" 
+                    value={startDate} 
+                    onChange={e => setStartDate(e.target.value)} 
+                    style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>End Date</label>
+                  <input 
+                    type="date" 
+                    value={endDate} 
+                    onChange={e => setEndDate(e.target.value)} 
                     style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none' }}
                   />
                 </div>
