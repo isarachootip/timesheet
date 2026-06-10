@@ -554,8 +554,9 @@ app.get('/api/db-status', async (req, res) => {
   }
 });
 
-// Wildcard routing to serve React index.html for UI routes
-app.get('/(.*)', (req, res) => {
+// Fallback: serve React index.html for all non-API routes (SPA routing)
+// Using app.use instead of app.get('/(.*)', ...) to avoid path-to-regexp v6 incompatibility
+app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
