@@ -270,7 +270,7 @@ export const Tasks = ({ tasks, setTasks, projects, users }: TasksProps) => {
           justifyContent: 'center',
           zIndex: 99
         }}>
-          <div className="glass-panel" style={{ padding: '2rem', width: '450px', maxWidth: '90%', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div className="glass-panel" style={{ padding: '2rem', width: '550px', maxWidth: '95%', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div className="flex-between">
               <h2 className="text-gradient" style={{ fontSize: '1.5rem' }}>{editingTask ? 'Edit Task' : 'Add New Task'}</h2>
               <button onClick={() => setIsModalOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>

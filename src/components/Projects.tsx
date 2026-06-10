@@ -207,7 +207,7 @@ export const Projects = ({ projects, setProjects, users }: ProjectsProps) => {
           justifyContent: 'center',
           zIndex: 99
         }}>
-          <div className="glass-panel" style={{ padding: '2rem', width: '500px', maxWidth: '90%', display: 'flex', flexDirection: 'column', gap: '1.5rem', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="glass-panel" style={{ padding: '2rem', width: '550px', maxWidth: '95%', display: 'flex', flexDirection: 'column', gap: '1.5rem', maxHeight: '90vh', overflowY: 'auto' }}>
             <div className="flex-between">
               <h2 className="text-gradient" style={{ fontSize: '1.5rem' }}>{editingProject ? 'Edit Project' : 'New Project'}</h2>
               <button onClick={() => setIsModalOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
