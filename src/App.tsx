@@ -128,41 +128,136 @@ const AppLayout = ({ children, currentUser, onLogout }: { children: React.ReactN
 };
 
 function App() {
-  // --- States initialized from LocalStorage ---
-  const [users, setUsers] = useState<User[]>(() => getLocalStorage('nt_users', mockUsers));
-  const [projects, setProjects] = useState<Project[]>(() => getLocalStorage('nt_projects', mockProjects));
-  const [tasks, setTasks] = useState<Task[]>(() => getLocalStorage('nt_tasks', mockTasks));
-  const [timesheets, setTimesheets] = useState<TimesheetEntry[]>(() => getLocalStorage('nt_timesheets', mockTimesheets));
+  const [users, setUsers] = useState<User[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [timesheets, setTimesheets] = useState<TimesheetEntry[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(() => getLocalStorage<User | null>('nt_current_user', null));
+  const [loading, setLoading] = useState(true);
 
-  // --- Sync with LocalStorage on State Change ---
+  // Fetch initial data from PostgreSQL
   useEffect(() => {
-    localStorage.setItem('nt_users', JSON.stringify(users));
-  }, [users]);
+    fetch('/api/initial-data')
+      .then(res => res.json())
+      .then(data => {
+        setUsers(data.users || []);
+        setProjects(data.projects || []);
+        setTasks(data.tasks || []);
+        setTimesheets(data.timesheets || []);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('Error fetching backend data, falling back to mocks:', err);
+        setUsers(mockUsers);
+        setProjects(mockProjects);
+        setTasks(mockTasks);
+        setTimesheets(mockTimesheets);
+        setLoading(false);
+      });
+  }, []);
 
-  useEffect(() => {
-    localStorage.setItem('nt_projects', JSON.stringify(projects));
-  }, [projects]);
-
-  useEffect(() => {
-    localStorage.setItem('nt_tasks', JSON.stringify(tasks));
-  }, [tasks]);
-
-  useEffect(() => {
-    localStorage.setItem('nt_timesheets', JSON.stringify(timesheets));
-  }, [timesheets]);
-
+  // Sync current logged-in user in localStorage
   useEffect(() => {
     if (currentUser) {
       localStorage.setItem('nt_current_user', JSON.stringify(currentUser));
-      // Auto-add line mock user to available users list if they don't exist
-      if (!users.some(u => u.id === currentUser.id)) {
-        setUsers(prev => [...prev, currentUser]);
+      // Auto-add current user if not in database
+      if (users.length > 0 && !users.some(u => u.id === currentUser.id)) {
+        handleSetUsers(prev => [...prev, currentUser]);
       }
     } else {
       localStorage.removeItem('nt_current_user');
     }
   }, [currentUser, users]);
+
+  // REST synchronizing hooks
+  const handleSetUsers: React.Dispatch<React.SetStateAction<User[]>> = (value) => {
+    setUsers(prev => {
+      const nextUsers = typeof value === 'function' ? value(prev) : value;
+      if (nextUsers.length < prev.length) {
+        const deletedUser = prev.find(pUser => !nextUsers.some(nUser => nUser.id === pUser.id));
+        if (deletedUser) {
+          fetch(`/api/users/${deletedUser.id}`, { method: 'DELETE' });
+        }
+      } else {
+        nextUsers.forEach(nUser => {
+          const prevUser = prev.find(pUser => pUser.id === nUser.id);
+          if (JSON.stringify(prevUser) !== JSON.stringify(nUser)) {
+            fetch('/api/users', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(nUser)
+            });
+          }
+        });
+      }
+      return nextUsers;
+    });
+  };
+
+  const handleSetProjects: React.Dispatch<React.SetStateAction<Project[]>> = (value) => {
+    setProjects(prev => {
+      const nextProjects = typeof value === 'function' ? value(prev) : value;
+      nextProjects.forEach(nProj => {
+        const prevProj = prev.find(pProj => pProj.id === nProj.id);
+        if (JSON.stringify(prevProj) !== JSON.stringify(nProj)) {
+          fetch('/api/projects', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(nProj)
+          });
+        }
+      });
+      return nextProjects;
+    });
+  };
+
+  const handleSetTasks: React.Dispatch<React.SetStateAction<Task[]>> = (value) => {
+    setTasks(prev => {
+      const nextTasks = typeof value === 'function' ? value(prev) : value;
+      if (nextTasks.length < prev.length) {
+        const deletedTask = prev.find(pTask => !nextTasks.some(nTask => nTask.id === pTask.id));
+        if (deletedTask) {
+          fetch(`/api/tasks/${deletedTask.id}`, { method: 'DELETE' });
+        }
+      } else {
+        nextTasks.forEach(nTask => {
+          const prevTask = prev.find(pTask => pTask.id === nTask.id);
+          if (JSON.stringify(prevTask) !== JSON.stringify(nTask)) {
+            fetch('/api/tasks', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(nTask)
+            });
+          }
+        });
+      }
+      return nextTasks;
+    });
+  };
+
+  const handleSetTimesheets: React.Dispatch<React.SetStateAction<TimesheetEntry[]>> = (value) => {
+    setTimesheets(prev => {
+      const nextTimesheets = typeof value === 'function' ? value(prev) : value;
+      if (nextTimesheets.length < prev.length) {
+        const deletedTs = prev.find(pTs => !nextTimesheets.some(nTs => nTs.id === pTs.id));
+        if (deletedTs) {
+          fetch(`/api/timesheets/${deletedTs.id}`, { method: 'DELETE' });
+        }
+      } else {
+        nextTimesheets.forEach(nTs => {
+          const prevTs = prev.find(pTs => pTs.id === nTs.id);
+          if (JSON.stringify(prevTs) !== JSON.stringify(nTs)) {
+            fetch('/api/timesheets', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(nTs)
+            });
+          }
+        });
+      }
+      return nextTimesheets;
+    });
+  };
 
   const handleLogin = (user: User) => {
     setCurrentUser(user);
@@ -173,7 +268,16 @@ function App() {
   };
 
   if (!currentUser) {
-    return <Login onLogin={handleLogin} availableUsers={users} />;
+    return <Login onLogin={handleLogin} availableUsers={users.length > 0 ? users : mockUsers} />;
+  }
+
+  if (loading) {
+    return (
+      <div className="flex-center" style={{ height: '100vh', flexDirection: 'column', gap: '1rem' }}>
+        <div className="text-gradient" style={{ fontSize: '1.5rem', fontWeight: 600 }}>Loading system...</div>
+        <p style={{ color: 'var(--text-secondary)' }}>Connecting to database...</p>
+      </div>
+    );
   }
 
   return (
@@ -181,10 +285,10 @@ function App() {
       <AppLayout currentUser={currentUser} onLogout={handleLogout}>
         <Routes>
           <Route path="/" element={<Dashboard projects={projects} tasks={tasks} timesheets={timesheets} currentUser={currentUser} />} />
-          <Route path="/projects" element={<Projects projects={projects} setProjects={setProjects} users={users} />} />
-          <Route path="/tasks" element={<Tasks tasks={tasks} setTasks={setTasks} projects={projects} users={users} />} />
-          <Route path="/timesheet" element={<Timesheet timesheets={timesheets} setTimesheets={setTimesheets} projects={projects} tasks={tasks} currentUser={currentUser} />} />
-          <Route path="/team" element={<TeamApprovals users={users} setUsers={setUsers} timesheets={timesheets} setTimesheets={setTimesheets} projects={projects} setProjects={setProjects} tasks={tasks} />} />
+          <Route path="/projects" element={<Projects projects={projects} setProjects={handleSetProjects} users={users} />} />
+          <Route path="/tasks" element={<Tasks tasks={tasks} setTasks={handleSetTasks} projects={projects} users={users} />} />
+          <Route path="/timesheet" element={<Timesheet timesheets={timesheets} setTimesheets={handleSetTimesheets} projects={projects} tasks={tasks} currentUser={currentUser} />} />
+          <Route path="/team" element={<TeamApprovals users={users} setUsers={handleSetUsers} timesheets={timesheets} setTimesheets={handleSetTimesheets} projects={projects} setProjects={handleSetProjects} tasks={tasks} />} />
           <Route path="/reports" element={<Reports timesheets={timesheets} projects={projects} users={users} />} />
         </Routes>
       </AppLayout>
