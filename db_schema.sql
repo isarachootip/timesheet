@@ -35,7 +35,8 @@ CREATE TABLE IF NOT EXISTS tasks (
     status VARCHAR(50) NOT NULL,
     priority VARCHAR(50) NOT NULL,
     estimated_hours NUMERIC NOT NULL DEFAULT 0,
-    created_at VARCHAR(50) NOT NULL
+    created_at VARCHAR(50) NOT NULL,
+    parent_id VARCHAR(50)
 );
 
 -- 4. Timesheets Table

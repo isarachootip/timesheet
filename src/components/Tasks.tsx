@@ -73,6 +73,8 @@ export const Tasks = ({ tasks, setTasks, projects, users }: TasksProps) => {
   const [estimatedHours, setEstimatedHours] = useState('');
   const [assigneeId, setAssigneeId] = useState('');
   const [projectId, setProjectId] = useState('');
+  const [taskCategory, setTaskCategory] = useState<'Main' | 'Sub'>('Main');
+  const [parentId, setParentId] = useState('');
 
   const statuses: TaskStatus[] = ['To Do', 'In Progress', 'Review', 'Done'];
 
@@ -103,6 +105,11 @@ export const Tasks = ({ tasks, setTasks, projects, users }: TasksProps) => {
     }
   };
 
+  const getParentTaskTitle = (pId?: string) => {
+    if (!pId) return '';
+    return tasks.find(t => t.id === pId)?.title || '';
+  };
+
   const openAddModal = () => {
     setEditingTask(null);
     setTitle('');
@@ -112,6 +119,8 @@ export const Tasks = ({ tasks, setTasks, projects, users }: TasksProps) => {
     setEstimatedHours('');
     setAssigneeId('');
     setProjectId(projects[0]?.id || '');
+    setTaskCategory('Main');
+    setParentId('');
     setIsModalOpen(true);
   };
 
@@ -124,12 +133,35 @@ export const Tasks = ({ tasks, setTasks, projects, users }: TasksProps) => {
     setEstimatedHours(String(task.estimatedHours));
     setAssigneeId(task.assigneeId || '');
     setProjectId(task.projectId);
+    setTaskCategory(task.parentId ? 'Sub' : 'Main');
+    setParentId(task.parentId || '');
     setIsModalOpen(true);
   };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !projectId) return alert('Title and Project are required');
+
+    const est = estimatedHours ? Number(estimatedHours) : 0;
+    const parentVal = taskCategory === 'Sub' ? parentId : undefined;
+
+    if (taskCategory === 'Sub') {
+      if (!parentId) return alert('Please select a Main Task for this Subtask');
+      // Validate that subtask hours do not exceed parent task budgeted hours
+      const parentTask = tasks.find(t => t.id === parentId);
+      if (parentTask) {
+        const parentLimit = parentTask.estimatedHours;
+        const otherSubtasksHours = tasks
+          .filter(t => t.parentId === parentId && t.id !== (editingTask?.id || ''))
+          .reduce((sum, t) => sum + t.estimatedHours, 0);
+
+        if (otherSubtasksHours + est > parentLimit) {
+          return alert(
+            `Cannot save. Total subtask hours (${otherSubtasksHours + est}h) would exceed the Main Task's budgeted limit of ${parentLimit}h. (Already used: ${otherSubtasksHours}h)`
+          );
+        }
+      }
+    }
 
     const taskData: Task = {
       id: editingTask ? editingTask.id : 't_' + Date.now(),
@@ -138,9 +170,10 @@ export const Tasks = ({ tasks, setTasks, projects, users }: TasksProps) => {
       description,
       status,
       priority,
-      estimatedHours: estimatedHours ? Number(estimatedHours) : 0,
+      estimatedHours: est,
       assigneeId: assigneeId || undefined,
-      createdAt: editingTask ? editingTask.createdAt : new Date().toISOString()
+      createdAt: editingTask ? editingTask.createdAt : new Date().toISOString(),
+      parentId: parentVal
     };
 
     if (editingTask) {
@@ -257,7 +290,14 @@ export const Tasks = ({ tasks, setTasks, projects, users }: TasksProps) => {
                       </div>
                     </div>
 
-                    <h4 style={{ fontSize: '0.925rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
+                    {task.parentId && (
+                      <div style={{ fontSize: '0.7rem', color: 'var(--accent-info)', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <span>📁 Under: {getParentTaskTitle(task.parentId)}</span>
+                      </div>
+                    )}
+
+                    <h4 style={{ fontSize: '0.925rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      {!task.parentId && <span style={{ fontSize: '0.75rem', background: 'var(--bg-tertiary)', padding: '0.1rem 0.35rem', borderRadius: 'var(--radius-sm)', color: 'var(--text-secondary)' }}>Main</span>}
                       {task.title}
                     </h4>
 
@@ -386,6 +426,37 @@ export const Tasks = ({ tasks, setTasks, projects, users }: TasksProps) => {
                   <option value="">Select Project...</option>
                   {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Task Category</label>
+                  <select 
+                    value={taskCategory} 
+                    onChange={e => setTaskCategory(e.target.value as 'Main' | 'Sub')}
+                    style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
+                  >
+                    <option value="Main">Main Task (Milestone / Parent)</option>
+                    <option value="Sub">Subtask (To Do under Main Task)</option>
+                  </select>
+                </div>
+
+                {taskCategory === 'Sub' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Under Main Task *</label>
+                    <select 
+                      value={parentId} 
+                      onChange={e => setParentId(e.target.value)}
+                      style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
+                      required={taskCategory === 'Sub'}
+                    >
+                      <option value="">Select Main Task...</option>
+                      {tasks.filter(t => t.projectId === projectId && !t.parentId && t.id !== (editingTask?.id || '')).map(mt => (
+                        <option key={mt.id} value={mt.id}>{mt.title} ({mt.estimatedHours}h)</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>

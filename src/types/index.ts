@@ -43,6 +43,7 @@ export interface Task {
   priority: TaskPriority;
   estimatedHours: number;
   createdAt: string;
+  parentId?: string;
 }
 
 export interface TimesheetEntry {

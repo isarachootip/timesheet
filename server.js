@@ -78,8 +78,12 @@ const initDB = async () => {
         status VARCHAR(50) NOT NULL,
         priority VARCHAR(50) NOT NULL,
         estimated_hours NUMERIC NOT NULL DEFAULT 0,
-        created_at VARCHAR(50) NOT NULL
+        created_at VARCHAR(50) NOT NULL,
+        parent_id VARCHAR(50)
       );
+    `);
+    await client.query(`
+      ALTER TABLE tasks ADD COLUMN IF NOT EXISTS parent_id VARCHAR(50);
     `);
 
     // Create Timesheets Table
@@ -235,7 +239,8 @@ app.get('/api/initial-data', async (req, res) => {
       status: t.status,
       priority: t.priority,
       estimatedHours: parseFloat(t.estimated_hours || '0'),
-      createdAt: t.created_at
+      createdAt: t.created_at,
+      parentId: t.parent_id
     }));
 
     const timesheets = timesheetsRes.rows.map(ts => ({
@@ -320,11 +325,11 @@ app.post('/api/projects', async (req, res) => {
 
 // Tasks REST API
 app.post('/api/tasks', async (req, res) => {
-  const { id, projectId, assigneeId, title, description, status, priority, estimatedHours, createdAt } = req.body;
+  const { id, projectId, assigneeId, title, description, status, priority, estimatedHours, createdAt, parentId } = req.body;
   try {
     await pool.query(
-      `INSERT INTO tasks (id, project_id, assignee_id, title, description, status, priority, estimated_hours, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `INSERT INTO tasks (id, project_id, assignee_id, title, description, status, priority, estimated_hours, created_at, parent_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        ON CONFLICT (id) DO UPDATE SET
          project_id = EXCLUDED.project_id,
          assignee_id = EXCLUDED.assignee_id,
@@ -333,8 +338,9 @@ app.post('/api/tasks', async (req, res) => {
          status = EXCLUDED.status,
          priority = EXCLUDED.priority,
          estimated_hours = EXCLUDED.estimated_hours,
-         created_at = EXCLUDED.created_at`,
-      [id, projectId, assigneeId, title, description, status, priority, estimatedHours, createdAt]
+         created_at = EXCLUDED.created_at,
+         parent_id = EXCLUDED.parent_id`,
+      [id, projectId, assigneeId, title, description, status, priority, estimatedHours, createdAt, parentId || null]
     );
     res.json({ success: true });
   } catch (err) {
