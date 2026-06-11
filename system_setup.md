@@ -222,7 +222,20 @@ DATABASE_URL=postgresql://isara_admin:MySecretPass123!@187.77.147.16:5432/timesh
 
 ระบบล็อกอินใช้ LINE Login (OAuth 2.0) เป็นหลักร่วมกับระบบการตรวจสอบสิทธิ์แบบ 2 ปัจจัย (2FA) ผ่านทางอีเมลบริษัทเพื่อความปลอดภัยของข้อมูลองค์กร
 
-### 1. การตั้งค่าตัวแปรสิ่งแวดล้อม (.env)
+### 1. วิธีการตั้งค่า LINE Developers Console (เพื่อรับค่า Key)
+ผู้ดูแลระบบต้องตั้งค่าช่องทาง LINE Login บน LINE Developers Console เพื่อรับคีย์และอนุญาตสิทธิ์การล็อกอินก่อนใช้งานจริง:
+
+1. เข้าสู่หน้า [LINE Developers Console](https://developers.line.biz/) และล็อกอินด้วยบัญชี LINE
+2. สร้าง **Provider** (หากยังไม่มี) จากนั้นกดสร้าง Channel ใหม่ โดยเลือกประเภทเป็น **`LINE Login`** (⚠️ *ต้องเลือก LINE Login เท่านั้น ห้ามเลือก Messaging API หรือ LINE OA ทั่วไป*)
+3. ไปที่แท็บ **LINE Login**:
+   - ที่หัวข้อ **Callback URL** กด Edit และเพิ่มค่า: `https://vibe.project.online/api/auth/line/callback` (และเพิ่ม `http://localhost:3000/api/auth/line/callback` หากคุณต้องการทดสอบบนเครื่อง Local ของผู้พัฒนา)
+   - สลับสถานะของ Channel ด้านบนจาก **Developing** เป็น **Published** (เพื่อให้คนนอกทั่วไปล็อกอินระบบได้)
+4. ไปที่แท็บ **Basic settings**:
+   - คัดลอกค่า **Channel ID** และ **Channel Secret**
+   - ที่หัวข้อ **Email address permission** ด้านล่างสุด ให้กดส่งขอสิทธิ์การเข้าถึงข้อมูลอีเมลของผู้ใช้ (Email Address Access) เพื่อให้ระบบสามารถดึงอีเมลมาตรวจและจับคู่กับอีเมลบริษัทของพนักงานโดยอัตโนมัติได้
+5. นำคีย์ที่คัดลอกได้ไปกำหนดค่าในระบบ Coolify และไฟล์ `.env` ตามข้อถัดไป
+
+### 2. การตั้งค่าตัวแปรสิ่งแวดล้อม (.env)
 ต้องเพิ่มค่าคอนฟิกสำหรับ LINE Developers Console ในไฟล์ `.env` ทั้งเครื่อง Local และบนระบบ Coolify:
 
 ```env
