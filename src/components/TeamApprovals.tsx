@@ -116,14 +116,38 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatar(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+
+    // Compress image using Canvas before saving (prevents mobile memory crash)
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      const MAX_SIZE = 600; // max width/height in px
+      let { width, height } = img;
+
+      // Scale down proportionally
+      if (width > height && width > MAX_SIZE) {
+        height = Math.round((height * MAX_SIZE) / width);
+        width = MAX_SIZE;
+      } else if (height > MAX_SIZE) {
+        width = Math.round((width * MAX_SIZE) / height);
+        height = MAX_SIZE;
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Export as JPEG at 75% quality (~50-100KB)
+      const compressed = canvas.toDataURL('image/jpeg', 0.75);
+      setAvatar(compressed);
+      URL.revokeObjectURL(objectUrl);
+    };
+    img.src = objectUrl;
   };
+
 
   const handleSaveUser = (e: React.FormEvent) => {
     e.preventDefault();
