@@ -239,8 +239,8 @@ DATABASE_URL=postgresql://isara_admin:MySecretPass123!@187.77.147.16:5432/timesh
 ต้องเพิ่มค่าคอนฟิกสำหรับ LINE Developers Console ในไฟล์ `.env` ทั้งเครื่อง Local และบนระบบ Coolify:
 
 ```env
-LINE_CHANNEL_ID=your_line_channel_id
-LINE_CHANNEL_SECRET=your_line_channel_secret
+LINE_CHANNEL_ID=2010371232
+LINE_CHANNEL_SECRET=57c874e33889f41b975c570bccbddfd5
 LINE_CALLBACK_URL=https://vibe.project.online/api/auth/line/callback
 JWT_SECRET=your_jwt_private_key
 ```
@@ -271,3 +271,12 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_enabled BOOLEAN DEFAULT FA
 4. **ผูกบัญชีถาวร:** พนักงานนำรหัส OTP 6 หลักมากรอกยืนยันในแอป ระบบจะทำการผูก LINE UUID เข้ากับข้อมูลพนักงานคนดังกล่าวในระบบถาวร
 5. **การล็อกอินครั้งถัดไป:** พนักงานสามารถล็อกอินผ่าน LINE ได้ทันทีโดยไม่ต้องยืนยันตัวตนซ้ำ (ยกเว้นกรณีที่ต้องการความปลอดภัยสูงเป็นพิเศษ เช่น ระดับสิทธิ์ Admin / Owner ที่สามารถเปิดตั้งค่าให้ถาม OTP ทุกครั้งที่เข้าสู่ระบบจากเครื่องใหม่)
 
+### 5. ข้อมูลการตั้งค่า LINE Login ของระบบ (Production Credentials)
+
+| รายการ | ค่า |
+|---|---|
+| **Channel Name** | `PJ_Management` |
+| **Channel ID** | `2010371232` |
+| **Channel Secret** | `57c874e33889f41b975c570bccbddfd5` |
+| **LINE User ID (Admin)** | `U4705c60091e36513849ba962929e0254` |
+| **Callback URL** | `https://vibe.project.online/api/auth/line/callback` |
