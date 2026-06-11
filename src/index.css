@@ -438,3 +438,9 @@ h3 { font-size: 1.5rem; line-height: 2rem; }
   .text-gradient { color: #333 !important; background: none !important; -webkit-text-fill-color: #333 !important; }
 }
 
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(100px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+

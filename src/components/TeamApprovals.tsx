@@ -16,6 +16,12 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
   const [activeTab, setActiveTab] = useState<'team' | 'approvals'>('team');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+
+  const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   // User form states
   const [name, setName] = useState('');
@@ -177,16 +183,32 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
     });
 
     setIsModalOpen(false);
+    showToast(editingUser ? '✅ อัปเดตข้อมูลพนักงานสำเร็จ!' : '✅ เพิ่มพนักงานใหม่สำเร็จ!');
   };
 
   const handleDeleteUser = (id: string) => {
     if (confirm('Are you sure you want to remove this employee?')) {
       setUsers(prev => prev.filter(u => u.id !== id));
+      showToast('🗑️ ลบพนักงานออกจากระบบแล้ว', 'error');
     }
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      {/* Toast Notification */}
+      {toast && (
+        <div style={{
+          position: 'fixed', top: '1.25rem', right: '1.25rem', zIndex: 9999,
+          background: toast.type === 'success' ? 'linear-gradient(135deg,#10b981,#059669)' : 'linear-gradient(135deg,#ef4444,#dc2626)',
+          color: 'white', padding: '0.875rem 1.25rem', borderRadius: '12px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.3)', fontSize: '0.95rem', fontWeight: 600,
+          display: 'flex', alignItems: 'center', gap: '0.5rem',
+          animation: 'slideInRight 0.3s ease',
+          maxWidth: '320px'
+        }}>
+          {toast.msg}
+        </div>
+      )}
       {/* Top Header */}
       <div className="flex-between">
         <div>
