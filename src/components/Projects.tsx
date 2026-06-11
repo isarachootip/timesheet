@@ -248,7 +248,7 @@ export const Projects = ({ projects, setProjects, users, tasks }: ProjectsProps)
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 99
+          zIndex: 1100
         }}>
           <div className="glass-panel" style={{ padding: '2rem', width: '650px', maxWidth: '95%', display: 'flex', flexDirection: 'column', gap: '1.5rem', maxHeight: '90vh', overflowY: 'auto' }}>
             <div className="flex-between">

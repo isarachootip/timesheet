@@ -809,7 +809,7 @@ export const Tasks = ({ tasks, setTasks, projects, users }: TasksProps) => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 99,
+            zIndex: 1100,
           }}
         >
           <div

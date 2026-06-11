@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { TimesheetEntry, User, GlobalRole, Project, ProjectRole } from '../types';
 import { Check, X, Shield, Clock, Award, Users, Plus, Edit, Trash2 } from 'lucide-react';
 
@@ -35,6 +35,168 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
   const [birthday, setBirthday] = useState('');
   const [skills, setSkills] = useState('');
   const [avatar, setAvatar] = useState('');
+
+  // Camera states and refs
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const hasRestored = useRef(false);
+
+  // Auto-save form draft to localStorage
+  useEffect(() => {
+    if (isModalOpen) {
+      const draft = {
+        editingUserId: editingUser?.id || null,
+        name,
+        email,
+        globalRole,
+        department,
+        selectedProjectId,
+        projectRole,
+        customRole,
+        gender,
+        birthday,
+        skills,
+        avatar
+      };
+      localStorage.setItem('nt_employee_form_draft', JSON.stringify(draft));
+    } else {
+      localStorage.removeItem('nt_employee_form_draft');
+    }
+  }, [isModalOpen, editingUser, name, email, globalRole, department, selectedProjectId, projectRole, customRole, gender, birthday, skills, avatar]);
+
+  // Restore form draft on mount / when users list is ready
+  useEffect(() => {
+    if (hasRestored.current) return;
+    
+    const savedDraft = localStorage.getItem('nt_employee_form_draft');
+    if (savedDraft) {
+      try {
+        const draft = JSON.parse(savedDraft);
+        setName(draft.name || '');
+        setEmail(draft.email || '');
+        setGlobalRole(draft.globalRole || 'Employee');
+        setDepartment(draft.department || '');
+        setSelectedProjectId(draft.selectedProjectId || '');
+        setProjectRole(draft.projectRole || 'Frontend dev');
+        setCustomRole(draft.customRole || '');
+        setGender(draft.gender || '');
+        setBirthday(draft.birthday || '');
+        setSkills(draft.skills || '');
+        setAvatar(draft.avatar || '');
+        
+        if (draft.editingUserId) {
+          if (users.length > 0) {
+            const userObj = users.find(u => u.id === draft.editingUserId);
+            if (userObj) {
+              setEditingUser(userObj);
+              hasRestored.current = true;
+            }
+          }
+        } else {
+          setEditingUser(null);
+          hasRestored.current = true;
+        }
+        setIsModalOpen(true);
+      } catch (err) {
+        console.error('Failed to restore form draft:', err);
+        hasRestored.current = true;
+      }
+    } else {
+      hasRestored.current = true;
+    }
+  }, [users]);
+
+  // Stop camera if modal is closed
+  useEffect(() => {
+    if (!isModalOpen) {
+      stopCamera();
+    }
+  }, [isModalOpen]);
+
+  const startCamera = async (mode: 'user' | 'environment' = 'user') => {
+    setCameraError(null);
+    setIsCameraActive(true);
+    setFacingMode(mode);
+
+    // Stop existing stream if any
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: mode,
+          width: { ideal: 640 },
+          height: { ideal: 480 }
+        },
+        audio: false
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current?.play().catch(e => console.error("Video play error:", e));
+        };
+      }
+    } catch (err: any) {
+      console.error('Error accessing camera:', err);
+      setCameraError('ไม่สามารถเข้าถึงกล้องถ่ายภาพได้ (อาจไม่ได้รับอนุญาตหรืออุปกรณ์ไม่รองรับ)');
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setIsCameraActive(false);
+    setCameraError(null);
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current) {
+      const video = videoRef.current;
+      const canvas = document.createElement('canvas');
+      
+      const width = video.videoWidth || 640;
+      const height = video.videoHeight || 480;
+      
+      canvas.width = width;
+      canvas.height = height;
+      
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, width, height);
+        
+        // Compress/Resize
+        const MAX_SIZE = 600;
+        let finalWidth = width;
+        let finalHeight = height;
+        if (width > height && width > MAX_SIZE) {
+          finalHeight = Math.round((height * MAX_SIZE) / width);
+          finalWidth = MAX_SIZE;
+        } else if (height > MAX_SIZE) {
+          finalWidth = Math.round((width * MAX_SIZE) / height);
+          finalHeight = MAX_SIZE;
+        }
+        
+        const resizeCanvas = document.createElement('canvas');
+        resizeCanvas.width = finalWidth;
+        resizeCanvas.height = finalHeight;
+        const resizeCtx = resizeCanvas.getContext('2d');
+        if (resizeCtx) {
+          resizeCtx.drawImage(canvas, 0, 0, finalWidth, finalHeight);
+          const compressed = resizeCanvas.toDataURL('image/jpeg', 0.75);
+          setAvatar(compressed);
+        }
+      }
+      stopCamera();
+    }
+  };
 
   // Filter pending timesheets
   const pendingEntries = timesheets.filter(ts => ts.status === 'Pending');
@@ -488,7 +650,7 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 99
+          zIndex: 1100
         }}>
           <div className="glass-panel" style={{ 
             padding: 0,
@@ -620,65 +782,194 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                 <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Profile Picture</label>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                  {avatar ? (
-                    <img src={avatar} alt="Preview" style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--accent-primary)' }} />
-                  ) : (
-                    <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.75rem', border: '1px dashed var(--border-color)' }}>No Pic</div>
-                  )}
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <label style={{ 
-                        flex: 1,
-                        background: 'var(--bg-tertiary)', 
-                        border: '1px solid var(--border-color)', 
-                        padding: '0.5rem', 
+                
+                {isCameraActive ? (
+                  <div style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: '0.75rem', 
+                    background: 'var(--bg-tertiary)', 
+                    padding: '1rem', 
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border-color)',
+                    alignItems: 'center'
+                  }}>
+                    {cameraError ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', alignItems: 'center' }}>
+                        <div style={{ color: 'var(--accent-danger)', fontSize: '0.85rem', textAlign: 'center' }}>
+                          ⚠️ {cameraError}
+                        </div>
+                        <label style={{ 
+                          width: '100%',
+                          maxWidth: '240px',
+                          background: 'var(--accent-primary)', 
+                          padding: '0.6rem', 
+                          borderRadius: 'var(--radius-md)', 
+                          fontSize: '0.75rem', 
+                          textAlign: 'center', 
+                          cursor: 'pointer',
+                          color: 'white',
+                          display: 'block',
+                          fontWeight: 600
+                        }} className="hover-lift">
+                          📸 Take Photo (Use System Camera)
+                          <input 
+                            type="file" 
+                            accept="image/*"
+                            capture="user"
+                            onChange={(e) => {
+                              handleFileChange(e);
+                              stopCamera();
+                            }}
+                            style={{ display: 'none' }}
+                          />
+                        </label>
+                      </div>
+                    ) : (
+                      <div style={{ 
+                        position: 'relative', 
+                        width: '100%', 
+                        maxWidth: '320px', 
+                        aspectRatio: '4/3', 
+                        overflow: 'hidden', 
                         borderRadius: 'var(--radius-md)', 
-                        fontSize: '0.75rem', 
-                        textAlign: 'center', 
-                        cursor: 'pointer',
-                        color: 'var(--text-primary)',
-                        display: 'block'
-                      }} className="hover-lift">
-                        📁 Choose Photo
-                        <input 
-                          type="file" 
-                          accept="image/*"
-                          onChange={handleFileChange}
-                          style={{ display: 'none' }}
+                        background: '#000',
+                        border: '2px solid var(--accent-primary)',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.3)'
+                      }}>
+                        <video 
+                          ref={videoRef} 
+                          autoPlay 
+                          playsInline 
+                          muted 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
-                      </label>
-                      
-                      <label style={{ 
-                        flex: 1,
-                        background: 'var(--accent-primary)', 
-                        padding: '0.5rem', 
-                        borderRadius: 'var(--radius-md)', 
-                        fontSize: '0.75rem', 
-                        textAlign: 'center', 
-                        cursor: 'pointer',
-                        color: 'white',
-                        display: 'block'
-                      }} className="hover-lift">
-                        📸 Take Photo
-                        <input 
-                          type="file" 
-                          accept="image/*"
-                          capture="user"
-                          onChange={handleFileChange}
-                          style={{ display: 'none' }}
-                        />
-                      </label>
+                      </div>
+                    )}
+                    
+                    <div style={{ display: 'flex', gap: '0.5rem', width: '100%', justifyContent: 'center', flexWrap: 'wrap' }}>
+                      {!cameraError && (
+                        <>
+                          <button 
+                            type="button"
+                            onClick={capturePhoto}
+                            style={{ 
+                              background: 'var(--accent-primary)', 
+                              color: 'white', 
+                              border: 'none', 
+                              padding: '0.6rem 1.25rem', 
+                              borderRadius: 'var(--radius-md)', 
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.25rem'
+                            }}
+                            className="hover-lift"
+                          >
+                            📸 Capture
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={() => startCamera(facingMode === 'user' ? 'environment' : 'user')}
+                            style={{ 
+                              background: 'var(--bg-secondary)', 
+                              color: 'var(--text-primary)', 
+                              border: '1px solid var(--border-color)', 
+                              padding: '0.6rem 1rem', 
+                              borderRadius: 'var(--radius-md)', 
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              cursor: 'pointer' 
+                            }}
+                            className="hover-lift"
+                          >
+                            🔄 Switch Camera
+                          </button>
+                        </>
+                      )}
+                      <button 
+                        type="button"
+                        onClick={stopCamera}
+                        style={{ 
+                          background: 'rgba(239, 68, 68, 0.15)', 
+                          color: 'var(--accent-danger)', 
+                          border: 'none', 
+                          padding: '0.6rem 1rem', 
+                          borderRadius: 'var(--radius-md)', 
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          cursor: 'pointer' 
+                        }}
+                        className="hover-lift"
+                      >
+                        Cancel
+                      </button>
                     </div>
-                    <input 
-                      type="text" 
-                      value={avatar} 
-                      placeholder="Or paste Image URL"
-                      onChange={e => setAvatar(e.target.value)} 
-                      style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.35rem 0.75rem', color: 'var(--text-primary)', outline: 'none', fontSize: '0.8rem' }}
-                    />
                   </div>
-                </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    {avatar ? (
+                      <img src={avatar} alt="Preview" style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--accent-primary)' }} />
+                    ) : (
+                      <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.75rem', border: '1px dashed var(--border-color)' }}>No Pic</div>
+                    )}
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <label style={{ 
+                          flex: 1,
+                          background: 'var(--bg-tertiary)', 
+                          border: '1px solid var(--border-color)', 
+                          padding: '0.5rem', 
+                          borderRadius: 'var(--radius-md)', 
+                          fontSize: '0.75rem', 
+                          textAlign: 'center', 
+                          cursor: 'pointer',
+                          color: 'var(--text-primary)',
+                          display: 'block'
+                        }} className="hover-lift">
+                          📁 Choose Photo
+                          <input 
+                            type="file" 
+                            accept="image/*"
+                            onChange={handleFileChange}
+                            style={{ display: 'none' }}
+                          />
+                        </label>
+                        
+                        <button 
+                          type="button"
+                          onClick={() => startCamera('user')}
+                          style={{ 
+                            flex: 1,
+                            background: 'var(--accent-primary)', 
+                            border: 'none',
+                            padding: '0.5rem', 
+                            borderRadius: 'var(--radius-md)', 
+                            fontSize: '0.75rem', 
+                            textAlign: 'center', 
+                            cursor: 'pointer',
+                            color: 'white',
+                            display: 'block',
+                            fontFamily: 'inherit',
+                            fontWeight: 500
+                          }} 
+                          className="hover-lift"
+                        >
+                          📸 Take Photo
+                        </button>
+                      </div>
+                      <input 
+                        type="text" 
+                        value={avatar} 
+                        placeholder="Or paste Image URL"
+                        onChange={e => setAvatar(e.target.value)} 
+                        style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.35rem 0.75rem', color: 'var(--text-primary)', outline: 'none', fontSize: '0.8rem' }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {selectedProjectId && (
