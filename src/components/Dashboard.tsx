@@ -75,6 +75,19 @@ export const Dashboard = ({ projects, tasks, timesheets, currentUser }: Dashboar
     return end < today;
   });
 
+  // Group overdue tasks by project
+  const overdueByProject = projects.map(proj => {
+    const count = overdueTasks.filter(t => t.projectId === proj.id).length;
+    return { name: proj.name, count };
+  }).filter(p => p.count > 0);
+
+  // Group overdue tasks by priority
+  const priorities = ['Urgent', 'High', 'Medium', 'Low'];
+  const overdueByPriority = priorities.map(prio => {
+    const count = overdueTasks.filter(t => t.priority === prio).length;
+    return { priority: prio, count };
+  }).filter(p => p.count > 0);
+
   const sevenDaysAgo = new Date(today);
   sevenDaysAgo.setDate(today.getDate() - 7);
   const hoursThisWeek = timesheets
@@ -201,40 +214,88 @@ export const Dashboard = ({ projects, tasks, timesheets, currentUser }: Dashboar
         </div>
       </div>
 
-      {/* ── Overdue Alert Banner ── */}
+      {/* ── Overdue Alert Banner (Graph Version) ── */}
       {overdueTasks.length > 0 && (
         <div style={{
-          background: 'linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(245,158,11,0.15) 100%)',
-          border: '1px solid rgba(239,68,68,0.4)',
-          borderRadius: '0.75rem',
-          padding: '1rem 1.25rem',
+          background: 'linear-gradient(135deg, rgba(23, 17, 21, 0.85) 0%, rgba(22, 26, 34, 0.95) 100%)',
+          border: '1px solid rgba(239,68,68,0.35)',
+          borderRadius: '1rem',
+          padding: '1.5rem',
           display: 'flex',
-          gap: '0.75rem',
-          alignItems: 'flex-start',
+          flexDirection: 'column',
+          gap: '1.25rem',
+          boxShadow: '0 8px 32px rgba(239, 68, 68, 0.05)'
         }}>
-          <AlertTriangle size={20} color="#ef4444" style={{ flexShrink: 0, marginTop: '0.1rem' }} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            <div style={{ fontWeight: 600, color: '#ef4444', fontSize: '0.9rem' }}>
-              ⚠️ {overdueTasks.length} overdue task{overdueTasks.length > 1 ? 's' : ''} need attention
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', borderBottom: '1px solid rgba(239,68,68,0.15)', paddingBottom: '0.75rem' }}>
+            <AlertTriangle size={20} color="#ef4444" style={{ flexShrink: 0 }} />
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#ef4444', margin: 0 }}>
+              ⚠️ {overdueTasks.length} Overdue Tasks Need Attention
+            </h3>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }} className="dashboard-row">
+            {/* Left Column: Overdue by Project */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)', margin: 0 }}>
+                Overdue Tasks by Project
+              </h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                {overdueByProject.map(p => {
+                  const percent = Math.max(8, (p.count / overdueTasks.length) * 100);
+                  return (
+                    <div key={p.name} style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+                        <span style={{ color: 'var(--text-primary)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '240px' }} title={p.name}>
+                          {p.name}
+                        </span>
+                        <span style={{ color: '#ef4444', fontWeight: 700 }}>{p.count}</span>
+                      </div>
+                      <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '999px', overflow: 'hidden' }}>
+                        <div style={{
+                          height: '100%',
+                          width: `${percent}%`,
+                          background: 'linear-gradient(90deg, #ef4444, #f59e0b)',
+                          borderRadius: '999px'
+                        }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-              {overdueTasks.map(t => (
-                <span key={t.id} style={{
-                  fontSize: '0.78rem',
-                  padding: '0.2rem 0.6rem',
-                  background: 'rgba(239,68,68,0.15)',
-                  border: '1px solid rgba(239,68,68,0.3)',
-                  borderRadius: '999px',
-                  color: 'var(--text-primary)',
-                }}>
-                  {t.title}
-                  {t.endDate && (
-                    <span style={{ color: '#ef4444', marginLeft: '0.3rem' }}>
-                      (due {new Date(t.endDate).toLocaleDateString()})
-                    </span>
-                  )}
-                </span>
-              ))}
+
+            {/* Right Column: Overdue by Priority */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)', margin: 0 }}>
+                Overdue Tasks by Priority
+              </h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                {overdueByPriority.map(p => {
+                  const percent = Math.max(8, (p.count / overdueTasks.length) * 100);
+                  const barColors: Record<string, string> = {
+                    Urgent: 'linear-gradient(90deg, #ef4444, #ff6b6b)',
+                    High: 'linear-gradient(90deg, #f59e0b, #facc15)',
+                    Medium: 'linear-gradient(90deg, #6366f1, #818cf8)',
+                    Low: 'linear-gradient(90deg, #64748b, #94a3b8)',
+                  };
+                  return (
+                    <div key={p.priority} style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+                        <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{p.priority}</span>
+                        <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>{p.count}</span>
+                      </div>
+                      <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '999px', overflow: 'hidden' }}>
+                        <div style={{
+                          height: '100%',
+                          width: `${percent}%`,
+                          background: barColors[p.priority] || 'var(--text-muted)',
+                          borderRadius: '999px'
+                        }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
