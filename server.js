@@ -235,14 +235,49 @@ const initDB = async () => {
 
     client.release();
   } catch (err) {
-    console.error('Error initializing database:', err);
+    console.error('Error initializing database:', err.message);
+    throw err;
   }
 };
 
-// Start initialization
-initDB();
+// Start initialization with retry logic
+let dbReady = false;
+async function startWithRetry(attempt = 1) {
+  try {
+    await initDB();
+    dbReady = true;
+    console.log('✅ Database connected and initialized successfully.');
+  } catch (err) {
+    console.error(`⚠️  DB init attempt ${attempt} failed: ${err.message}`);
+    console.log(`🔄 Retrying in 5 seconds...`);
+    setTimeout(() => startWithRetry(attempt + 1), 5000);
+  }
+}
+startWithRetry();
 
 // --- API Endpoints ---
+
+// Health check — visit /api/health in browser to see DB status
+app.get('/api/health', async (req, res) => {
+  const status = { server: 'ok', db: 'unknown', dbHost: '', time: new Date().toISOString() };
+  const connStr = process.env.DATABASE_URL || '';
+  const match = connStr.match(/@([^/:]+)/);
+  status.dbHost = match ? match[1] : (process.env.DB_HOST || 'localhost');
+  try {
+    await pool.query('SELECT 1');
+    status.db = 'connected';
+    const userCount = await pool.query('SELECT COUNT(*) FROM users');
+    const taskCount = await pool.query('SELECT COUNT(*) FROM tasks');
+    status.userCount = parseInt(userCount.rows[0].count);
+    status.taskCount = parseInt(taskCount.rows[0].count);
+    res.json(status);
+  } catch (err) {
+    status.db = 'error';
+    status.error = err.message;
+    status.dbReady = dbReady;
+    res.status(503).json(status);
+  }
+});
 
 // Initial load
 app.get('/api/initial-data', async (req, res) => {
