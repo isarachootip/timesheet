@@ -228,6 +228,22 @@ function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(() => getLocalStorage<User | null>('nt_current_user', null));
   const [loading, setLoading] = useState(true);
 
+  // Check if we just redirected from successful LINE login
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const userParam = params.get('user');
+    if (userParam) {
+      try {
+        const userObj = JSON.parse(decodeURIComponent(userParam));
+        setCurrentUser(userObj);
+        // Clear query parameters from URL address bar
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } catch (err) {
+        console.error('Error parsing login user:', err);
+      }
+    }
+  }, []);
+
   // Fetch initial data from PostgreSQL
   useEffect(() => {
     fetch('/api/initial-data')

@@ -8,28 +8,18 @@ interface LoginProps {
 }
 
 export const Login = ({ onLogin, availableUsers }: LoginProps) => {
-  const [showLineAuth, setShowLineAuth] = useState(false);
   const [lineLoading, setLineLoading] = useState(false);
+
+  // Parse error parameters from URL (e.g., if LINE Login failed or user is unauthorized)
+  const params = new URLSearchParams(window.location.search);
+  const errorParam = params.get('error');
+  const errorEmail = params.get('email');
 
   const handleLineLogin = () => {
     setLineLoading(true);
-    setTimeout(() => {
-      setLineLoading(false);
-      setShowLineAuth(true);
-    }, 1200);
-  };
-
-  const confirmLineAuth = () => {
-    // Mock user created via LINE authentication
-    const lineMockUser: User = {
-      id: 'u_line_' + Date.now(),
-      name: 'Isara Ch.',
-      email: 'isara.ch@line-user.com',
-      avatar: 'https://i.pravatar.cc/150?u=line',
-      globalRole: 'Employee',
-      department: 'Engineering'
-    };
-    onLogin(lineMockUser);
+    // Redirect browser to backend LINE OAuth route with current origin context
+    const origin = window.location.origin;
+    window.location.href = `/api/auth/line?origin=${encodeURIComponent(origin)}`;
   };
 
   return (
@@ -85,6 +75,33 @@ export const Login = ({ onLogin, availableUsers }: LoginProps) => {
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Project & Timesheet Management System</p>
         </div>
 
+        {errorParam && (
+          <div style={{
+            background: 'rgba(239, 68, 68, 0.15)',
+            border: '1px solid rgba(239, 68, 68, 0.4)',
+            borderRadius: 'var(--radius-md)',
+            padding: '1rem',
+            color: 'white',
+            fontSize: '0.85rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.5rem'
+          }}>
+            <strong style={{ color: '#ff6b6b' }}>
+              ⚠️ ล็อกอินไม่สำเร็จ / Sign in Failed
+            </strong>
+            {errorParam === 'unauthorized' ? (
+              <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                บัญชี LINE ของคุณยังไม่ได้ลงทะเบียนในระบบ {errorEmail && `(${errorEmail})`} กรุณาติดต่อ Admin เพื่อลงทะเบียนอีเมลของท่านก่อนเข้าใช้งานครั้งแรกครับ
+              </p>
+            ) : (
+              <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                เกิดข้อผิดพลาด: {decodeURIComponent(errorParam)}
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Authentication Options */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {/* LINE Login Button */}
@@ -113,7 +130,6 @@ export const Login = ({ onLogin, availableUsers }: LoginProps) => {
               <span>Connecting to LINE...</span>
             ) : (
               <>
-                {/* Simulated LINE logo icon */}
                 <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'white', color: '#06C755', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.75rem' }}>L</div>
                 <span>Sign in with LINE</span>
               </>
@@ -121,110 +137,45 @@ export const Login = ({ onLogin, availableUsers }: LoginProps) => {
           </button>
         </div>
 
-        {/* Fast Switcher Section (For Demo Roles) */}
-        <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem' }}>
-          <h4 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem', textAlign: 'center' }}>
-            Or sign in with Demo Account
-          </h4>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {availableUsers.slice(0, 3).map(user => (
-              <div 
-                key={user.id} 
-                onClick={() => onLogin(user)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  padding: '0.75rem 1rem',
-                  background: 'var(--bg-tertiary)',
-                  borderRadius: 'var(--radius-md)',
-                  cursor: 'pointer',
-                  border: '1px solid transparent',
-                  transition: 'all var(--transition-fast)'
-                }}
-                className="hover-lift"
-              >
-                <img src={user.avatar} alt={user.name} style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>{user.name}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <Shield size={10} color="var(--accent-primary)" />
-                    <span>{user.globalRole} ({user.department})</span>
+        {/* Fast Switcher Section (For Demo Roles) - Localhost Only */}
+        {(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && (
+          <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem' }}>
+            <h4 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem', textAlign: 'center' }}>
+              Or sign in with Demo Account (Dev Only)
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {availableUsers.slice(0, 3).map(user => (
+                <div 
+                  key={user.id} 
+                  onClick={() => onLogin(user)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    padding: '0.75rem 1rem',
+                    background: 'var(--bg-tertiary)',
+                    borderRadius: 'var(--radius-md)',
+                    cursor: 'pointer',
+                    border: '1px solid transparent',
+                    transition: 'all var(--transition-fast)'
+                  }}
+                  className="hover-lift"
+                >
+                  <img src={user.avatar} alt={user.name} style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>{user.name}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <Shield size={10} color="var(--accent-primary)" />
+                      <span>{user.globalRole} ({user.department})</span>
+                    </div>
                   </div>
+                  <ArrowRight size={16} color="var(--text-muted)" />
                 </div>
-                <ArrowRight size={16} color="var(--text-muted)" />
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
-
-      {/* Simulated LINE Auth Overlay Dialog */}
-      {showLineAuth && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.6)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10000
-        }}>
-          <div style={{
-            background: 'white',
-            color: '#111',
-            padding: '2rem',
-            borderRadius: '16px',
-            width: '380px',
-            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.3)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1.5rem'
-          }}>
-            {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', borderBottom: '1px solid #eee', paddingBottom: '1rem' }}>
-              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#06C755', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800 }}>L</div>
-              <div>
-                <h3 style={{ fontSize: '1rem', margin: 0, color: '#111' }}>LINE Login Authorization</h3>
-                <span style={{ fontSize: '0.75rem', color: '#666' }}>NexTime app requests permission</span>
-              </div>
-            </div>
-
-            {/* Permission list */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.875rem', color: '#444' }}>
-              <p>Allow **NexTime** to access your LINE account info:</p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#f5f5f5', padding: '0.5rem 0.75rem', borderRadius: '8px' }}>
-                <input type="checkbox" defaultChecked disabled />
-                <span>Your Name & Avatar Image (Required)</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#f5f5f5', padding: '0.5rem 0.75rem', borderRadius: '8px' }}>
-                <input type="checkbox" defaultChecked disabled />
-                <span>Your Email Address</span>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
-              <button 
-                onClick={() => setShowLineAuth(false)}
-                style={{ flex: 1, padding: '0.65rem', background: '#eee', color: '#333', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={confirmLineAuth}
-                style={{ flex: 1, padding: '0.65rem', background: '#06C755', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
-              >
-                Agree
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
