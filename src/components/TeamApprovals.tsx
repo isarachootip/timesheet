@@ -466,7 +466,16 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
           justifyContent: 'center',
           zIndex: 99
         }}>
-          <div className="glass-panel" style={{ padding: '2rem', width: '650px', maxWidth: '95%', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div className="glass-panel" style={{ 
+            padding: '1.5rem', 
+            width: '650px', 
+            maxWidth: '95vw', 
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: '1.25rem' 
+          }}>
             <div className="flex-between">
               <h2 className="text-gradient" style={{ fontSize: '1.5rem' }}>{editingUser ? 'Edit Employee' : 'Add Employee'}</h2>
               <button onClick={() => setIsModalOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
@@ -684,13 +693,17 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                 background: 'var(--accent-primary)', 
                 color: 'white', 
                 border: 'none', 
-                padding: '0.75rem', 
+                padding: '1rem', 
                 borderRadius: 'var(--radius-md)', 
-                fontWeight: 600, 
+                fontWeight: 700, 
                 cursor: 'pointer',
-                marginTop: '1rem'
+                marginTop: '0.5rem',
+                fontSize: '1rem',
+                letterSpacing: '0.5px',
+                position: 'sticky',
+                bottom: 0,
               }} className="hover-lift">
-                Save Employee
+                💾 บันทึก / Save Employee
               </button>
             </form>
           </div>
