@@ -294,7 +294,7 @@ app.get('/api/auth/line/callback', async (req, res) => {
   }
 
   if (error) {
-    return res.redirect(`${clientOrigin}/?error=${encodeURIComponent(error as string)}`);
+    return res.redirect(`${clientOrigin}/?error=${encodeURIComponent(error)}`);
   }
 
   if (!code) {
@@ -312,14 +312,14 @@ app.get('/api/auth/line/callback', async (req, res) => {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
         grant_type: 'authorization_code',
-        code: code as string,
-        redirect_uri: callbackUrl as string,
-        client_id: channelId as string,
-        client_secret: channelSecret as string
+        code: code,
+        redirect_uri: callbackUrl,
+        client_id: channelId,
+        client_secret: channelSecret
       })
     });
     
-    const tokenData = (await tokenResponse.json()) as any;
+    const tokenData = await tokenResponse.json();
     if (!tokenResponse.ok) {
       throw new Error(tokenData.error_description || 'Failed to exchange token');
     }
@@ -383,7 +383,7 @@ app.get('/api/auth/line/callback', async (req, res) => {
     // Redirect back to frontend success route
     res.redirect(`${clientOrigin}/login-success?user=${encodeURIComponent(JSON.stringify(userData))}`);
     
-  } catch (err: any) {
+  } catch (err) {
     console.error('LINE Callback Error:', err.message);
     res.redirect(`${clientOrigin}/?error=${encodeURIComponent(err.message)}`);
   }
