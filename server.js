@@ -377,10 +377,29 @@ app.post('/api/users', async (req, res) => {
     );
     res.json({ success: true });
   } catch (err) {
-    console.error('Error saving user:', err);
-    res.status(500).json({ error: err.message });
+    // Handle duplicate email (same email, different ID — e.g. LINE re-login)
+    if (err.code === '23505' && err.constraint === 'users_email_key') {
+      try {
+        await pool.query(
+          `UPDATE users SET
+             id = $1, name = $2, avatar = $3,
+             global_role = $4, department = $5,
+             gender = $6, birthday = $7, skills = $8
+           WHERE email = $9`,
+          [id, name, avatar, globalRole, department, gender, birthday, skills, email]
+        );
+        res.json({ success: true, note: 'merged by email' });
+      } catch (updateErr) {
+        console.error('Error merging user by email:', updateErr.message);
+        res.status(500).json({ error: updateErr.message });
+      }
+    } else {
+      console.error('Error saving user:', err.message);
+      res.status(500).json({ error: err.message });
+    }
   }
 });
+
 
 app.delete('/api/users/:id', async (req, res) => {
   const { id } = req.params;
