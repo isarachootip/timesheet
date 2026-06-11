@@ -491,23 +491,24 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
           zIndex: 99
         }}>
           <div className="glass-panel" style={{ 
-            padding: '1.5rem', 
+            padding: 0,
             width: '650px', 
             maxWidth: '95vw', 
-            maxHeight: '90vh',
-            overflowY: 'auto',
+            maxHeight: '92vh',
+            overflow: 'hidden',
             display: 'flex', 
-            flexDirection: 'column', 
-            gap: '1.25rem' 
+            flexDirection: 'column',
           }}>
-            <div className="flex-between">
-              <h2 className="text-gradient" style={{ fontSize: '1.5rem' }}>{editingUser ? 'Edit Employee' : 'Add Employee'}</h2>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+              <h2 className="text-gradient" style={{ fontSize: '1.4rem', margin: 0 }}>{editingUser ? 'Edit Employee' : 'Add Employee'}</h2>
               <button onClick={() => setIsModalOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
                 <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveUser} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <form onSubmit={handleSaveUser} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+              {/* Scrollable fields area */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                 <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Full Name *</label>
                 <input 
@@ -713,22 +714,25 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                 </div>
               )}
 
-              <button type="submit" style={{ 
-                background: 'var(--accent-primary)', 
-                color: 'white', 
-                border: 'none', 
-                padding: '1rem', 
-                borderRadius: 'var(--radius-md)', 
-                fontWeight: 700, 
-                cursor: 'pointer',
-                marginTop: '0.5rem',
-                fontSize: '1rem',
-                letterSpacing: '0.5px',
-                position: 'sticky',
-                bottom: 0,
-              }} className="hover-lift">
-                💾 บันทึก / Save Employee
-              </button>
+              </div>{/* end scrollable fields */}
+
+              {/* Save button — always visible at bottom */}
+              <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border-color)', flexShrink: 0 }}>
+                <button type="submit" style={{ 
+                  width: '100%',
+                  background: 'linear-gradient(135deg, var(--accent-primary), #4f46e5)', 
+                  color: 'white', 
+                  border: 'none', 
+                  padding: '1rem', 
+                  borderRadius: 'var(--radius-md)', 
+                  fontWeight: 700, 
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                  letterSpacing: '0.5px',
+                }} className="hover-lift">
+                  💾 บันทึก / Save Employee
+                </button>
+              </div>
             </form>
           </div>
         </div>
