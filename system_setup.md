@@ -236,13 +236,24 @@ DATABASE_URL=postgresql://isara_admin:MySecretPass123!@187.77.147.16:5432/timesh
 5. นำคีย์ที่คัดลอกได้ไปกำหนดค่าในระบบ Coolify และไฟล์ `.env` ตามข้อถัดไป
 
 ### 2. การตั้งค่าตัวแปรสิ่งแวดล้อม (.env)
-ต้องเพิ่มค่าคอนฟิกสำหรับ LINE Developers Console ในไฟล์ `.env` ทั้งเครื่อง Local และบนระบบ Coolify:
+ต้องเพิ่มค่าคอนฟิกสำหรับ LINE Developers Console และการส่งอีเมลแจ้งเตือน (SMTP) ในไฟล์ `.env` ทั้งเครื่อง Local และบนระบบ Coolify:
 
 ```env
+# Database Connection
+DATABASE_URL=postgresql://isara_admin:MySecretPass123!@187.77.147.16:5432/timesheet_db
+
+# LINE Login & Security
 LINE_CHANNEL_ID=2010371232
 LINE_CHANNEL_SECRET=57c874e33889f41b975c570bccbddfd5
-LINE_CALLBACK_URL=https://vibe.project.online/api/auth/line/callback
+LINE_CALLBACK_URL=https://vibeproject.online/api/auth/line/callback
 JWT_SECRET=your_jwt_private_key
+
+# SMTP Email Notifications (Gmail)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=vibeproject@gmail.com
+SMTP_PASS=your_gmail_app_password
+SMTP_FROM=vibeproject@gmail.com
 ```
 
 ### 2. API Endpoints สำหรับระบบ Authentication
