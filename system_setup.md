@@ -251,9 +251,9 @@ JWT_SECRET=your_jwt_private_key
 # SMTP Email Notifications (Gmail)
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
-SMTP_USER=vibeproject@gmail.com
+SMTP_USER=vibeproject2026@gmail.com
 SMTP_PASS=your_gmail_app_password
-SMTP_FROM=vibeproject@gmail.com
+SMTP_FROM=vibeproject2026@gmail.com
 ```
 
 ### 2. API Endpoints สำหรับระบบ Authentication

@@ -7,7 +7,7 @@ const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
 const smtpPort = parseInt(process.env.SMTP_PORT || '587');
 const smtpUser = process.env.SMTP_USER;
 const smtpPass = process.env.SMTP_PASS;
-const smtpFrom = process.env.SMTP_FROM || smtpUser || 'vibeproject@gmail.com';
+const smtpFrom = process.env.SMTP_FROM || smtpUser || 'vibeproject2026@gmail.com';
 
 let transporter = null;
 
