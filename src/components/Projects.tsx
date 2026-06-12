@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Calendar, Users, DollarSign, Plus, X, Edit, Trash2 } from 'lucide-react';
 import type { User, Project, ProjectStatus, ProjectRole, Task } from '../types';
 
@@ -10,6 +11,26 @@ interface ProjectsProps {
 }
 
 export const Projects = ({ projects, setProjects, users, tasks }: ProjectsProps) => {
+  const location = useLocation();
+  const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (location.hash) {
+      const id = location.hash.replace('#', '');
+      const element = document.getElementById(id);
+      if (element) {
+        const timer = setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          setHighlightedProjectId(id);
+          
+          const clearTimer = setTimeout(() => setHighlightedProjectId(null), 3000);
+          return () => clearTimeout(clearTimer);
+        }, 100);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [location]);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
 
@@ -134,105 +155,121 @@ export const Projects = ({ projects, setProjects, users, tasks }: ProjectsProps)
 
       {/* Projects Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '1.5rem' }}>
-        {projects.map(project => (
-          <div key={project.id} className="glass-panel hover-lift" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <div className="flex-between" style={{ alignItems: 'flex-start' }}>
-              <div>
-                <h3 style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>{project.name}</h3>
-                <span style={{ 
-                  fontSize: '0.75rem', 
-                  padding: '0.25rem 0.75rem', 
-                  borderRadius: 'var(--radius-full)', 
-                  background: project.status === 'Active' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                  color: project.status === 'Active' ? 'var(--accent-secondary)' : 'var(--accent-warning)',
-                  fontWeight: 500
-                }}>
-                  {project.status}
-                </span>
-              </div>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button onClick={() => openEditModal(project)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-                  <Edit size={16} />
-                </button>
-                <button onClick={() => handleDelete(project.id)} style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer' }}>
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            </div>
-
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.6 }}>
-              {project.description}
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                <Calendar size={16} />
-                <span>{new Date(project.startDate).toLocaleDateString()} - {project.endDate ? new Date(project.endDate).toLocaleDateString() : 'Ongoing'}</span>
-              </div>
-              {project.budget && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                  <DollarSign size={16} />
-                  <span>${project.budget.toLocaleString()} Budget</span>
+        {projects.map(project => {
+          const isHighlighted = highlightedProjectId === project.id;
+          return (
+            <div 
+              key={project.id} 
+              id={project.id}
+              className="glass-panel hover-lift" 
+              style={{ 
+                padding: '1.5rem', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '1.5rem',
+                border: isHighlighted ? '2px solid var(--accent-primary)' : '1px solid transparent',
+                boxShadow: isHighlighted ? '0 0 20px rgba(99, 102, 241, 0.4)' : undefined,
+                transition: 'all 0.3s ease'
+              }}
+            >
+              <div className="flex-between" style={{ alignItems: 'flex-start' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>{project.name}</h3>
+                  <span style={{ 
+                    fontSize: '0.75rem', 
+                    padding: '0.25rem 0.75rem', 
+                    borderRadius: 'var(--radius-full)', 
+                    background: project.status === 'Active' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                    color: project.status === 'Active' ? 'var(--accent-secondary)' : 'var(--accent-warning)',
+                    fontWeight: 500
+                  }}>
+                    {project.status}
+                  </span>
                 </div>
-              )}
-            </div>
-
-            <div style={{ marginTop: 'auto' }}>
-              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Users size={14} /> Team ({project.members.length})
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button onClick={() => openEditModal(project)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                    <Edit size={16} />
+                  </button>
+                  <button onClick={() => handleDelete(project.id)} style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer' }}>
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                {project.members.length === 0 ? (
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>No members added yet</span>
-                ) : (
-                  project.members.map((member, index) => (
-                    <img 
-                      key={member.userId} 
-                      src={getUserAvatar(member.userId)} 
-                      alt="Team member" 
-                      title={`${getUserName(member.userId)} (${member.role})`}
-                      style={{ 
-                        width: '32px', 
-                        height: '32px', 
-                        borderRadius: '50%', 
-                        border: '2px solid var(--bg-tertiary)',
-                        marginLeft: index > 0 ? '-10px' : '0',
-                        zIndex: project.members.length - index
-                      }} 
-                    />
-                  ))
+
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.6 }}>
+                {project.description}
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                  <Calendar size={16} />
+                  <span>{new Date(project.startDate).toLocaleDateString()} - {project.endDate ? new Date(project.endDate).toLocaleDateString() : 'Ongoing'}</span>
+                </div>
+                {project.budget && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                    <DollarSign size={16} />
+                    <span>${project.budget.toLocaleString()} Budget</span>
+                  </div>
                 )}
               </div>
-            </div>
 
-            {/* Collapsible Project Milestones Checklist */}
-            {(() => {
-              const projectTasks = tasks ? tasks.filter(t => t.projectId === project.id && !t.parentId) : [];
-              if (projectTasks.length === 0) return null;
-              return (
-                <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-                  <details style={{ cursor: 'pointer' }}>
-                    <summary style={{ fontSize: '0.85rem', color: 'var(--accent-secondary)', fontWeight: 500, outline: 'none' }}>
-                      📅 Auto-Generated Plan ({projectTasks.length} Milestones)
-                    </summary>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem', maxHeight: '150px', overflowY: 'auto', paddingRight: '0.5rem' }}>
-                      {projectTasks.map(t => (
-                        <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', background: 'var(--bg-tertiary)', padding: '0.35rem 0.5rem', borderRadius: '4px' }}>
-                          <span style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px' }} title={t.title}>
-                            {t.title}
-                          </span>
-                          <span style={{ color: 'var(--text-secondary)' }}>
-                            {t.startDate ? `${new Date(t.startDate).toLocaleDateString(undefined, {month:'short', day:'numeric'})} - ${t.endDate ? new Date(t.endDate).toLocaleDateString(undefined, {month:'short', day:'numeric'}) : ''}` : ''}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </details>
+              <div style={{ marginTop: 'auto' }}>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Users size={14} /> Team ({project.members.length})
                 </div>
-              );
-            })()}
-          </div>
-        ))}
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  {project.members.length === 0 ? (
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>No members added yet</span>
+                  ) : (
+                    project.members.map((member, index) => (
+                      <img 
+                        key={member.userId} 
+                        src={getUserAvatar(member.userId)} 
+                        alt="Team member" 
+                        title={`${getUserName(member.userId)} (${member.role})`}
+                        style={{ 
+                          width: '32px', 
+                          height: '32px', 
+                          borderRadius: '50%', 
+                          border: '2px solid var(--bg-tertiary)',
+                          marginLeft: index > 0 ? '-10px' : '0',
+                          zIndex: project.members.length - index
+                        }} 
+                      />
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Collapsible Project Milestones Checklist */}
+              {(() => {
+                const projectTasks = tasks ? tasks.filter(t => t.projectId === project.id && !t.parentId) : [];
+                if (projectTasks.length === 0) return null;
+                return (
+                  <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+                    <details style={{ cursor: 'pointer' }}>
+                      <summary style={{ fontSize: '0.85rem', color: 'var(--accent-secondary)', fontWeight: 500, outline: 'none' }}>
+                        📅 Auto-Generated Plan ({projectTasks.length} Milestones)
+                      </summary>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem', maxHeight: '150px', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                        {projectTasks.map(t => (
+                          <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', background: 'var(--bg-tertiary)', padding: '0.35rem 0.5rem', borderRadius: '4px' }}>
+                            <span style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px' }} title={t.title}>
+                              {t.title}
+                            </span>
+                            <span style={{ color: 'var(--text-secondary)' }}>
+                              {t.startDate ? `${new Date(t.startDate).toLocaleDateString(undefined, {month:'short', day:'numeric'})} - ${t.endDate ? new Date(t.endDate).toLocaleDateString(undefined, {month:'short', day:'numeric'}) : ''}` : ''}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  </div>
+                );
+              })()}
+            </div>
+          );
+        })}
       </div>
 
       {/* Add/Edit Modal */}

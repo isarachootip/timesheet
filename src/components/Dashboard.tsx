@@ -1,4 +1,5 @@
 import { Clock, CheckSquare, Briefcase, AlertTriangle, TrendingUp, Users, ChevronRight, Calendar } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import type { User, Project, Task, TimesheetEntry } from '../types';
 
 interface DashboardProps {
@@ -56,6 +57,7 @@ const Badge = ({ label, color }: { label: string; color: string }) => (
 );
 
 export const Dashboard = ({ projects, tasks, timesheets, currentUser }: DashboardProps) => {
+  const navigate = useNavigate();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -78,7 +80,7 @@ export const Dashboard = ({ projects, tasks, timesheets, currentUser }: Dashboar
   // Group overdue tasks by project
   const overdueByProject = projects.map(proj => {
     const count = overdueTasks.filter(t => t.projectId === proj.id).length;
-    return { name: proj.name, count };
+    return { id: proj.id, name: proj.name, count };
   }).filter(p => p.count > 0);
 
   // Group overdue tasks by priority
@@ -243,7 +245,12 @@ export const Dashboard = ({ projects, tasks, timesheets, currentUser }: Dashboar
                 {overdueByProject.map(p => {
                   const percent = Math.max(8, (p.count / overdueTasks.length) * 100);
                   return (
-                    <div key={p.name} style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                    <div 
+                      key={p.id} 
+                      onClick={() => navigate(`/projects#${p.id}`)}
+                      style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', cursor: 'pointer' }}
+                      className="hover-lift"
+                    >
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
                         <span style={{ color: 'var(--text-primary)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '240px' }} title={p.name}>
                           {p.name}
@@ -396,14 +403,21 @@ export const Dashboard = ({ projects, tasks, timesheets, currentUser }: Dashboar
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', overflowY: 'auto', maxHeight: '520px' }}>
               {projectHealth.map(proj => (
-                <div key={proj.id} style={{
-                  padding: '1rem',
-                  background: 'var(--bg-tertiary)',
-                  borderRadius: '0.65rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.6rem',
-                }}>
+                <div 
+                  key={proj.id} 
+                  onClick={() => navigate(`/projects#${proj.id}`)}
+                  style={{
+                    padding: '1rem',
+                    background: 'var(--bg-tertiary)',
+                    borderRadius: '0.65rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.6rem',
+                    cursor: 'pointer',
+                    transition: 'all var(--transition-fast)',
+                  }}
+                  className="hover-lift"
+                >
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem' }}>
                     <span style={{ fontSize: '0.875rem', fontWeight: 600, lineHeight: 1.3 }}>{proj.name}</span>
                     <Badge label={proj.status} color={projectStatusColors[proj.status] || 'rgba(107,114,128,0.8)'} />
