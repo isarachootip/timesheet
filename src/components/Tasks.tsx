@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Task, TaskStatus, TaskPriority, Project, User, Sprint, Release, TaskCommit } from '../types';
-import { Plus, Filter, Clock, X, Edit, Trash2, GripVertical, Calendar, Play, Bug, FileText, CheckSquare, Layers, GitBranch, GitCommit } from 'lucide-react';
+import { Plus, Filter, Clock, X, Edit, Trash2, GripVertical, Calendar, Bug, FileText, CheckSquare, Layers, GitBranch, GitCommit, ChevronRight, ChevronDown } from 'lucide-react';
 import {
   DndContext,
   DragOverlay,
@@ -513,6 +513,641 @@ function DroppableColumn({
   );
 }
 
+const getIssueTypeIconGlobal = (type?: string) => {
+  switch (type) {
+    case 'Bug':
+      return <Bug size={14} color="#ef4444" />;
+    case 'Story':
+      return <FileText size={14} color="#10b981" />;
+    case 'Sub-task':
+      return <GitBranch size={14} color="#a855f7" />;
+    default:
+      return <CheckSquare size={14} color="#3b82f6" />;
+  }
+};
+
+const getTaskKeyGlobal = (task: Task, projects: Project[]) => {
+  const proj = projects.find((p) => p.id === task.projectId);
+  const prefix = proj
+    ? proj.name
+        .split(' ')
+        .map((w) => w[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 3)
+    : 'TS';
+  const suffix = task.id.includes('_') ? task.id.split('_')[1].slice(-4) : task.id.slice(-4);
+  return `${prefix}-${suffix}`;
+};
+
+const getJiraStatusStyle = (status: TaskStatus) => {
+  const s = status.toUpperCase();
+  if (s.includes('TO DO') || s.includes('BACKLOG') || s.includes('PLANNED')) {
+    return { bg: '#2d3748', color: '#cbd5e1' }; // dark gray/blue, light text
+  }
+  if (s.includes('PROGRESS') || s.includes('DEVELOP') || s.includes('ACTIVE')) {
+    return { bg: '#1e3a8a', color: '#bfdbfe' }; // deep blue
+  }
+  if (s.includes('DONE') || s.includes('COMPLETED') || s.includes('FINISHED')) {
+    return { bg: '#064e3b', color: '#a7f3d0' }; // dark green
+  }
+  return { bg: '#581c87', color: '#f3e8ff' }; // dark purple
+};
+
+const formatDueDate = (dateStr?: string) => {
+  if (!dateStr) return '';
+  try {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  } catch (e) {
+    return dateStr;
+  }
+};
+
+interface BacklogTaskRowProps {
+  task: Task;
+  projects: Project[];
+  openEditModal: (t: Task) => void;
+  activeColumns: TaskStatus[];
+  onMoveStatus: (id: string, status: TaskStatus) => void;
+  onMoveSprint: (id: string, sprintId: string | undefined) => void;
+  projectSprints: Sprint[];
+  getUserAvatar: (id?: string) => string;
+  getUserName: (id?: string) => string;
+}
+
+function BacklogTaskRow({
+  task,
+  projects,
+  openEditModal,
+  activeColumns,
+  onMoveStatus,
+  onMoveSprint,
+  projectSprints,
+  getUserAvatar,
+  getUserName,
+}: BacklogTaskRowProps) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: task.id,
+  });
+
+  const style = transform
+    ? {
+        transform: CSS.Transform.toString(transform),
+        opacity: 0.5,
+        zIndex: 1000,
+      }
+    : undefined;
+
+  const statusStyle = getJiraStatusStyle(task.status);
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        ...style,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0.6rem 1rem',
+        background: isDragging ? 'var(--bg-tertiary)' : 'var(--bg-secondary)',
+        border: '1px solid var(--border-color)',
+        borderRadius: '6px',
+        fontSize: '0.85rem',
+        transition: 'background-color 0.2s',
+        gap: '1rem',
+      }}
+      {...attributes}
+    >
+      {/* Left section: drag handle, issue type, key, title */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          overflow: 'hidden',
+          flex: 1,
+        }}
+      >
+        <span
+          {...listeners}
+          style={{
+            color: 'var(--text-muted)',
+            display: 'flex',
+            alignItems: 'center',
+            cursor: 'grab',
+            padding: '2px',
+          }}
+          title="Drag to reorder/move to sprint"
+        >
+          <GripVertical size={14} />
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+          {getIssueTypeIconGlobal(task.issueType)}
+        </span>
+        <span
+          style={{
+            color: 'var(--text-muted)',
+            fontWeight: 500,
+            fontSize: '0.8rem',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+          }}
+        >
+          {getTaskKeyGlobal(task, projects)}
+        </span>
+        <span
+          onClick={() => openEditModal(task)}
+          style={{
+            fontWeight: 500,
+            color: 'var(--text-primary)',
+            cursor: 'pointer',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+          title={task.title}
+        >
+          {task.title}
+        </span>
+      </div>
+
+      {/* Right section: status, sprint, due date, story points, assignee, edit */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          flexShrink: 0,
+        }}
+      >
+        {/* Inline Status Select (Jira status badge styled) */}
+        <select
+          value={task.status}
+          onChange={(e) => onMoveStatus(task.id, e.target.value as TaskStatus)}
+          style={{
+            background: statusStyle.bg,
+            color: statusStyle.color,
+            border: 'none',
+            borderRadius: '4px',
+            fontSize: '0.7rem',
+            fontWeight: 700,
+            padding: '0.25rem 0.5rem',
+            cursor: 'pointer',
+            outline: 'none',
+            textTransform: 'uppercase',
+          }}
+        >
+          {activeColumns.map((col) => (
+            <option
+              key={col}
+              value={col}
+              style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
+            >
+              {col}
+            </option>
+          ))}
+        </select>
+
+        {/* Quick Sprint Move Dropdown */}
+        <select
+          value={task.sprintId || ''}
+          onChange={(e) => onMoveSprint(task.id, e.target.value || undefined)}
+          style={{
+            background: 'var(--bg-tertiary)',
+            color: 'var(--text-secondary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '4px',
+            fontSize: '0.75rem',
+            padding: '0.2rem 0.4rem',
+            cursor: 'pointer',
+            outline: 'none',
+          }}
+        >
+          <option value="">Backlog</option>
+          {projectSprints
+            .filter((s) => s.status !== 'Completed')
+            .map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+        </select>
+
+        {/* Due Date Badge */}
+        {task.endDate && (
+          <span
+            style={{
+              fontSize: '0.75rem',
+              color:
+                new Date(task.endDate) < new Date() && task.status !== 'Done'
+                  ? 'var(--accent-danger)'
+                  : 'var(--text-secondary)',
+              background: 'rgba(255, 255, 255, 0.05)',
+              padding: '0.2rem 0.4rem',
+              borderRadius: '4px',
+              border: '1px solid var(--border-color)',
+            }}
+            title={`Due date: ${task.endDate}`}
+          >
+            {formatDueDate(task.endDate)}
+          </span>
+        )}
+
+        {/* Story Points Pill */}
+        {task.storyPoints !== undefined && task.storyPoints > 0 ? (
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'var(--border-color)',
+              color: 'var(--text-primary)',
+              fontWeight: 600,
+              fontSize: '0.75rem',
+              width: '22px',
+              height: '22px',
+              borderRadius: '50%',
+            }}
+            title={`${task.storyPoints} Story Points`}
+          >
+            {task.storyPoints}
+          </span>
+        ) : (
+          <span style={{ width: '22px', height: '22px', display: 'inline-block' }} />
+        )}
+
+        {/* Assignee Avatar */}
+        <img
+          src={getUserAvatar(task.assigneeId)}
+          alt={getUserName(task.assigneeId)}
+          title={getUserName(task.assigneeId)}
+          style={{
+            width: '24px',
+            height: '24px',
+            borderRadius: '50%',
+            border: '1px solid var(--border-color)',
+          }}
+        />
+
+        {/* Edit Button */}
+        <button
+          onClick={() => openEditModal(task)}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--text-secondary)',
+            cursor: 'pointer',
+            padding: '4px',
+            borderRadius: '4px',
+          }}
+          title="Edit Task"
+        >
+          <Edit size={14} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+interface DroppableSprintSectionProps {
+  sprintId: string;
+  sprintName: string;
+  sprintDates?: string;
+  sprintStatus: 'Active' | 'Planned' | 'Completed';
+  tasks: Task[];
+  children: React.ReactNode;
+  onComplete?: () => void;
+  onStart?: () => void;
+  onDelete?: () => void;
+  storyPoints: { completed: number; total: number };
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  onQuickCreate: () => void;
+  onEditDates: () => void;
+}
+
+function DroppableSprintSection({
+  sprintId,
+  sprintName,
+  sprintDates,
+  sprintStatus,
+  tasks,
+  children,
+  onComplete,
+  onStart,
+  onDelete,
+  storyPoints,
+  isExpanded,
+  onToggleExpand,
+  onQuickCreate,
+  onEditDates,
+}: DroppableSprintSectionProps) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: sprintId,
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className="glass-panel"
+      style={{
+        padding: '1.25rem',
+        background: isOver ? 'rgba(99, 102, 241, 0.08)' : 'rgba(22, 26, 34, 0.4)',
+        border: isOver ? '2px solid var(--accent-primary)' : '1px solid var(--border-color)',
+        borderRadius: '8px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.75rem',
+        transition: 'all 0.15s ease',
+      }}
+    >
+      {/* Header Panel */}
+      <div
+        className="flex-between"
+        style={{ cursor: 'pointer', userSelect: 'none' }}
+        onClick={onToggleExpand}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            flexWrap: 'wrap',
+          }}
+        >
+          {isExpanded ? (
+            <ChevronDown size={16} color="var(--text-secondary)" />
+          ) : (
+            <ChevronRight size={16} color="var(--text-secondary)" />
+          )}
+          <span style={{ fontWeight: 600, fontSize: '1rem' }}>{sprintName}</span>
+
+          {sprintStatus === 'Active' && (
+            <span
+              style={{
+                fontSize: '0.7rem',
+                background: 'rgba(16, 185, 129, 0.15)',
+                color: 'var(--accent-secondary)',
+                padding: '0.1rem 0.45rem',
+                borderRadius: '4px',
+                fontWeight: 700,
+              }}
+            >
+              ACTIVE
+            </span>
+          )}
+
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              onEditDates();
+            }}
+            style={{
+              fontSize: '0.8rem',
+              color: sprintDates ? 'var(--text-secondary)' : 'var(--text-muted)',
+              cursor: 'pointer',
+              textDecoration: 'underline',
+              textDecorationStyle: 'dashed',
+            }}
+            title="Click to edit sprint dates"
+          >
+            {sprintDates || 'Add dates'}
+          </span>
+
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            • {tasks.length} work items
+          </span>
+        </div>
+
+        {/* Right Info and Actions */}
+        <div
+          style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <span
+            style={{
+              fontSize: '0.8rem',
+              background: 'var(--bg-tertiary)',
+              padding: '0.2rem 0.6rem',
+              borderRadius: '50px',
+              fontWeight: 600,
+              color: 'var(--text-secondary)',
+              border: '1px solid var(--border-color)',
+            }}
+          >
+            Story Points: {storyPoints.completed} / {storyPoints.total}
+          </span>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {sprintStatus === 'Active' && onComplete && (
+              <button
+                onClick={onComplete}
+                style={{
+                  background: 'var(--accent-secondary)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '0.3rem 0.8rem',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: '0.75rem',
+                }}
+              >
+                Complete Sprint
+              </button>
+            )}
+
+            {sprintStatus === 'Planned' && onStart && (
+              <button
+                onClick={onStart}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid var(--accent-secondary)',
+                  color: 'var(--accent-secondary)',
+                  padding: '0.25rem 0.75rem',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                }}
+              >
+                Start Sprint
+              </button>
+            )}
+
+            {onDelete && (
+              <button
+                onClick={onDelete}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--accent-danger)',
+                  cursor: 'pointer',
+                  padding: '0.25rem',
+                }}
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Accordion Content */}
+      {isExpanded && (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.5rem',
+            marginTop: '0.5rem',
+          }}
+        >
+          {children}
+
+          <div
+            onClick={onQuickCreate}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: '0.5rem 0.75rem',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              fontSize: '0.85rem',
+              borderRadius: '4px',
+              transition: 'background-color 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--bg-tertiary)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+            }}
+          >
+            <Plus size={14} /> Create task
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface DroppableBacklogSectionProps {
+  tasks: Task[];
+  children: React.ReactNode;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  onQuickCreate: () => void;
+  onCreateSprint: () => void;
+}
+
+function DroppableBacklogSection({
+  tasks,
+  children,
+  isExpanded,
+  onToggleExpand,
+  onQuickCreate,
+  onCreateSprint,
+}: DroppableBacklogSectionProps) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: 'backlog',
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className="glass-panel"
+      style={{
+        padding: '1.25rem',
+        background: isOver ? 'rgba(99, 102, 241, 0.08)' : 'rgba(22, 26, 34, 0.4)',
+        border: isOver ? '2px solid var(--accent-primary)' : '1px solid var(--border-color)',
+        borderRadius: '8px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.75rem',
+        transition: 'all 0.15s ease',
+      }}
+    >
+      {/* Header Panel */}
+      <div
+        className="flex-between"
+        style={{ cursor: 'pointer', userSelect: 'none' }}
+        onClick={onToggleExpand}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {isExpanded ? (
+            <ChevronDown size={16} color="var(--text-secondary)" />
+          ) : (
+            <ChevronRight size={16} color="var(--text-secondary)" />
+          )}
+          <span style={{ fontWeight: 600, fontSize: '1rem' }}>Project Backlog</span>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            ({tasks.length} tasks)
+          </span>
+        </div>
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onCreateSprint();
+          }}
+          style={{
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            color: 'var(--text-primary)',
+            padding: '0.4rem 1rem',
+            borderRadius: 'var(--radius-md)',
+            cursor: 'pointer',
+            fontWeight: 500,
+            fontSize: '0.8rem',
+          }}
+        >
+          Create Sprint
+        </button>
+      </div>
+
+      {/* Accordion Content */}
+      {isExpanded && (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.5rem',
+            marginTop: '0.5rem',
+          }}
+        >
+          {children}
+
+          <div
+            onClick={onQuickCreate}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: '0.5rem 0.75rem',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              fontSize: '0.85rem',
+              borderRadius: '4px',
+              transition: 'background-color 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--bg-tertiary)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+            }}
+          >
+            <Plus size={14} /> Create task
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main Tasks Component ───────────────────────────────────────────────────────
 export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, releases, setReleases }: TasksProps) => {
   const [selectedProject, setSelectedProject] = useState<string>('all');
@@ -543,6 +1178,96 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
   const [releaseId, setReleaseId] = useState('');
   const [storyPoints, setStoryPoints] = useState('');
   const [issueType, setIssueType] = useState<'Bug' | 'Story' | 'Task' | 'Sub-task'>('Task');
+
+  // Expanded sprints toggle state (expanded by default)
+  const [expandedSprints, setExpandedSprints] = useState<Record<string, boolean>>({ backlog: true });
+  // Quick task creation states
+  const [quickCreateSprintId, setQuickCreateSprintId] = useState<string | null>(null);
+  const [quickCreateTitle, setQuickCreateTitle] = useState('');
+
+  const toggleSprintExpanded = (sId: string) => {
+    setExpandedSprints((prev) => ({ ...prev, [sId]: prev[sId] === false }));
+  };
+
+  const handleQuickCreate = (sId: string | undefined, qTitle: string) => {
+    if (!qTitle.trim()) {
+      setQuickCreateSprintId(null);
+      return;
+    }
+    const taskData: Task = {
+      id: 't_' + Date.now(),
+      projectId: selectedProject,
+      title: qTitle.trim(),
+      description: '',
+      status: activeColumns[0] || 'To Do',
+      priority: 'Medium',
+      estimatedHours: 0,
+      createdAt: new Date().toISOString(),
+      sprintId: sId || undefined,
+      issueType: 'Task',
+    };
+    setTasks((prev) => [...prev, taskData]);
+    setQuickCreateTitle('');
+    setQuickCreateSprintId(null);
+  };
+
+  const handleBacklogDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveId(null);
+    if (!over) return;
+
+    const taskId = String(active.id);
+    const destinationId = String(over.id);
+
+    let targetSprintId: string | undefined = undefined;
+
+    if (destinationId === 'backlog') {
+      targetSprintId = undefined;
+    } else if (destinationId.startsWith('s_')) {
+      targetSprintId = destinationId;
+    } else {
+      const targetTask = tasks.find((t) => t.id === destinationId);
+      if (targetTask) {
+        targetSprintId = targetTask.sprintId;
+      } else {
+        return;
+      }
+    }
+
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, sprintId: targetSprintId } : t))
+    );
+  };
+
+  const editSprintDates = (sId: string) => {
+    const sprint = sprints.find((s) => s.id === sId);
+    if (!sprint) return;
+    const datesStr = prompt(
+      `Enter dates for ${sprint.name} (e.g. 15 Jun - 29 Jun):`,
+      sprint.startDate && sprint.endDate ? `${sprint.startDate} - ${sprint.endDate}` : ''
+    );
+    if (datesStr === null) return;
+
+    if (!datesStr.trim()) {
+      setSprints((prev) =>
+        prev.map((s) => (s.id === sId ? { ...s, startDate: undefined, endDate: undefined } : s))
+      );
+      return;
+    }
+
+    const parts = datesStr.split(/[-—–to]/);
+    if (parts.length >= 2) {
+      setSprints((prev) =>
+        prev.map((s) =>
+          s.id === sId ? { ...s, startDate: parts[0].trim(), endDate: parts[1].trim() } : s
+        )
+      );
+    } else {
+      setSprints((prev) =>
+        prev.map((s) => (s.id === sId ? { ...s, startDate: datesStr.trim(), endDate: undefined } : s))
+      );
+    }
+  };
 
   // Load project-specific columns
   const getProjectColumns = () => {
@@ -1056,211 +1781,340 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
             </p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-            <div className="flex-between">
-              <h3>Sprint Backlog</h3>
-              <button
-                onClick={createSprint}
-                style={{
-                  background: 'var(--bg-secondary)',
-                  border: '1px solid var(--border-color)',
-                  color: 'var(--text-primary)',
-                  padding: '0.5rem 1rem',
-                  borderRadius: 'var(--radius-md)',
-                  cursor: 'pointer',
-                  fontWeight: 500,
-                }}
-              >
-                Create Sprint
-              </button>
-            </div>
-
-            {/* Active Sprint Section */}
-            <div className="glass-panel" style={{ padding: '1.5rem', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-              {activeSprint ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <div className="flex-between" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Play size={16} color="var(--accent-secondary)" />
-                      <h4 style={{ fontSize: '1.1rem', fontWeight: 600 }}>{activeSprint.name} (Active)</h4>
-                      {activeSprint.startDate && (
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Started: {activeSprint.startDate}</span>
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      {(() => {
-                        const sp = getSprintStoryPoints(activeSprint.id);
-                        return (
-                          <span style={{ fontSize: '0.8rem', background: 'var(--bg-tertiary)', padding: '0.2rem 0.6rem', borderRadius: '50px', fontWeight: 600 }}>
-                            SPs Done: {sp.completed} / {sp.total}
-                          </span>
-                        );
-                      })()}
-                      <button
-                        onClick={() => completeSprint(activeSprint.id)}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCorners}
+            onDragStart={(event) => setActiveId(String(event.active.id))}
+            onDragEnd={handleBacklogDragEnd}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+              {/* Active Sprint Section */}
+              {activeSprint && (
+                <DroppableSprintSection
+                  sprintId={activeSprint.id}
+                  sprintName={activeSprint.name}
+                  sprintDates={
+                    activeSprint.startDate && activeSprint.endDate
+                      ? `${activeSprint.startDate} - ${activeSprint.endDate}`
+                      : undefined
+                  }
+                  sprintStatus="Active"
+                  tasks={filteredTasks.filter((t) => t.sprintId === activeSprint.id)}
+                  storyPoints={getSprintStoryPoints(activeSprint.id)}
+                  isExpanded={expandedSprints[activeSprint.id] !== false}
+                  onToggleExpand={() => toggleSprintExpanded(activeSprint.id)}
+                  onComplete={() => completeSprint(activeSprint.id)}
+                  onQuickCreate={() => {
+                    setQuickCreateSprintId(activeSprint.id);
+                    setQuickCreateTitle('');
+                  }}
+                  onEditDates={() => editSprintDates(activeSprint.id)}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {quickCreateSprintId === activeSprint.id && (
+                      <div style={{ padding: '0.25rem 0.75rem' }}>
+                        <input
+                          autoFocus
+                          type="text"
+                          placeholder="What needs to be done? Press Enter to save, Esc to cancel"
+                          value={quickCreateTitle}
+                          onChange={(e) => setQuickCreateTitle(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleQuickCreate(activeSprint.id, quickCreateTitle);
+                            } else if (e.key === 'Escape') {
+                              setQuickCreateSprintId(null);
+                              setQuickCreateTitle('');
+                            }
+                          }}
+                          onBlur={() => {
+                            setTimeout(() => {
+                              handleQuickCreate(activeSprint.id, quickCreateTitle);
+                              setQuickCreateSprintId(null);
+                            }, 200);
+                          }}
+                          style={{
+                            width: '100%',
+                            background: 'var(--bg-tertiary)',
+                            border: '1px solid var(--accent-primary)',
+                            borderRadius: '4px',
+                            padding: '0.5rem 0.75rem',
+                            color: 'var(--text-primary)',
+                            outline: 'none',
+                            fontSize: '0.85rem',
+                          }}
+                        />
+                      </div>
+                    )}
+                    {filteredTasks
+                      .filter((t) => t.sprintId === activeSprint.id)
+                      .map((task) => (
+                        <BacklogTaskRow
+                          key={task.id}
+                          task={task}
+                          projects={projects}
+                          openEditModal={openEditModal}
+                          activeColumns={activeColumns}
+                          onMoveStatus={moveTask}
+                          onMoveSprint={(id, sId) => {
+                            setTasks((prev) =>
+                              prev.map((t) => (t.id === id ? { ...t, sprintId: sId } : t))
+                            );
+                          }}
+                          projectSprints={projectSprints}
+                          getUserAvatar={getUserAvatar}
+                          getUserName={getUserName}
+                        />
+                      ))}
+                    {filteredTasks.filter((t) => t.sprintId === activeSprint.id).length === 0 && (
+                      <p
                         style={{
-                          background: 'var(--accent-secondary)',
-                          color: 'white',
-                          border: 'none',
-                          padding: '0.4rem 1rem',
-                          borderRadius: 'var(--radius-sm)',
-                          cursor: 'pointer',
-                          fontWeight: 500,
+                          color: 'var(--text-muted)',
+                          fontSize: '0.85rem',
+                          textAlign: 'center',
+                          padding: '1.5rem',
+                          border: '1px dashed var(--border-color)',
+                          borderRadius: '6px',
                         }}
                       >
-                        Complete Sprint
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Tasks in active sprint */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    {filteredTasks.filter((t) => t.sprintId === activeSprint.id).map((task) => (
-                      <div key={task.id} className="glass-panel flex-between" style={{ padding: '0.75rem 1rem', background: 'var(--bg-tertiary)', gap: '1rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflow: 'hidden' }}>
-                          <span style={{ fontSize: '0.8rem', padding: '0.1rem 0.35rem', borderRadius: '4px', background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
-                            {task.issueType || 'Task'}
-                          </span>
-                          <span style={{ fontWeight: 500, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{task.title}</span>
-                          {task.storyPoints !== undefined && task.storyPoints > 0 && (
-                            <span style={{ fontSize: '0.7rem', color: 'var(--accent-primary)', fontWeight: 600 }}>({task.storyPoints} SP)</span>
-                          )}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexShrink: 0 }}>
-                          <select
-                            value={task.sprintId || ''}
-                            onChange={(e) => {
-                              const sVal = e.target.value;
-                              setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, sprintId: sVal || undefined } : t)));
-                            }}
-                            style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}
-                          >
-                            <option value="">Move to Backlog</option>
-                            {projectSprints.filter((s) => s.id !== activeSprint.id && s.status !== 'Completed').map((s) => (
-                              <option key={s.id} value={s.id}>{s.name}</option>
-                            ))}
-                          </select>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{task.status}</span>
-                          <button onClick={() => openEditModal(task)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}><Edit size={14} /></button>
-                        </div>
-                      </div>
-                    ))}
-                    {filteredTasks.filter((t) => t.sprintId === activeSprint.id).length === 0 && (
-                      <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textAlign: 'center', padding: '1rem' }}>No tasks assigned to this active sprint. Assign tasks below.</p>
+                        Drag tasks here or click 'Create task' below to start.
+                      </p>
                     )}
                   </div>
-                </div>
-              ) : (
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', textAlign: 'center' }}>No active sprint. Start a planned sprint below.</p>
+                </DroppableSprintSection>
               )}
-            </div>
 
-            {/* Planned Sprints */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <h4>Planned Sprints ({plannedSprints.length})</h4>
+              {/* Planned Sprints */}
               {plannedSprints.map((sprint) => (
-                <div key={sprint.id} className="glass-panel" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <div className="flex-between">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ fontWeight: 600 }}>{sprint.name}</span>
-                      {(() => {
-                        const sp = getSprintStoryPoints(sprint.id);
-                        return <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({sp.total} SPs)</span>;
-                      })()}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <button
-                        onClick={() => startSprint(sprint.id)}
-                        style={{
-                          background: 'transparent',
-                          border: '1px solid var(--accent-secondary)',
-                          color: 'var(--accent-secondary)',
-                          padding: '0.25rem 0.75rem',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '0.75rem',
-                          fontWeight: 500,
-                        }}
-                      >
-                        Start Sprint
-                      </button>
-                      <button
-                        onClick={() => deleteSprint(sprint.id)}
-                        style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer' }}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Tasks in planned sprint */}
+                <DroppableSprintSection
+                  key={sprint.id}
+                  sprintId={sprint.id}
+                  sprintName={sprint.name}
+                  sprintDates={
+                    sprint.startDate && sprint.endDate
+                      ? `${sprint.startDate} - ${sprint.endDate}`
+                      : undefined
+                  }
+                  sprintStatus="Planned"
+                  tasks={filteredTasks.filter((t) => t.sprintId === sprint.id)}
+                  storyPoints={getSprintStoryPoints(sprint.id)}
+                  isExpanded={expandedSprints[sprint.id] !== false}
+                  onToggleExpand={() => toggleSprintExpanded(sprint.id)}
+                  onStart={() => startSprint(sprint.id)}
+                  onDelete={() => deleteSprint(sprint.id)}
+                  onQuickCreate={() => {
+                    setQuickCreateSprintId(sprint.id);
+                    setQuickCreateTitle('');
+                  }}
+                  onEditDates={() => editSprintDates(sprint.id)}
+                >
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    {filteredTasks.filter((t) => t.sprintId === sprint.id).map((task) => (
-                      <div key={task.id} className="glass-panel flex-between" style={{ padding: '0.6rem 0.75rem', background: 'var(--bg-tertiary)', fontSize: '0.85rem' }}>
-                        <span>{task.title}</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                          <select
-                            value={task.sprintId || ''}
-                            onChange={(e) => {
-                              const sVal = e.target.value;
-                              setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, sprintId: sVal || undefined } : t)));
-                            }}
-                            style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.7rem' }}
-                          >
-                            <option value="">Move to Backlog</option>
-                            {projectSprints.filter((s) => s.id !== sprint.id && s.status !== 'Completed').map((s) => (
-                              <option key={s.id} value={s.id}>{s.name}</option>
-                            ))}
-                          </select>
-                          <button onClick={() => openEditModal(task)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}><Edit size={12} /></button>
-                        </div>
+                    {quickCreateSprintId === sprint.id && (
+                      <div style={{ padding: '0.25rem 0.75rem' }}>
+                        <input
+                          autoFocus
+                          type="text"
+                          placeholder="What needs to be done? Press Enter to save, Esc to cancel"
+                          value={quickCreateTitle}
+                          onChange={(e) => setQuickCreateTitle(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleQuickCreate(sprint.id, quickCreateTitle);
+                            } else if (e.key === 'Escape') {
+                              setQuickCreateSprintId(null);
+                              setQuickCreateTitle('');
+                            }
+                          }}
+                          onBlur={() => {
+                            setTimeout(() => {
+                              handleQuickCreate(sprint.id, quickCreateTitle);
+                              setQuickCreateSprintId(null);
+                            }, 200);
+                          }}
+                          style={{
+                            width: '100%',
+                            background: 'var(--bg-tertiary)',
+                            border: '1px solid var(--accent-primary)',
+                            borderRadius: '4px',
+                            padding: '0.5rem 0.75rem',
+                            color: 'var(--text-primary)',
+                            outline: 'none',
+                            fontSize: '0.85rem',
+                          }}
+                        />
                       </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Backlog Section */}
-            <div className="glass-panel" style={{ padding: '1.5rem' }}>
-              <h4 style={{ marginBottom: '1rem' }}>Project Backlog ({backlogTasks.length} tasks)</h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '400px', overflowY: 'auto' }}>
-                {backlogTasks.map((task) => (
-                  <div key={task.id} className="glass-panel flex-between" style={{ padding: '0.75rem 1rem', background: 'var(--bg-tertiary)', gap: '1rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflow: 'hidden' }}>
-                      <span style={{ fontSize: '0.8rem', padding: '0.1rem 0.35rem', borderRadius: '4px', background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
-                        {task.issueType || 'Task'}
-                      </span>
-                      <span style={{ fontWeight: 500, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{task.title}</span>
-                      {task.storyPoints !== undefined && task.storyPoints > 0 && (
-                        <span style={{ fontSize: '0.7rem', color: 'var(--accent-primary)', fontWeight: 600 }}>({task.storyPoints} SP)</span>
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexShrink: 0 }}>
-                      <select
-                        value={task.sprintId || ''}
-                        onChange={(e) => {
-                          const sVal = e.target.value;
-                          setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, sprintId: sVal || undefined } : t)));
+                    )}
+                    {filteredTasks
+                      .filter((t) => t.sprintId === sprint.id)
+                      .map((task) => (
+                        <BacklogTaskRow
+                          key={task.id}
+                          task={task}
+                          projects={projects}
+                          openEditModal={openEditModal}
+                          activeColumns={activeColumns}
+                          onMoveStatus={moveTask}
+                          onMoveSprint={(id, sId) => {
+                            setTasks((prev) =>
+                              prev.map((t) => (t.id === id ? { ...t, sprintId: sId } : t))
+                            );
+                          }}
+                          projectSprints={projectSprints}
+                          getUserAvatar={getUserAvatar}
+                          getUserName={getUserName}
+                        />
+                      ))}
+                    {filteredTasks.filter((t) => t.sprintId === sprint.id).length === 0 && (
+                      <p
+                        style={{
+                          color: 'var(--text-muted)',
+                          fontSize: '0.85rem',
+                          textAlign: 'center',
+                          padding: '1.5rem',
+                          border: '1px dashed var(--border-color)',
+                          borderRadius: '6px',
                         }}
-                        style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}
                       >
-                        <option value="">Move to Sprint...</option>
-                        {projectSprints.filter((s) => s.status !== 'Completed').map((s) => (
-                          <option key={s.id} value={s.id}>{s.name} ({s.status})</option>
-                        ))}
-                      </select>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{task.status}</span>
-                      <button onClick={() => openEditModal(task)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}><Edit size={14} /></button>
-                    </div>
+                        Drag tasks here or click 'Create task' below to start.
+                      </p>
+                    )}
                   </div>
-                ))}
-                {backlogTasks.length === 0 && (
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textAlign: 'center', padding: '2rem' }}>All tasks are currently assigned to Sprints.</p>
-                )}
-              </div>
+                </DroppableSprintSection>
+              ))}
+
+              {/* Project Backlog Section */}
+              <DroppableBacklogSection
+                tasks={backlogTasks}
+                isExpanded={expandedSprints['backlog'] !== false}
+                onToggleExpand={() => toggleSprintExpanded('backlog')}
+                onCreateSprint={createSprint}
+                onQuickCreate={() => {
+                  setQuickCreateSprintId('backlog');
+                  setQuickCreateTitle('');
+                }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {quickCreateSprintId === 'backlog' && (
+                    <div style={{ padding: '0.25rem 0.75rem' }}>
+                      <input
+                        autoFocus
+                        type="text"
+                        placeholder="What needs to be done? Press Enter to save, Esc to cancel"
+                        value={quickCreateTitle}
+                        onChange={(e) => setQuickCreateTitle(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleQuickCreate(undefined, quickCreateTitle);
+                          } else if (e.key === 'Escape') {
+                            setQuickCreateSprintId(null);
+                            setQuickCreateTitle('');
+                          }
+                        }}
+                        onBlur={() => {
+                          setTimeout(() => {
+                            handleQuickCreate(undefined, quickCreateTitle);
+                            setQuickCreateSprintId(null);
+                          }, 200);
+                        }}
+                        style={{
+                          width: '100%',
+                          background: 'var(--bg-tertiary)',
+                          border: '1px solid var(--accent-primary)',
+                          borderRadius: '4px',
+                          padding: '0.5rem 0.75rem',
+                          color: 'var(--text-primary)',
+                          outline: 'none',
+                          fontSize: '0.85rem',
+                        }}
+                      />
+                    </div>
+                  )}
+                  {backlogTasks.map((task) => (
+                    <BacklogTaskRow
+                      key={task.id}
+                      task={task}
+                      projects={projects}
+                      openEditModal={openEditModal}
+                      activeColumns={activeColumns}
+                      onMoveStatus={moveTask}
+                      onMoveSprint={(id, sId) => {
+                        setTasks((prev) =>
+                          prev.map((t) => (t.id === id ? { ...t, sprintId: sId } : t))
+                        );
+                      }}
+                      projectSprints={projectSprints}
+                      getUserAvatar={getUserAvatar}
+                      getUserName={getUserName}
+                    />
+                  ))}
+                  {backlogTasks.length === 0 && (
+                    <p
+                      style={{
+                        color: 'var(--text-muted)',
+                        fontSize: '0.85rem',
+                        textAlign: 'center',
+                        padding: '2rem',
+                      }}
+                    >
+                      All tasks are currently assigned to Sprints.
+                    </p>
+                  )}
+                </div>
+              </DroppableBacklogSection>
             </div>
-          </div>
+            <DragOverlay>
+              {activeId ? (
+                (() => {
+                  const task = tasks.find((t) => t.id === activeId);
+                  if (!task) return null;
+                  return (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '0.6rem 1rem',
+                        background: 'var(--bg-secondary)',
+                        border: '2px solid var(--accent-primary)',
+                        borderRadius: '6px',
+                        fontSize: '0.85rem',
+                        boxShadow: 'var(--shadow-lg)',
+                        opacity: 0.9,
+                        gap: '1rem',
+                        width: '100%',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.75rem',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <span style={{ color: 'var(--text-muted)' }}>
+                          <GripVertical size={14} />
+                        </span>
+                        {getIssueTypeIconGlobal(task.issueType)}
+                        <span
+                          style={{
+                            color: 'var(--text-muted)',
+                            fontWeight: 500,
+                            fontSize: '0.8rem',
+                          }}
+                        >
+                          {getTaskKeyGlobal(task, projects)}
+                        </span>
+                        <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
+                          {task.title}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()
+              ) : null}
+            </DragOverlay>
+          </DndContext>
         )
       )}
 
