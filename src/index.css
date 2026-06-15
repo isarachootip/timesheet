@@ -443,4 +443,16 @@ h3 { font-size: 1.5rem; line-height: 2rem; }
   to   { opacity: 1; transform: translateX(0); }
 }
 
+/* Fix dropdown options readability in dark mode */
+select option, option {
+  background-color: #1e232d !important; /* matches --bg-tertiary */
+  color: #f1f5f9 !important;            /* matches --text-primary */
+}
+
+select option:hover, option:hover {
+  background-color: #6366f1 !important; /* matches --accent-primary */
+  color: #ffffff !important;
+}
+
+
 

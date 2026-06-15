@@ -1,6 +1,6 @@
 export type GlobalRole = 'Admin' | 'Manager' | 'Employee';
 export type ProjectRole = string;
-export type TaskStatus = 'To Do' | 'In Progress' | 'Review' | 'Done';
+export type TaskStatus = string; // Made generic to support custom workflow columns
 export type TaskPriority = 'Low' | 'Medium' | 'High' | 'Urgent';
 export type TimesheetStatus = 'Draft' | 'Pending' | 'Approved' | 'Rejected';
 export type ProjectStatus = 'Planning' | 'Active' | 'On Hold' | 'Completed';
@@ -31,6 +31,33 @@ export interface Project {
   endDate?: string;
   budget?: number;
   members: ProjectMember[];
+  customColumns?: string[];
+}
+
+export interface Sprint {
+  id: string;
+  projectId: string;
+  name: string;
+  status: 'Planned' | 'Active' | 'Completed';
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface Release {
+  id: string;
+  projectId: string;
+  name: string;
+  status: 'Unreleased' | 'Released';
+  releaseDate?: string;
+}
+
+export interface TaskCommit {
+  id: string;
+  taskId: string;
+  commitHash: string;
+  message: string;
+  author: string;
+  timestamp: string;
 }
 
 export interface Task {
@@ -46,6 +73,10 @@ export interface Task {
   parentId?: string;
   startDate?: string;
   endDate?: string;
+  sprintId?: string;
+  releaseId?: string;
+  storyPoints?: number;
+  issueType?: 'Bug' | 'Story' | 'Task' | 'Sub-task';
 }
 
 export interface TaskTemplate {
@@ -70,3 +101,4 @@ export interface TimesheetEntry {
   approvedBy?: string;
   approvedAt?: string;
 }
+

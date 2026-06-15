@@ -75,6 +75,32 @@ const initDB = async () => {
         members JSONB DEFAULT '[]'::jsonb
       );
     `);
+    await client.query(`
+      ALTER TABLE projects ADD COLUMN IF NOT EXISTS custom_columns JSONB DEFAULT '["To Do", "In Progress", "Review", "Done"]'::jsonb;
+    `);
+
+    // Create Sprints Table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS sprints (
+        id VARCHAR(50) PRIMARY KEY,
+        project_id VARCHAR(50) NOT NULL,
+        name VARCHAR(150) NOT NULL,
+        status VARCHAR(50) NOT NULL,
+        start_date VARCHAR(50),
+        end_date VARCHAR(50)
+      );
+    `);
+
+    // Create Releases Table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS releases (
+        id VARCHAR(50) PRIMARY KEY,
+        project_id VARCHAR(50) NOT NULL,
+        name VARCHAR(150) NOT NULL,
+        status VARCHAR(50) NOT NULL,
+        release_date VARCHAR(50)
+      );
+    `);
 
     // Create Tasks Table
     await client.query(`
@@ -95,6 +121,10 @@ const initDB = async () => {
       ALTER TABLE tasks ADD COLUMN IF NOT EXISTS parent_id VARCHAR(50);
       ALTER TABLE tasks ADD COLUMN IF NOT EXISTS start_date VARCHAR(50);
       ALTER TABLE tasks ADD COLUMN IF NOT EXISTS end_date VARCHAR(50);
+      ALTER TABLE tasks ADD COLUMN IF NOT EXISTS sprint_id VARCHAR(50);
+      ALTER TABLE tasks ADD COLUMN IF NOT EXISTS release_id VARCHAR(50);
+      ALTER TABLE tasks ADD COLUMN IF NOT EXISTS story_points INTEGER DEFAULT 0;
+      ALTER TABLE tasks ADD COLUMN IF NOT EXISTS issue_type VARCHAR(50) DEFAULT 'Task';
     `);
 
     // Create Task Templates Table
@@ -123,6 +153,18 @@ const initDB = async () => {
         status VARCHAR(50) NOT NULL,
         approved_by VARCHAR(50),
         approved_at VARCHAR(50)
+      );
+    `);
+
+    // Create Task Commits Table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS task_commits (
+        id VARCHAR(50) PRIMARY KEY,
+        task_id VARCHAR(50) NOT NULL,
+        commit_hash VARCHAR(50) NOT NULL,
+        message TEXT,
+        author VARCHAR(100),
+        timestamp VARCHAR(50)
       );
     `);
 
@@ -420,6 +462,8 @@ app.get('/api/initial-data', async (req, res) => {
     const tasksRes = await pool.query('SELECT * FROM tasks');
     const timesheetsRes = await pool.query('SELECT * FROM timesheets');
     const templatesRes = await pool.query('SELECT * FROM task_templates');
+    const sprintsRes = await pool.query('SELECT * FROM sprints');
+    const releasesRes = await pool.query('SELECT * FROM releases');
 
     // Map DB column casing to JS camelCase
     const users = usersRes.rows.map(u => ({
@@ -442,7 +486,8 @@ app.get('/api/initial-data', async (req, res) => {
       startDate: p.start_date,
       endDate: p.end_date,
       budget: parseFloat(p.budget || '0'),
-      members: p.members
+      members: p.members,
+      customColumns: p.custom_columns
     }));
 
     const tasks = tasksRes.rows.map(t => ({
@@ -457,7 +502,11 @@ app.get('/api/initial-data', async (req, res) => {
       createdAt: t.created_at,
       parentId: t.parent_id,
       startDate: t.start_date,
-      endDate: t.end_date
+      endDate: t.end_date,
+      sprintId: t.sprint_id,
+      releaseId: t.release_id,
+      storyPoints: t.story_points || 0,
+      issueType: t.issue_type || 'Task'
     }));
 
     const timesheets = timesheetsRes.rows.map(ts => ({
@@ -483,7 +532,24 @@ app.get('/api/initial-data', async (req, res) => {
       estimatedHours: parseFloat(tpl.estimated_hours || '0')
     }));
 
-    res.json({ users, projects, tasks, timesheets, taskTemplates });
+    const sprints = sprintsRes.rows.map(s => ({
+      id: s.id,
+      projectId: s.project_id,
+      name: s.name,
+      status: s.status,
+      startDate: s.start_date,
+      endDate: s.end_date
+    }));
+
+    const releases = releasesRes.rows.map(r => ({
+      id: r.id,
+      projectId: r.project_id,
+      name: r.name,
+      status: r.status,
+      releaseDate: r.release_date
+    }));
+
+    res.json({ users, projects, tasks, timesheets, taskTemplates, sprints, releases });
   } catch (err) {
     console.error('Error fetching initial data:', err);
     res.status(500).json({ error: err.message });
@@ -547,14 +613,15 @@ app.delete('/api/users/:id', async (req, res) => {
 
 // Projects REST API
 app.post('/api/projects', async (req, res) => {
-  const { id, name, description, status, startDate, endDate, budget, members } = req.body;
+  const { id, name, description, status, startDate, endDate, budget, members, customColumns } = req.body;
   try {
     const checkExist = await pool.query('SELECT 1 FROM projects WHERE id = $1', [id]);
     const isNew = checkExist.rows.length === 0;
+    const cols = customColumns || ["To Do", "In Progress", "Review", "Done"];
 
     await pool.query(
-      `INSERT INTO projects (id, name, description, status, start_date, end_date, budget, members)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO projects (id, name, description, status, start_date, end_date, budget, members, custom_columns)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        ON CONFLICT (id) DO UPDATE SET
          name = EXCLUDED.name,
          description = EXCLUDED.description,
@@ -562,8 +629,9 @@ app.post('/api/projects', async (req, res) => {
          start_date = EXCLUDED.start_date,
          end_date = EXCLUDED.end_date,
          budget = EXCLUDED.budget,
-         members = EXCLUDED.members`,
-      [id, name, description, status, startDate, endDate, budget, JSON.stringify(members)]
+         members = EXCLUDED.members,
+         custom_columns = EXCLUDED.custom_columns`,
+      [id, name, description, status, startDate, endDate, budget, JSON.stringify(members), JSON.stringify(cols)]
     );
 
     // Auto-generate main tasks from templates for new projects
@@ -584,8 +652,8 @@ app.post('/api/projects', async (req, res) => {
         
         const taskId = 't_' + Math.random().toString(36).substr(2, 9);
         await pool.query(
-          `INSERT INTO tasks (id, project_id, assignee_id, title, description, status, priority, estimated_hours, created_at, start_date, end_date)
-           VALUES ($1, $2, NULL, $3, $4, $5, $6, $7, $8, $9, $10)`,
+          `INSERT INTO tasks (id, project_id, assignee_id, title, description, status, priority, estimated_hours, created_at, start_date, end_date, sprint_id, release_id, story_points, issue_type)
+           VALUES ($1, $2, NULL, $3, $4, $5, $6, $7, $8, $9, $10, NULL, NULL, 0, 'Task')`,
           [
             taskId,
             id,
@@ -611,11 +679,11 @@ app.post('/api/projects', async (req, res) => {
 
 // Tasks REST API
 app.post('/api/tasks', async (req, res) => {
-  const { id, projectId, assigneeId, title, description, status, priority, estimatedHours, createdAt, parentId, startDate, endDate } = req.body;
+  const { id, projectId, assigneeId, title, description, status, priority, estimatedHours, createdAt, parentId, startDate, endDate, sprintId, releaseId, storyPoints, issueType } = req.body;
   try {
     await pool.query(
-      `INSERT INTO tasks (id, project_id, assignee_id, title, description, status, priority, estimated_hours, created_at, parent_id, start_date, end_date)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      `INSERT INTO tasks (id, project_id, assignee_id, title, description, status, priority, estimated_hours, created_at, parent_id, start_date, end_date, sprint_id, release_id, story_points, issue_type)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
        ON CONFLICT (id) DO UPDATE SET
          project_id = EXCLUDED.project_id,
          assignee_id = EXCLUDED.assignee_id,
@@ -627,8 +695,29 @@ app.post('/api/tasks', async (req, res) => {
          created_at = EXCLUDED.created_at,
          parent_id = EXCLUDED.parent_id,
          start_date = EXCLUDED.start_date,
-         end_date = EXCLUDED.end_date`,
-      [id, projectId, assigneeId, title, description, status, priority, estimatedHours, createdAt, parentId || null, startDate || null, endDate || null]
+         end_date = EXCLUDED.end_date,
+         sprint_id = EXCLUDED.sprint_id,
+         release_id = EXCLUDED.release_id,
+         story_points = EXCLUDED.story_points,
+         issue_type = EXCLUDED.issue_type`,
+      [
+        id, 
+        projectId, 
+        assigneeId, 
+        title, 
+        description, 
+        status, 
+        priority, 
+        estimatedHours, 
+        createdAt, 
+        parentId || null, 
+        startDate || null, 
+        endDate || null,
+        sprintId || null,
+        releaseId || null,
+        storyPoints || 0,
+        issueType || 'Task'
+      ]
     );
     res.json({ success: true });
   } catch (err) {
@@ -644,6 +733,167 @@ app.delete('/api/tasks/:id', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('Error deleting task:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Sprints REST API
+app.post('/api/sprints', async (req, res) => {
+  const { id, projectId, name, status, startDate, endDate } = req.body;
+  try {
+    await pool.query(
+      `INSERT INTO sprints (id, project_id, name, status, start_date, end_date)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT (id) DO UPDATE SET
+         project_id = EXCLUDED.project_id,
+         name = EXCLUDED.name,
+         status = EXCLUDED.status,
+         start_date = EXCLUDED.start_date,
+         end_date = EXCLUDED.end_date`,
+      [id, projectId, name, status, startDate || null, endDate || null]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error saving sprint:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/sprints/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query('DELETE FROM sprints WHERE id = $1', [id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error deleting sprint:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Releases REST API
+app.post('/api/releases', async (req, res) => {
+  const { id, projectId, name, status, releaseDate } = req.body;
+  try {
+    await pool.query(
+      `INSERT INTO releases (id, project_id, name, status, release_date)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (id) DO UPDATE SET
+         project_id = EXCLUDED.project_id,
+         name = EXCLUDED.name,
+         status = EXCLUDED.status,
+         release_date = EXCLUDED.release_date`,
+      [id, projectId, name, status, releaseDate || null]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error saving release:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/releases/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query('DELETE FROM releases WHERE id = $1', [id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error deleting release:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Task Commits API
+app.get('/api/tasks/:taskId/commits', async (req, res) => {
+  const { taskId } = req.params;
+  try {
+    const commitsRes = await pool.query('SELECT * FROM task_commits WHERE task_id = $1 ORDER BY timestamp DESC', [taskId]);
+    const commits = commitsRes.rows.map(c => ({
+      id: c.id,
+      taskId: c.task_id,
+      commitHash: c.commit_hash,
+      message: c.message,
+      author: c.author,
+      timestamp: c.timestamp
+    }));
+    res.json(commits);
+  } catch (err) {
+    console.error('Error fetching commits:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Helper for Processing Webhook Commits
+async function processCommit(hash, message, author) {
+  const taskRegex = /(?:\[|#)(t_?[a-zA-Z0-9]+)(?:\]|\b)/gi;
+  let match;
+  const taskIds = new Set();
+  while ((match = taskRegex.exec(message)) !== null) {
+    taskIds.add(match[1]);
+  }
+
+  for (const taskId of taskIds) {
+    const taskRes = await pool.query('SELECT * FROM tasks WHERE id = $1', [taskId]);
+    const task = taskRes.rows[0];
+    if (task) {
+      const lowerMsg = message.toLowerCase();
+      let newStatus = task.status;
+      
+      const doneKeywords = ['fix', 'close', 'resolve', 'complete', 'done', 'แก้', 'ปิด'];
+      const inProgressKeywords = ['work', 'progress', 'develop', 'start', 'ทำ', 'เริ่ม'];
+      
+      const projRes = await pool.query('SELECT custom_columns FROM projects WHERE id = $1', [task.project_id]);
+      const columns = projRes.rows[0]?.custom_columns || ['To Do', 'In Progress', 'Review', 'Done'];
+      
+      if (doneKeywords.some(k => lowerMsg.includes(k))) {
+        newStatus = columns[columns.length - 1];
+      } else if (inProgressKeywords.some(k => lowerMsg.includes(k))) {
+        newStatus = columns[1] || 'In Progress';
+      }
+
+      await pool.query('UPDATE tasks SET status = $1 WHERE id = $2', [newStatus, taskId]);
+
+      const commitId = 'c_' + Math.random().toString(36).substr(2, 9);
+      await pool.query(
+        `INSERT INTO task_commits (id, task_id, commit_hash, message, author, timestamp)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [commitId, taskId, hash.substring(0, 8), message, author, new Date().toISOString()]
+      );
+    }
+  }
+}
+
+// GitHub Webhook API
+app.post('/api/webhooks/github', async (req, res) => {
+  const payload = req.body;
+  if (!payload || !payload.commits) {
+    return res.status(400).send('Invalid GitHub Webhook Payload');
+  }
+
+  try {
+    for (const commit of payload.commits) {
+      await processCommit(commit.id, commit.message, commit.author.name || commit.author.email);
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error processing GitHub Webhook:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GitLab Webhook API
+app.post('/api/webhooks/gitlab', async (req, res) => {
+  const payload = req.body;
+  if (!payload || !payload.commits) {
+    return res.status(400).send('Invalid GitLab Webhook Payload');
+  }
+
+  try {
+    for (const commit of payload.commits) {
+      await processCommit(commit.id, commit.message, commit.author.name || commit.author.email);
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error processing GitLab Webhook:', err);
     res.status(500).json({ error: err.message });
   }
 });

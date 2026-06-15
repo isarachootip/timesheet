@@ -42,6 +42,7 @@ export const Projects = ({ projects, setProjects, users, tasks }: ProjectsProps)
   const [endDate, setEndDate] = useState('');
   const [budget, setBudget] = useState('');
   const [members, setMembers] = useState<{ userId: string; role: ProjectRole }[]>([]);
+  const [customColumnsText, setCustomColumnsText] = useState('To Do, In Progress, Review, Done');
 
   // Member select helper state
   const [tempUserId, setTempUserId] = useState('');
@@ -68,6 +69,7 @@ export const Projects = ({ projects, setProjects, users, tasks }: ProjectsProps)
     setEndDate('');
     setBudget('');
     setMembers([]);
+    setCustomColumnsText('To Do, In Progress, Review, Done');
     setIsModalOpen(true);
   };
 
@@ -80,12 +82,15 @@ export const Projects = ({ projects, setProjects, users, tasks }: ProjectsProps)
     setEndDate(project.endDate || '');
     setBudget(project.budget ? formatNumberWithCommas(String(project.budget)) : '');
     setMembers(project.members);
+    setCustomColumnsText(project.customColumns ? project.customColumns.join(', ') : 'To Do, In Progress, Review, Done');
     setIsModalOpen(true);
   };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !startDate) return alert('Name and Start Date are required');
+
+    const cols = customColumnsText.split(',').map(c => c.trim()).filter(c => c.length > 0);
 
     const projectData: Project = {
       id: editingProject ? editingProject.id : 'p_' + Date.now(),
@@ -95,7 +100,8 @@ export const Projects = ({ projects, setProjects, users, tasks }: ProjectsProps)
       startDate,
       endDate: endDate || undefined,
       budget: budget ? parseNumberFromCommas(budget) : undefined,
-      members
+      members,
+      customColumns: cols.length > 0 ? cols : ['To Do', 'In Progress', 'Review', 'Done']
     };
 
     if (editingProject) {
@@ -313,6 +319,17 @@ export const Projects = ({ projects, setProjects, users, tasks }: ProjectsProps)
                   value={description} 
                   onChange={e => setDescription(e.target.value)} 
                   style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none', minHeight: '80px', resize: 'vertical' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Kanban Columns (comma-separated workflow columns)</label>
+                <input 
+                  type="text" 
+                  value={customColumnsText} 
+                  onChange={e => setCustomColumnsText(e.target.value)} 
+                  style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none' }}
+                  placeholder="e.g. To Do, In Progress, Review, Done"
                 />
               </div>
 

@@ -11,7 +11,7 @@ import { Login } from './components/Login';
 import { Settings } from './components/Settings';
 import { ProjectPlan } from './components/ProjectPlan';
 import { mockUsers, mockProjects, mockTasks, mockTimesheets } from './data/mockData';
-import type { User, Project, Task, TimesheetEntry, TaskTemplate } from './types';
+import type { User, Project, Task, TimesheetEntry, TaskTemplate, Sprint, Release } from './types';
 import './index.css';
 
 // --- Helper to use LocalStorage with fallback ---
@@ -225,6 +225,8 @@ function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [timesheets, setTimesheets] = useState<TimesheetEntry[]>([]);
   const [taskTemplates, setTaskTemplates] = useState<TaskTemplate[]>([]);
+  const [sprints, setSprints] = useState<Sprint[]>([]);
+  const [releases, setReleases] = useState<Release[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(() => getLocalStorage<User | null>('nt_current_user', null));
   const [loading, setLoading] = useState(true);
 
@@ -254,6 +256,8 @@ function App() {
         setTasks(data.tasks || []);
         setTimesheets(data.timesheets || []);
         setTaskTemplates(data.taskTemplates || []);
+        setSprints(data.sprints || []);
+        setReleases(data.releases || []);
         setLoading(false);
       })
       .catch(err => {
@@ -394,6 +398,54 @@ function App() {
     });
   };
 
+  const handleSetSprints: React.Dispatch<React.SetStateAction<Sprint[]>> = (value) => {
+    setSprints(prev => {
+      const nextSprints = typeof value === 'function' ? value(prev) : value;
+      if (nextSprints.length < prev.length) {
+        const deletedSprint = prev.find(p => !nextSprints.some(n => n.id === p.id));
+        if (deletedSprint) {
+          fetch(`/api/sprints/${deletedSprint.id}`, { method: 'DELETE' });
+        }
+      } else {
+        nextSprints.forEach(n => {
+          const prevSprint = prev.find(p => p.id === n.id);
+          if (JSON.stringify(prevSprint) !== JSON.stringify(n)) {
+            fetch('/api/sprints', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(n)
+            });
+          }
+        });
+      }
+      return nextSprints;
+    });
+  };
+
+  const handleSetReleases: React.Dispatch<React.SetStateAction<Release[]>> = (value) => {
+    setReleases(prev => {
+      const nextReleases = typeof value === 'function' ? value(prev) : value;
+      if (nextReleases.length < prev.length) {
+        const deletedRelease = prev.find(p => !nextReleases.some(n => n.id === p.id));
+        if (deletedRelease) {
+          fetch(`/api/releases/${deletedRelease.id}`, { method: 'DELETE' });
+        }
+      } else {
+        nextReleases.forEach(n => {
+          const prevRelease = prev.find(p => p.id === n.id);
+          if (JSON.stringify(prevRelease) !== JSON.stringify(n)) {
+            fetch('/api/releases', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(n)
+            });
+          }
+        });
+      }
+      return nextReleases;
+    });
+  };
+
   const handleLogin = (user: User) => {
     setCurrentUser(user);
   };
@@ -422,7 +474,7 @@ function App() {
           <Route path="/" element={<Dashboard projects={projects} tasks={tasks} timesheets={timesheets} currentUser={currentUser} />} />
           <Route path="/projects" element={<Projects projects={projects} setProjects={handleSetProjects} users={users} tasks={tasks} />} />
           <Route path="/project-plan" element={<ProjectPlan projects={projects} tasks={tasks} setTasks={handleSetTasks} users={users} taskTemplates={taskTemplates} />} />
-          <Route path="/tasks" element={<Tasks tasks={tasks} setTasks={handleSetTasks} projects={projects} users={users} />} />
+          <Route path="/tasks" element={<Tasks tasks={tasks} setTasks={handleSetTasks} projects={projects} users={users} sprints={sprints} setSprints={handleSetSprints} releases={releases} setReleases={handleSetReleases} />} />
           <Route path="/timesheet" element={<Timesheet timesheets={timesheets} setTimesheets={handleSetTimesheets} projects={projects} tasks={tasks} currentUser={currentUser} />} />
           <Route path="/team" element={<TeamApprovals users={users} setUsers={handleSetUsers} timesheets={timesheets} setTimesheets={handleSetTimesheets} projects={projects} setProjects={handleSetProjects} tasks={tasks} />} />
           <Route path="/reports" element={<Reports timesheets={timesheets} projects={projects} users={users} />} />
