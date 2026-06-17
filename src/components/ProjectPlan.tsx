@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Project, Task, User, TaskPriority, TaskStatus, TaskTemplate } from '../types';
+import type { Project, Task, User, TaskPriority, TaskStatus, TaskTemplate, PermissionScheme } from '../types';
 import { Calendar, CheckCircle2, Clock, ArrowRight, Plus, Edit, Trash2, X, Save, Zap, ChevronDown, ChevronRight } from 'lucide-react';
 
 interface ProjectPlanProps {
@@ -8,9 +8,11 @@ interface ProjectPlanProps {
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
   users: User[];
   taskTemplates: TaskTemplate[];
+  permissionSchemes: PermissionScheme[];
+  currentUser: User | null;
 }
 
-export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates }: ProjectPlanProps) => {
+export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, permissionSchemes, currentUser }: ProjectPlanProps) => {
   const [selectedProjectId, setSelectedProjectId] = useState<string>(projects[0]?.id || '');
   const [expandedMilestones, setExpandedMilestones] = useState<Set<string>>(new Set());
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -106,8 +108,43 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates }:
     });
   };
 
+  const hasProjectPermission = (projId: string, permissionKey: string, taskObj?: Task) => {
+    if (!currentUser) return false;
+    if (currentUser.globalRole === 'Admin') return true;
+
+    const project = projects.find(p => p.id === projId);
+    if (!project) return false;
+
+    let projectRole: string | null = null;
+    const members = project.members || [];
+    const member = members.find(m => m.userId === currentUser.id);
+    if (member) projectRole = member.role;
+
+    if (currentUser.globalRole === 'Manager' && !projectRole) {
+      projectRole = 'PM';
+    }
+
+    const schemeId = project.permissionSchemeId || 'scheme_default';
+    const scheme = permissionSchemes.find(s => s.id === schemeId);
+    if (!scheme) return false;
+
+    const allowed = scheme.permissions?.[permissionKey] || [];
+    if (!Array.isArray(allowed)) return false;
+
+    if (allowed.includes(currentUser.globalRole)) return true;
+    if (projectRole && allowed.includes(projectRole)) return true;
+    if (allowed.includes('Member') && projectRole) return true;
+    if (allowed.includes('Assignee') && taskObj && taskObj.assigneeId === currentUser.id) return true;
+
+    return false;
+  };
+
   // Generate milestones from templates
   const handleGenerateFromTemplates = async () => {
+    if (!hasProjectPermission(selectedProjectId, 'create_task')) {
+      alert('Permission denied: You do not have permission to create tasks in this project.');
+      return;
+    }
     if (!project || !project.startDate || !project.endDate) {
       alert('This project must have both a Start Date and End Date to auto-generate milestones.');
       return;
@@ -176,6 +213,11 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates }:
   };
 
   const handleDeleteTask = (taskId: string, isMain: boolean) => {
+    const taskObj = tasks.find(t => t.id === taskId);
+    if (!hasProjectPermission(selectedProjectId, 'delete_task', taskObj)) {
+      alert('Permission denied: You do not have permission to delete tasks in this project.');
+      return;
+    }
     const subtaskCount = tasks.filter(t => t.parentId === taskId).length;
     const msg = isMain && subtaskCount > 0
       ? `Delete this milestone AND its ${subtaskCount} subtask(s)?`
@@ -190,6 +232,12 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates }:
 
   const handleSaveTask = (e: React.FormEvent) => {
     e.preventDefault();
+    const isEditing = !!editingTask;
+    const permKey = isEditing ? 'edit_task' : 'create_task';
+    if (!hasProjectPermission(selectedProjectId, permKey, editingTask || undefined)) {
+      alert(`Permission denied: You do not have permission to ${isEditing ? 'edit' : 'create'} tasks in this project.`);
+      return;
+    }
     if (!formTitle) return alert('Title is required');
 
     const est = Number(formEstHours) || 0;

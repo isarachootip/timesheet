@@ -11,7 +11,16 @@ CREATE TABLE IF NOT EXISTS users (
     gender VARCHAR(50),
     birthday VARCHAR(50), -- kept as VARCHAR to align with react string picker YYYY-MM-DD
     skills TEXT[] DEFAULT '{}',
-    line_user_id VARCHAR(100) UNIQUE
+    line_user_id VARCHAR(100) UNIQUE,
+    password_hash VARCHAR(255)
+);
+
+-- 1.5 Permission Schemes Table
+CREATE TABLE IF NOT EXISTS permission_schemes (
+    id VARCHAR(50) PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    description TEXT,
+    permissions JSONB NOT NULL
 );
 
 -- 2. Projects Table
@@ -24,7 +33,15 @@ CREATE TABLE IF NOT EXISTS projects (
     end_date VARCHAR(50),
     budget NUMERIC,
     members JSONB DEFAULT '[]'::jsonb,
-    custom_columns JSONB DEFAULT '["To Do", "In Progress", "Review", "Done"]'::jsonb
+    custom_columns JSONB DEFAULT '["To Do", "In Progress", "Review", "Done"]'::jsonb,
+    permission_scheme_id VARCHAR(50) REFERENCES permission_schemes(id) ON DELETE SET NULL
+);
+
+-- 2.5 Project Workflows Table
+CREATE TABLE IF NOT EXISTS project_workflows (
+    project_id VARCHAR(50) PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE,
+    statuses JSONB DEFAULT '["To Do", "In Progress", "Review", "Done"]'::jsonb,
+    transitions JSONB DEFAULT '[]'::jsonb
 );
 
 -- 3. Sprints Table

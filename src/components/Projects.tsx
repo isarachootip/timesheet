@@ -1,16 +1,29 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Calendar, Users, DollarSign, Plus, X, Edit, Trash2 } from 'lucide-react';
-import type { User, Project, ProjectStatus, ProjectRole, Task } from '../types';
+import { Calendar, Users, DollarSign, Plus, X, Edit, Trash2, GitBranch } from 'lucide-react';
+import type { User, Project, ProjectStatus, ProjectRole, Task, PermissionScheme, ProjectWorkflow } from '../types';
 
 interface ProjectsProps {
   projects: Project[];
   setProjects: React.Dispatch<React.SetStateAction<Project[]>>;
   users: User[];
   tasks?: Task[];
+  permissionSchemes: PermissionScheme[];
+  currentUser: User | null;
+  projectWorkflows: ProjectWorkflow[];
+  setProjectWorkflows: React.Dispatch<React.SetStateAction<ProjectWorkflow[]>>;
 }
 
-export const Projects = ({ projects, setProjects, users, tasks }: ProjectsProps) => {
+export const Projects = ({ 
+  projects, 
+  setProjects, 
+  users, 
+  tasks, 
+  permissionSchemes, 
+  currentUser, 
+  projectWorkflows, 
+  setProjectWorkflows 
+}: ProjectsProps) => {
   const location = useLocation();
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
 
@@ -43,6 +56,7 @@ export const Projects = ({ projects, setProjects, users, tasks }: ProjectsProps)
   const [budget, setBudget] = useState('');
   const [members, setMembers] = useState<{ userId: string; role: ProjectRole }[]>([]);
   const [customColumnsText, setCustomColumnsText] = useState('To Do, In Progress, Review, Done');
+  const [permissionSchemeId, setPermissionSchemeId] = useState('scheme_default');
 
   // Member select helper state
   const [tempUserId, setTempUserId] = useState('');
@@ -70,6 +84,7 @@ export const Projects = ({ projects, setProjects, users, tasks }: ProjectsProps)
     setBudget('');
     setMembers([]);
     setCustomColumnsText('To Do, In Progress, Review, Done');
+    setPermissionSchemeId('scheme_default');
     setIsModalOpen(true);
   };
 
@@ -83,6 +98,7 @@ export const Projects = ({ projects, setProjects, users, tasks }: ProjectsProps)
     setBudget(project.budget ? formatNumberWithCommas(String(project.budget)) : '');
     setMembers(project.members);
     setCustomColumnsText(project.customColumns ? project.customColumns.join(', ') : 'To Do, In Progress, Review, Done');
+    setPermissionSchemeId(project.permissionSchemeId || 'scheme_default');
     setIsModalOpen(true);
   };
 
@@ -101,7 +117,8 @@ export const Projects = ({ projects, setProjects, users, tasks }: ProjectsProps)
       endDate: endDate || undefined,
       budget: budget ? parseNumberFromCommas(budget) : undefined,
       members,
-      customColumns: cols.length > 0 ? cols : ['To Do', 'In Progress', 'Review', 'Done']
+      customColumns: cols.length > 0 ? cols : ['To Do', 'In Progress', 'Review', 'Done'],
+      permissionSchemeId: permissionSchemeId
     };
 
     if (editingProject) {
@@ -116,6 +133,136 @@ export const Projects = ({ projects, setProjects, users, tasks }: ProjectsProps)
     if (confirm('Are you sure you want to delete this project?')) {
       setProjects(prev => prev.filter(p => p.id !== id));
     }
+  };
+
+  // Permission Helpers
+  const canManageWorkflow = (project: Project) => {
+    if (!currentUser) return false;
+    if (currentUser.globalRole === 'Admin') return true;
+    if (currentUser.globalRole === 'Manager') return true;
+    const member = project.members.find(m => m.userId === currentUser.id);
+    return member?.role === 'PM';
+  };
+
+  const canCreateProject = () => {
+    if (!currentUser) return false;
+    return currentUser.globalRole === 'Admin' || currentUser.globalRole === 'Manager';
+  };
+
+  // Workflow Editor State
+  const [workflowEditingProject, setWorkflowEditingProject] = useState<Project | null>(null);
+  const [wfStatuses, setWfStatuses] = useState<string[]>([]);
+  const [wfTransitions, setWfTransitions] = useState<{
+    from: string;
+    to: string;
+    conditions: { type: string; value?: any }[];
+  }[]>([]);
+  
+  // New column / transition form states
+  const [newColumnName, setNewColumnName] = useState('');
+  const [newTransFrom, setNewTransFrom] = useState('');
+  const [newTransTo, setNewTransTo] = useState('');
+  const [condPMOnly, setCondPMOnly] = useState(false);
+  const [condAssigneeOnly, setCondAssigneeOnly] = useState(false);
+  const [condMinSP, setCondMinSP] = useState(false);
+  const [condDescRequired, setCondDescRequired] = useState(false);
+  const [condEstHours, setCondEstHours] = useState(false);
+
+  const openWorkflowModal = (project: Project) => {
+    setWorkflowEditingProject(project);
+    const wf = projectWorkflows.find(w => w.projectId === project.id);
+    if (wf) {
+      setWfStatuses(wf.statuses || project.customColumns || ["To Do", "In Progress", "Review", "Done"]);
+      setWfTransitions(wf.transitions || []);
+    } else {
+      const cols = project.customColumns || ["To Do", "In Progress", "Review", "Done"];
+      setWfStatuses(cols);
+      setWfTransitions([]);
+    }
+    setNewColumnName('');
+    setNewTransFrom('');
+    setNewTransTo('');
+    setCondPMOnly(false);
+    setCondAssigneeOnly(false);
+    setCondMinSP(false);
+    setCondDescRequired(false);
+    setCondEstHours(false);
+  };
+
+  const handleAddColumn = () => {
+    const trimmed = newColumnName.trim();
+    if (!trimmed) return alert('Column name cannot be empty');
+    if (wfStatuses.includes(trimmed)) return alert('Column already exists');
+    setWfStatuses(prev => [...prev, trimmed]);
+    setNewColumnName('');
+  };
+
+  const handleRemoveColumn = (colName: string) => {
+    if (wfStatuses.length <= 1) return alert('Workflow must have at least one column');
+    if (confirm(`Are you sure you want to remove column "${colName}"? Any tasks in this column will need to be transitioned.`)) {
+      setWfStatuses(prev => prev.filter(c => c !== colName));
+      setWfTransitions(prev => prev.filter(t => t.from !== colName && t.to !== colName));
+    }
+  };
+
+  const handleAddTransition = () => {
+    if (!newTransFrom || !newTransTo) return alert('Select "From" and "To" statuses');
+    if (newTransFrom === newTransTo) return alert('Cannot transition to the same status');
+    const exists = wfTransitions.some(t => t.from === newTransFrom && t.to === newTransTo);
+    if (exists) return alert('This transition path already exists');
+
+    const conditions: { type: string; value?: any }[] = [];
+    if (condPMOnly) conditions.push({ type: 'pm_or_admin_only' });
+    if (condAssigneeOnly) conditions.push({ type: 'assignee_only' });
+    if (condMinSP) conditions.push({ type: 'min_story_points' });
+    if (condDescRequired) conditions.push({ type: 'has_description' });
+    if (condEstHours) conditions.push({ type: 'has_estimated_hours' });
+
+    setWfTransitions(prev => [...prev, {
+      from: newTransFrom,
+      to: newTransTo,
+      conditions
+    }]);
+
+    setNewTransFrom('');
+    setNewTransTo('');
+    setCondPMOnly(false);
+    setCondAssigneeOnly(false);
+    setCondMinSP(false);
+    setCondDescRequired(false);
+    setCondEstHours(false);
+  };
+
+  const handleRemoveTransition = (index: number) => {
+    setWfTransitions(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSaveWorkflow = () => {
+    if (!workflowEditingProject) return;
+    
+    const updatedWf: ProjectWorkflow = {
+      projectId: workflowEditingProject.id,
+      statuses: wfStatuses,
+      transitions: wfTransitions
+    };
+
+    setProjectWorkflows(prev => {
+      const exists = prev.some(w => w.projectId === updatedWf.projectId);
+      if (exists) {
+        return prev.map(w => w.projectId === updatedWf.projectId ? updatedWf : w);
+      } else {
+        return [...prev, updatedWf];
+      }
+    });
+
+    setProjects(prev => prev.map(p => {
+      if (p.id === workflowEditingProject.id) {
+        return { ...p, customColumns: wfStatuses };
+      }
+      return p;
+    }));
+
+    setWorkflowEditingProject(null);
   };
 
   const addMember = () => {
@@ -143,20 +290,22 @@ export const Projects = ({ projects, setProjects, users, tasks }: ProjectsProps)
           <h1 className="text-gradient" style={{ marginBottom: '0.5rem' }}>Projects</h1>
           <p style={{ color: 'var(--text-secondary)' }}>Manage your active projects and team assignments.</p>
         </div>
-        <button onClick={openAddModal} style={{ 
-          background: 'var(--accent-primary)', 
-          color: 'white', 
-          border: 'none', 
-          padding: '0.75rem 1.5rem', 
-          borderRadius: 'var(--radius-md)', 
-          fontWeight: 500, 
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem'
-        }} className="hover-lift">
-          <Plus size={18} /> New Project
-        </button>
+        {canCreateProject() && (
+          <button onClick={openAddModal} style={{ 
+            background: 'var(--accent-primary)', 
+            color: 'white', 
+            border: 'none', 
+            padding: '0.75rem 1.5rem', 
+            borderRadius: 'var(--radius-md)', 
+            fontWeight: 500, 
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }} className="hover-lift">
+            <Plus size={18} /> New Project
+          </button>
+        )}
       </div>
 
       {/* Projects Grid */}
@@ -192,13 +341,22 @@ export const Projects = ({ projects, setProjects, users, tasks }: ProjectsProps)
                     {project.status}
                   </span>
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button onClick={() => openEditModal(project)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-                    <Edit size={16} />
-                  </button>
-                  <button onClick={() => handleDelete(project.id)} style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer' }}>
-                    <Trash2 size={16} />
-                  </button>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  {canManageWorkflow(project) && (
+                    <>
+                      <button onClick={() => openWorkflowModal(project)} title="Configure Workflow" style={{ background: 'transparent', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                        <GitBranch size={16} />
+                      </button>
+                      <button onClick={() => openEditModal(project)} title="Edit Project" style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                        <Edit size={16} />
+                      </button>
+                    </>
+                  )}
+                  {(currentUser?.globalRole === 'Admin' || currentUser?.globalRole === 'Manager') && (
+                    <button onClick={() => handleDelete(project.id)} title="Delete Project" style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                      <Trash2 size={16} />
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -333,6 +491,19 @@ export const Projects = ({ projects, setProjects, users, tasks }: ProjectsProps)
                 />
               </div>
 
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Permission Scheme</label>
+                <select 
+                  value={permissionSchemeId} 
+                  onChange={e => setPermissionSchemeId(e.target.value)}
+                  style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none' }}
+                >
+                  {permissionSchemes.map(ps => (
+                    <option key={ps.id} value={ps.id}>{ps.name} - {ps.description}</option>
+                  ))}
+                </select>
+              </div>
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                   <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Status</label>
@@ -451,6 +622,197 @@ export const Projects = ({ projects, setProjects, users, tasks }: ProjectsProps)
                 Save Project
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Workflow Customization Modal */}
+      {workflowEditingProject && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.7)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1100
+        }}>
+          <div className="glass-panel" style={{ padding: '2rem', width: '750px', maxWidth: '95%', display: 'flex', flexDirection: 'column', gap: '1.5rem', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div className="flex-between">
+              <div>
+                <h2 className="text-gradient" style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Project Workflow Editor</h2>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Configure columns and conditional transitions for <strong>{workflowEditingProject.name}</strong></p>
+              </div>
+              <button onClick={() => setWorkflowEditingProject(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Section 1: Columns Management */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingBottom: '1.25rem', borderBottom: '1px solid var(--border-color)' }}>
+              <h3 style={{ fontSize: '1.1rem', color: 'var(--text-primary)' }}>1. Columns (Statuses)</h3>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', margin: '0.5rem 0' }}>
+                {wfStatuses.map(col => (
+                  <span key={col} className="glass-panel" style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.35rem 0.75rem',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: '0.85rem',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid var(--border-color)',
+                  }}>
+                    {col}
+                    <button type="button" onClick={() => handleRemoveColumn(col)} style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0 }}>
+                      <X size={14} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input 
+                  type="text" 
+                  placeholder="New column/status name..." 
+                  value={newColumnName}
+                  onChange={e => setNewColumnName(e.target.value)}
+                  style={{ flex: 1, background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none' }}
+                />
+                <button type="button" onClick={handleAddColumn} style={{
+                  background: 'var(--accent-primary)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '0.5rem 1.25rem',
+                  borderRadius: 'var(--radius-md)',
+                  fontWeight: 500,
+                  cursor: 'pointer'
+                }}>Add Column</button>
+              </div>
+            </div>
+
+            {/* Section 2: Transitions Management */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <h3 style={{ fontSize: '1.1rem', color: 'var(--text-primary)' }}>2. Allowed Transitions & Conditions</h3>
+              
+              {/* Transition creation form */}
+              <div style={{ background: 'var(--bg-tertiary)', padding: '1rem', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: '1rem', border: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>From Status</label>
+                    <select 
+                      value={newTransFrom} 
+                      onChange={e => setNewTransFrom(e.target.value)}
+                      style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
+                    >
+                      <option value="">Select source...</option>
+                      {wfStatuses.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>To Status</label>
+                    <select 
+                      value={newTransTo} 
+                      onChange={e => setNewTransTo(e.target.value)}
+                      style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
+                    >
+                      <option value="">Select target...</option>
+                      {wfStatuses.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Transition conditions checkboxes */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <label style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 500 }}>Transition Validation Conditions:</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.5rem' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={condPMOnly} onChange={e => setCondPMOnly(e.target.checked)} />
+                      PM / Admin Only
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={condAssigneeOnly} onChange={e => setCondAssigneeOnly(e.target.checked)} />
+                      Assignee Only
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={condMinSP} onChange={e => setCondMinSP(e.target.checked)} />
+                      Require Story Points (&gt; 0)
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={condDescRequired} onChange={e => setCondDescRequired(e.target.checked)} />
+                      Require Description
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={condEstHours} onChange={e => setCondEstHours(e.target.checked)} />
+                      Require Estimated Hours (&gt; 0)
+                    </label>
+                  </div>
+                </div>
+
+                <button type="button" onClick={handleAddTransition} style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--text-primary)',
+                  padding: '0.5rem',
+                  borderRadius: 'var(--radius-md)',
+                  cursor: 'pointer',
+                  fontWeight: 500
+                }} className="hover-lift">Add Transition Path</button>
+              </div>
+
+              {/* Transition list */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <h4 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Configured Transitions ({wfTransitions.length}):</h4>
+                {wfTransitions.length === 0 ? (
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>No transition constraints defined. All statuses can transition to all others freely.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '180px', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                    {wfTransitions.map((t, idx) => (
+                      <div key={idx} className="flex-between" style={{ background: 'var(--bg-tertiary)', padding: '0.5rem 1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', fontSize: '0.85rem' }}>
+                        <div>
+                          <span style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>{t.from}</span>
+                          <span style={{ color: 'var(--text-muted)', margin: '0 0.5rem' }}>&rarr;</span>
+                          <span style={{ fontWeight: 600, color: 'var(--accent-secondary)' }}>{t.to}</span>
+                          {t.conditions && t.conditions.length > 0 && (
+                            <span style={{ color: 'var(--accent-warning)', marginLeft: '0.5rem', fontSize: '0.75rem' }}>
+                              ({t.conditions.map(c => c.type.replace(/_/g, ' ')).join(', ')})
+                            </span>
+                          )}
+                        </div>
+                        <button type="button" onClick={() => handleRemoveTransition(idx)} style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer' }}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Bottom Actions */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.25rem' }}>
+              <button type="button" onClick={() => setWorkflowEditingProject(null)} style={{
+                background: 'transparent',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-primary)',
+                padding: '0.75rem 1.5rem',
+                borderRadius: 'var(--radius-md)',
+                cursor: 'pointer'
+              }}>Cancel</button>
+              
+              <button type="button" onClick={handleSaveWorkflow} style={{
+                background: 'var(--accent-primary)',
+                color: 'white',
+                border: 'none',
+                padding: '0.75rem 1.5rem',
+                borderRadius: 'var(--radius-md)',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }} className="hover-lift">Save Workflow Configuration</button>
+            </div>
           </div>
         </div>
       )}

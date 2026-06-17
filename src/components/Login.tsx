@@ -9,6 +9,38 @@ interface LoginProps {
 
 export const Login = ({ onLogin, availableUsers }: LoginProps) => {
   const [lineLoading, setLineLoading] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handlePasswordLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setLoginError('กรุณากรอกอีเมลและรหัสผ่าน / Please enter email and password');
+      return;
+    }
+    setLoading(true);
+    setLoginError('');
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setLoginError(data.error || 'การเข้าสู่ระบบล้มเหลว / Login failed');
+      } else {
+        onLogin(data);
+      }
+    } catch (err) {
+      console.error(err);
+      setLoginError('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ / Connection error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Parse error parameters from URL (e.g., if LINE Login failed or user is unauthorized)
   const params = new URLSearchParams(window.location.search);
@@ -104,6 +136,91 @@ export const Login = ({ onLogin, availableUsers }: LoginProps) => {
 
         {/* Authentication Options */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <form onSubmit={handlePasswordLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div>
+              <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', display: 'block', fontWeight: 500 }}>Email Address</label>
+              <input 
+                type="email" 
+                value={email} 
+                onChange={e => setEmail(e.target.value)} 
+                placeholder="name@company.com" 
+                style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '0.75rem 1rem',
+                  color: 'var(--text-primary)',
+                  outline: 'none',
+                  width: '100%',
+                  fontSize: '0.9rem',
+                  transition: 'border-color var(--transition-fast)'
+                }}
+                required
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.35rem', display: 'block', fontWeight: 500 }}>Password</label>
+              <input 
+                type="password" 
+                value={password} 
+                onChange={e => setPassword(e.target.value)} 
+                placeholder="••••••••" 
+                style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '0.75rem 1rem',
+                  color: 'var(--text-primary)',
+                  outline: 'none',
+                  width: '100%',
+                  fontSize: '0.9rem',
+                  transition: 'border-color var(--transition-fast)'
+                }}
+                required
+              />
+            </div>
+
+            {loginError && (
+              <div style={{ color: '#ff6b6b', fontSize: '0.8rem', marginTop: '0.25rem' }}>
+                {loginError}
+              </div>
+            )}
+
+            <button 
+              type="submit" 
+              disabled={loading}
+              style={{
+                background: 'var(--accent-primary)',
+                color: 'white',
+                border: 'none',
+                padding: '0.85rem',
+                borderRadius: 'var(--radius-md)',
+                fontWeight: 600,
+                cursor: loading ? 'not-allowed' : 'pointer',
+                width: '100%',
+                fontSize: '1rem',
+                transition: 'all var(--transition-fast)',
+                opacity: loading ? 0.7 : 1
+              }}
+              className="hover-lift"
+            >
+              {loading ? 'Signing in...' : 'Sign In'}
+            </button>
+          </form>
+
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            textAlign: 'center',
+            color: 'var(--text-muted)',
+            fontSize: '0.8rem',
+            margin: '0.5rem 0'
+          }}>
+            <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }} />
+            <span style={{ padding: '0 0.75rem' }}>OR</span>
+            <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }} />
+          </div>
+
           {/* LINE Login Button */}
           <button 
             onClick={handleLineLogin}
@@ -131,7 +248,7 @@ export const Login = ({ onLogin, availableUsers }: LoginProps) => {
             ) : (
               <>
                 <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'white', color: '#06C755', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.75rem' }}>L</div>
-                <span>Sign in with LINE</span>
+                <span>Sign in with LINE OA</span>
               </>
             )}
           </button>

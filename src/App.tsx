@@ -11,7 +11,7 @@ import { Login } from './components/Login';
 import { Settings } from './components/Settings';
 import { ProjectPlan } from './components/ProjectPlan';
 import { mockUsers, mockProjects, mockTasks, mockTimesheets } from './data/mockData';
-import type { User, Project, Task, TimesheetEntry, TaskTemplate, Sprint, Release } from './types';
+import type { User, Project, Task, TimesheetEntry, TaskTemplate, Sprint, Release, PermissionScheme, ProjectWorkflow } from './types';
 import './index.css';
 
 // --- Helper to use LocalStorage with fallback ---
@@ -227,6 +227,8 @@ function App() {
   const [taskTemplates, setTaskTemplates] = useState<TaskTemplate[]>([]);
   const [sprints, setSprints] = useState<Sprint[]>([]);
   const [releases, setReleases] = useState<Release[]>([]);
+  const [permissionSchemes, setPermissionSchemes] = useState<PermissionScheme[]>([]);
+  const [projectWorkflows, setProjectWorkflows] = useState<ProjectWorkflow[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(() => getLocalStorage<User | null>('nt_current_user', null));
   const [loading, setLoading] = useState(true);
 
@@ -247,7 +249,7 @@ function App() {
   }, []);
 
   // Fetch initial data from PostgreSQL
-  useEffect(() => {
+  const fetchInitialData = () => {
     fetch('/api/initial-data')
       .then(res => res.json())
       .then(data => {
@@ -258,6 +260,8 @@ function App() {
         setTaskTemplates(data.taskTemplates || []);
         setSprints(data.sprints || []);
         setReleases(data.releases || []);
+        setPermissionSchemes(data.permissionSchemes || []);
+        setProjectWorkflows(data.projectWorkflows || []);
         setLoading(false);
       })
       .catch(err => {
@@ -269,6 +273,10 @@ function App() {
         setTaskTemplates([]);
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    fetchInitialData();
   }, []);
 
   // Sync current logged-in user in localStorage
@@ -288,10 +296,18 @@ function App() {
   const handleSetUsers: React.Dispatch<React.SetStateAction<User[]>> = (value) => {
     setUsers(prev => {
       const nextUsers = typeof value === 'function' ? value(prev) : value;
+      const headers = { 'Content-Type': 'application/json', 'X-User-Id': currentUser?.id || '' };
       if (nextUsers.length < prev.length) {
         const deletedUser = prev.find(pUser => !nextUsers.some(nUser => nUser.id === pUser.id));
         if (deletedUser) {
-          fetch(`/api/users/${deletedUser.id}`, { method: 'DELETE' });
+          fetch(`/api/users/${deletedUser.id}`, { method: 'DELETE', headers })
+            .then(async res => {
+              if (!res.ok) {
+                const err = await res.json();
+                alert(err.error || 'Failed to delete user');
+                fetchInitialData();
+              }
+            });
         }
       } else {
         nextUsers.forEach(nUser => {
@@ -299,8 +315,14 @@ function App() {
           if (JSON.stringify(prevUser) !== JSON.stringify(nUser)) {
             fetch('/api/users', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers,
               body: JSON.stringify(nUser)
+            }).then(async res => {
+              if (!res.ok) {
+                const err = await res.json();
+                alert(err.error || 'Failed to save user');
+                fetchInitialData();
+              }
             });
           }
         });
@@ -312,13 +334,20 @@ function App() {
   const handleSetProjects: React.Dispatch<React.SetStateAction<Project[]>> = (value) => {
     setProjects(prev => {
       const nextProjects = typeof value === 'function' ? value(prev) : value;
+      const headers = { 'Content-Type': 'application/json', 'X-User-Id': currentUser?.id || '' };
       nextProjects.forEach(nProj => {
         const prevProj = prev.find(pProj => pProj.id === nProj.id);
         if (JSON.stringify(prevProj) !== JSON.stringify(nProj)) {
           fetch('/api/projects', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify(nProj)
+          }).then(async res => {
+            if (!res.ok) {
+              const err = await res.json();
+              alert(err.error || 'Failed to save project');
+              fetchInitialData();
+            }
           });
         }
       });
@@ -329,10 +358,18 @@ function App() {
   const handleSetTasks: React.Dispatch<React.SetStateAction<Task[]>> = (value) => {
     setTasks(prev => {
       const nextTasks = typeof value === 'function' ? value(prev) : value;
+      const headers = { 'Content-Type': 'application/json', 'X-User-Id': currentUser?.id || '' };
       if (nextTasks.length < prev.length) {
         const deletedTask = prev.find(pTask => !nextTasks.some(nTask => nTask.id === pTask.id));
         if (deletedTask) {
-          fetch(`/api/tasks/${deletedTask.id}`, { method: 'DELETE' });
+          fetch(`/api/tasks/${deletedTask.id}`, { method: 'DELETE', headers })
+            .then(async res => {
+              if (!res.ok) {
+                const err = await res.json();
+                alert(err.error || 'Failed to delete task');
+                fetchInitialData();
+              }
+            });
         }
       } else {
         nextTasks.forEach(nTask => {
@@ -340,8 +377,14 @@ function App() {
           if (JSON.stringify(prevTask) !== JSON.stringify(nTask)) {
             fetch('/api/tasks', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers,
               body: JSON.stringify(nTask)
+            }).then(async res => {
+              if (!res.ok) {
+                const err = await res.json();
+                alert(err.error || 'Failed to save task');
+                fetchInitialData();
+              }
             });
           }
         });
@@ -353,10 +396,18 @@ function App() {
   const handleSetTimesheets: React.Dispatch<React.SetStateAction<TimesheetEntry[]>> = (value) => {
     setTimesheets(prev => {
       const nextTimesheets = typeof value === 'function' ? value(prev) : value;
+      const headers = { 'Content-Type': 'application/json', 'X-User-Id': currentUser?.id || '' };
       if (nextTimesheets.length < prev.length) {
         const deletedTs = prev.find(pTs => !nextTimesheets.some(nTs => nTs.id === pTs.id));
         if (deletedTs) {
-          fetch(`/api/timesheets/${deletedTs.id}`, { method: 'DELETE' });
+          fetch(`/api/timesheets/${deletedTs.id}`, { method: 'DELETE', headers })
+            .then(async res => {
+              if (!res.ok) {
+                const err = await res.json();
+                alert(err.error || 'Failed to delete timesheet');
+                fetchInitialData();
+              }
+            });
         }
       } else {
         nextTimesheets.forEach(nTs => {
@@ -364,8 +415,14 @@ function App() {
           if (JSON.stringify(prevTs) !== JSON.stringify(nTs)) {
             fetch('/api/timesheets', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers,
               body: JSON.stringify(nTs)
+            }).then(async res => {
+              if (!res.ok) {
+                const err = await res.json();
+                alert(err.error || 'Failed to save timesheet');
+                fetchInitialData();
+              }
             });
           }
         });
@@ -377,10 +434,18 @@ function App() {
   const handleSetTaskTemplates: React.Dispatch<React.SetStateAction<TaskTemplate[]>> = (value) => {
     setTaskTemplates(prev => {
       const nextTpl = typeof value === 'function' ? value(prev) : value;
+      const headers = { 'Content-Type': 'application/json', 'X-User-Id': currentUser?.id || '' };
       if (nextTpl.length < prev.length) {
         const deletedTpl = prev.find(p => !nextTpl.some(n => n.id === p.id));
         if (deletedTpl) {
-          fetch(`/api/task-templates/${deletedTpl.id}`, { method: 'DELETE' });
+          fetch(`/api/task-templates/${deletedTpl.id}`, { method: 'DELETE', headers })
+            .then(async res => {
+              if (!res.ok) {
+                const err = await res.json();
+                alert(err.error || 'Failed to delete task template');
+                fetchInitialData();
+              }
+            });
         }
       } else {
         nextTpl.forEach(nTpl => {
@@ -388,8 +453,14 @@ function App() {
           if (JSON.stringify(prevTpl) !== JSON.stringify(nTpl)) {
             fetch('/api/task-templates', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers,
               body: JSON.stringify(nTpl)
+            }).then(async res => {
+              if (!res.ok) {
+                const err = await res.json();
+                alert(err.error || 'Failed to save task template');
+                fetchInitialData();
+              }
             });
           }
         });
@@ -401,10 +472,18 @@ function App() {
   const handleSetSprints: React.Dispatch<React.SetStateAction<Sprint[]>> = (value) => {
     setSprints(prev => {
       const nextSprints = typeof value === 'function' ? value(prev) : value;
+      const headers = { 'Content-Type': 'application/json', 'X-User-Id': currentUser?.id || '' };
       if (nextSprints.length < prev.length) {
         const deletedSprint = prev.find(p => !nextSprints.some(n => n.id === p.id));
         if (deletedSprint) {
-          fetch(`/api/sprints/${deletedSprint.id}`, { method: 'DELETE' });
+          fetch(`/api/sprints/${deletedSprint.id}`, { method: 'DELETE', headers })
+            .then(async res => {
+              if (!res.ok) {
+                const err = await res.json();
+                alert(err.error || 'Failed to delete sprint');
+                fetchInitialData();
+              }
+            });
         }
       } else {
         nextSprints.forEach(n => {
@@ -412,8 +491,14 @@ function App() {
           if (JSON.stringify(prevSprint) !== JSON.stringify(n)) {
             fetch('/api/sprints', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers,
               body: JSON.stringify(n)
+            }).then(async res => {
+              if (!res.ok) {
+                const err = await res.json();
+                alert(err.error || 'Failed to save sprint');
+                fetchInitialData();
+              }
             });
           }
         });
@@ -425,10 +510,18 @@ function App() {
   const handleSetReleases: React.Dispatch<React.SetStateAction<Release[]>> = (value) => {
     setReleases(prev => {
       const nextReleases = typeof value === 'function' ? value(prev) : value;
+      const headers = { 'Content-Type': 'application/json', 'X-User-Id': currentUser?.id || '' };
       if (nextReleases.length < prev.length) {
         const deletedRelease = prev.find(p => !nextReleases.some(n => n.id === p.id));
         if (deletedRelease) {
-          fetch(`/api/releases/${deletedRelease.id}`, { method: 'DELETE' });
+          fetch(`/api/releases/${deletedRelease.id}`, { method: 'DELETE', headers })
+            .then(async res => {
+              if (!res.ok) {
+                const err = await res.json();
+                alert(err.error || 'Failed to delete release');
+                fetchInitialData();
+              }
+            });
         }
       } else {
         nextReleases.forEach(n => {
@@ -436,13 +529,81 @@ function App() {
           if (JSON.stringify(prevRelease) !== JSON.stringify(n)) {
             fetch('/api/releases', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers,
               body: JSON.stringify(n)
+            }).then(async res => {
+              if (!res.ok) {
+                const err = await res.json();
+                alert(err.error || 'Failed to save release');
+                fetchInitialData();
+              }
             });
           }
         });
       }
       return nextReleases;
+    });
+  };
+
+  const handleSetPermissionSchemes: React.Dispatch<React.SetStateAction<PermissionScheme[]>> = (value) => {
+    setPermissionSchemes(prev => {
+      const nextSchemes = typeof value === 'function' ? value(prev) : value;
+      const headers = { 'Content-Type': 'application/json', 'X-User-Id': currentUser?.id || '' };
+      if (nextSchemes.length < prev.length) {
+        const deletedScheme = prev.find(p => !nextSchemes.some(n => n.id === p.id));
+        if (deletedScheme) {
+          fetch(`/api/permission-schemes/${deletedScheme.id}`, { method: 'DELETE', headers })
+            .then(async res => {
+              if (!res.ok) {
+                const err = await res.json();
+                alert(err.error || 'Failed to delete permission scheme');
+                fetchInitialData();
+              }
+            });
+        }
+      } else {
+        nextSchemes.forEach(n => {
+          const prevScheme = prev.find(p => p.id === n.id);
+          if (JSON.stringify(prevScheme) !== JSON.stringify(n)) {
+            fetch('/api/permission-schemes', {
+              method: 'POST',
+              headers,
+              body: JSON.stringify(n)
+            }).then(async res => {
+              if (!res.ok) {
+                const err = await res.json();
+                alert(err.error || 'Failed to save permission scheme');
+                fetchInitialData();
+              }
+            });
+          }
+        });
+      }
+      return nextSchemes;
+    });
+  };
+
+  const handleSetProjectWorkflows: React.Dispatch<React.SetStateAction<ProjectWorkflow[]>> = (value) => {
+    setProjectWorkflows(prev => {
+      const nextWorkflows = typeof value === 'function' ? value(prev) : value;
+      const headers = { 'Content-Type': 'application/json', 'X-User-Id': currentUser?.id || '' };
+      nextWorkflows.forEach(n => {
+        const prevWf = prev.find(p => p.projectId === n.projectId);
+        if (JSON.stringify(prevWf) !== JSON.stringify(n)) {
+          fetch(`/api/projects/${n.projectId}/workflow`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(n)
+          }).then(async res => {
+            if (!res.ok) {
+              const err = await res.json();
+              alert(err.error || 'Failed to save project workflow');
+              fetchInitialData();
+            }
+          });
+        }
+      });
+      return nextWorkflows;
     });
   };
 
@@ -472,13 +633,13 @@ function App() {
       <AppLayout currentUser={currentUser} tasks={tasks} onLogout={handleLogout}>
         <Routes>
           <Route path="/" element={<Dashboard projects={projects} tasks={tasks} timesheets={timesheets} currentUser={currentUser} />} />
-          <Route path="/projects" element={<Projects projects={projects} setProjects={handleSetProjects} users={users} tasks={tasks} />} />
-          <Route path="/project-plan" element={<ProjectPlan projects={projects} tasks={tasks} setTasks={handleSetTasks} users={users} taskTemplates={taskTemplates} />} />
-          <Route path="/tasks" element={<Tasks tasks={tasks} setTasks={handleSetTasks} projects={projects} users={users} sprints={sprints} setSprints={handleSetSprints} releases={releases} setReleases={handleSetReleases} />} />
+          <Route path="/projects" element={<Projects projects={projects} setProjects={handleSetProjects} users={users} tasks={tasks} permissionSchemes={permissionSchemes} currentUser={currentUser} projectWorkflows={projectWorkflows} setProjectWorkflows={handleSetProjectWorkflows} />} />
+          <Route path="/project-plan" element={<ProjectPlan projects={projects} tasks={tasks} setTasks={handleSetTasks} users={users} taskTemplates={taskTemplates} permissionSchemes={permissionSchemes} currentUser={currentUser} />} />
+          <Route path="/tasks" element={<Tasks tasks={tasks} setTasks={handleSetTasks} projects={projects} users={users} sprints={sprints} setSprints={handleSetSprints} releases={releases} setReleases={handleSetReleases} projectWorkflows={projectWorkflows} setProjectWorkflows={handleSetProjectWorkflows} permissionSchemes={permissionSchemes} currentUser={currentUser} />} />
           <Route path="/timesheet" element={<Timesheet timesheets={timesheets} setTimesheets={handleSetTimesheets} projects={projects} tasks={tasks} currentUser={currentUser} />} />
           <Route path="/team" element={<TeamApprovals users={users} setUsers={handleSetUsers} timesheets={timesheets} setTimesheets={handleSetTimesheets} projects={projects} setProjects={handleSetProjects} tasks={tasks} />} />
-          <Route path="/reports" element={<Reports timesheets={timesheets} projects={projects} users={users} />} />
-          <Route path="/settings" element={<Settings taskTemplates={taskTemplates} setTaskTemplates={handleSetTaskTemplates} />} />
+          <Route path="/reports" element={<Reports timesheets={timesheets} projects={projects} users={users} currentUser={currentUser} />} />
+          <Route path="/settings" element={<Settings taskTemplates={taskTemplates} setTaskTemplates={handleSetTaskTemplates} permissionSchemes={permissionSchemes} setPermissionSchemes={handleSetPermissionSchemes} currentUser={currentUser} />} />
         </Routes>
       </AppLayout>
     </Router>

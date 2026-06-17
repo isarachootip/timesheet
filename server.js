@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { sendEmail } from './mailService.js';
+import crypto from 'crypto';
 
 dotenv.config();
 
@@ -60,6 +61,17 @@ const initDB = async () => {
     `);
     await client.query(`
       ALTER TABLE users ADD COLUMN IF NOT EXISTS line_user_id VARCHAR(100) UNIQUE;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);
+    `);
+
+    // Create Permission Schemes Table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS permission_schemes (
+        id VARCHAR(50) PRIMARY KEY,
+        name VARCHAR(150) NOT NULL,
+        description TEXT,
+        permissions JSONB NOT NULL
+      );
     `);
 
     // Create Projects Table
@@ -77,6 +89,16 @@ const initDB = async () => {
     `);
     await client.query(`
       ALTER TABLE projects ADD COLUMN IF NOT EXISTS custom_columns JSONB DEFAULT '["To Do", "In Progress", "Review", "Done"]'::jsonb;
+      ALTER TABLE projects ADD COLUMN IF NOT EXISTS permission_scheme_id VARCHAR(50);
+    `);
+
+    // Create Project Workflows Table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS project_workflows (
+        project_id VARCHAR(50) PRIMARY KEY,
+        statuses JSONB DEFAULT '["To Do", "In Progress", "Review", "Done"]'::jsonb,
+        transitions JSONB DEFAULT '[]'::jsonb
+      );
     `);
 
     // Create Sprints Table
@@ -168,6 +190,60 @@ const initDB = async () => {
       );
     `);
 
+    // Seed permission schemes if empty (independent of user count)
+    const schemeCount = await client.query('SELECT COUNT(*) FROM permission_schemes');
+    if (parseInt(schemeCount.rows[0].count) === 0) {
+      console.log('Seeding default permission scheme...');
+      const defaultScheme = {
+        id: 'scheme_default',
+        name: 'Default Permission Scheme',
+        description: 'Standard permissions for project members, managers, and admins.',
+        permissions: JSON.stringify({
+          browse_project: ["Admin", "Manager", "PM", "Member"],
+          create_task: ["Admin", "PM", "Member"],
+          edit_task: ["Admin", "PM", "Assignee"],
+          assign_task: ["Admin", "PM"],
+          delete_task: ["Admin", "PM"],
+          transition_task: ["Admin", "PM", "Assignee", "Member"],
+          manage_sprints: ["Admin", "PM"],
+          manage_releases: ["Admin", "PM"],
+          manage_members: ["Admin", "PM"]
+        })
+      };
+      await client.query(
+        'INSERT INTO permission_schemes (id, name, description, permissions) VALUES ($1, $2, $3, $4)',
+        [defaultScheme.id, defaultScheme.name, defaultScheme.description, defaultScheme.permissions]
+      );
+      
+      // Update existing projects to link to default scheme if null
+      await client.query("UPDATE projects SET permission_scheme_id = 'scheme_default' WHERE permission_scheme_id IS NULL");
+    }
+
+    // Seed project workflows if empty (independent of user count)
+    const workflowCount = await client.query('SELECT COUNT(*) FROM project_workflows');
+    if (parseInt(workflowCount.rows[0].count) === 0) {
+      console.log('Seeding default project workflows...');
+      const projectsRes = await client.query('SELECT id FROM projects');
+      for (const p of projectsRes.rows) {
+        const defaultWorkflow = {
+          projectId: p.id,
+          statuses: JSON.stringify(["To Do", "In Progress", "Review", "Done"]),
+          transitions: JSON.stringify([
+            { from: "To Do", to: "In Progress", conditions: [] },
+            { from: "In Progress", to: "Review", conditions: [] },
+            { from: "In Progress", to: "To Do", conditions: [] },
+            { from: "Review", to: "Done", conditions: [] },
+            { from: "Review", to: "In Progress", conditions: [] },
+            { from: "Done", to: "In Progress", conditions: [{ type: "pm_or_admin_only" }] }
+          ])
+        };
+        await client.query(
+          'INSERT INTO project_workflows (project_id, statuses, transitions) VALUES ($1, $2, $3) ON CONFLICT (project_id) DO NOTHING',
+          [defaultWorkflow.projectId, defaultWorkflow.statuses, defaultWorkflow.transitions]
+        );
+      }
+    }
+
     // Check if seeding is needed
     const userCount = await client.query('SELECT COUNT(*) FROM users');
     if (parseInt(userCount.rows[0].count) === 0) {
@@ -180,12 +256,35 @@ const initDB = async () => {
         { id: 'u3', name: 'Mike Johnson', email: 'mike.j@company.com', avatar: 'https://i.pravatar.cc/150?u=u3', globalRole: 'Employee', department: 'Design' },
         { id: 'u4', name: 'Sarah Williams', email: 'sarah.w@company.com', avatar: 'https://i.pravatar.cc/150?u=u4', globalRole: 'Admin', department: 'HR' }
       ];
+      const defaultPwHash = crypto.createHash('sha256').update('password123').digest('hex');
       for (const u of mockUsers) {
         await client.query(
-          'INSERT INTO users (id, name, email, avatar, global_role, department) VALUES ($1, $2, $3, $4, $5, $6)',
-          [u.id, u.name, u.email, u.avatar, u.globalRole, u.department]
+          'INSERT INTO users (id, name, email, avatar, global_role, department, password_hash) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+          [u.id, u.name, u.email, u.avatar, u.globalRole, u.department, defaultPwHash]
         );
       }
+
+      // Seed permission schemes
+      const defaultScheme = {
+        id: 'scheme_default',
+        name: 'Default Permission Scheme',
+        description: 'Standard permissions for project members, managers, and admins.',
+        permissions: JSON.stringify({
+          browse_project: ["Admin", "Manager", "PM", "Member"],
+          create_task: ["Admin", "PM", "Member"],
+          edit_task: ["Admin", "PM", "Assignee"],
+          assign_task: ["Admin", "PM"],
+          delete_task: ["Admin", "PM"],
+          transition_task: ["Admin", "PM", "Assignee", "Member"],
+          manage_sprints: ["Admin", "PM"],
+          manage_releases: ["Admin", "PM"],
+          manage_members: ["Admin", "PM"]
+        })
+      };
+      await client.query(
+        'INSERT INTO permission_schemes (id, name, description, permissions) VALUES ($1, $2, $3, $4)',
+        [defaultScheme.id, defaultScheme.name, defaultScheme.description, defaultScheme.permissions]
+      );
 
       // Seed projects
       const mockProjects = [
@@ -201,7 +300,8 @@ const initDB = async () => {
             { userId: 'u1', role: 'PM' },
             { userId: 'u2', role: 'Frontend dev' },
             { userId: 'u3', role: 'Designer' }
-          ])
+          ]),
+          permissionSchemeId: 'scheme_default'
         },
         {
           id: 'p2',
@@ -209,17 +309,38 @@ const initDB = async () => {
           description: 'Overhauling the client e-commerce portal with modern tech stack.',
           status: 'Planning',
           startDate: '2026-07-15',
+          endDate: '2026-10-30',
+          budget: 120000,
           members: JSON.stringify([
             { userId: 'u1', role: 'PM' },
             { userId: 'u2', role: 'SA' },
             { userId: 'u3', role: 'Designer' }
-          ])
+          ]),
+          permissionSchemeId: 'scheme_default'
         }
       ];
       for (const p of mockProjects) {
         await client.query(
-          'INSERT INTO projects (id, name, description, status, start_date, end_date, budget, members) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-          [p.id, p.name, p.description, p.status, p.startDate, p.endDate, p.budget, p.members]
+          'INSERT INTO projects (id, name, description, status, start_date, end_date, budget, members, permission_scheme_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+          [p.id, p.name, p.description, p.status, p.startDate, p.endDate, p.budget, p.members, p.permissionSchemeId]
+        );
+
+        // Seed project workflows
+        const defaultWorkflow = {
+          projectId: p.id,
+          statuses: JSON.stringify(["To Do", "In Progress", "Review", "Done"]),
+          transitions: JSON.stringify([
+            { from: "To Do", to: "In Progress", conditions: [] },
+            { from: "In Progress", to: "Review", conditions: [] },
+            { from: "In Progress", to: "To Do", conditions: [] },
+            { from: "Review", to: "Done", conditions: [] },
+            { from: "Review", to: "In Progress", conditions: [] },
+            { from: "Done", to: "In Progress", conditions: [{ type: "pm_or_admin_only" }] }
+          ])
+        };
+        await client.query(
+          'INSERT INTO project_workflows (project_id, statuses, transitions) VALUES ($1, $2, $3)',
+          [defaultWorkflow.projectId, defaultWorkflow.statuses, defaultWorkflow.transitions]
         );
       }
 
@@ -278,6 +399,10 @@ const initDB = async () => {
       }
       console.log('Seeded default task templates.');
     }
+
+    // Ensure all existing users have a password hash
+    const defaultPwHash = crypto.createHash('sha256').update('password123').digest('hex');
+    await client.query('UPDATE users SET password_hash = $1 WHERE password_hash IS NULL', [defaultPwHash]);
 
     client.release();
   } catch (err) {
@@ -432,6 +557,54 @@ app.get('/api/auth/line/callback', async (req, res) => {
   }
 });
 
+// Password Authentication Endpoint
+app.post('/api/auth/login', async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required' });
+  }
+
+  try {
+    const userRes = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    const user = userRes.rows[0];
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
+    
+    if (user.password_hash && user.password_hash !== passwordHash) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+    
+    if (!user.password_hash) {
+      if (password === 'password123') {
+        const defaultHash = crypto.createHash('sha256').update('password123').digest('hex');
+        await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [defaultHash, user.id]);
+      } else {
+        return res.status(401).json({ error: 'Invalid email or password' });
+      }
+    }
+
+    const userData = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar || `https://i.pravatar.cc/150?u=${user.id}`,
+      globalRole: user.global_role,
+      department: user.department,
+      gender: user.gender || '',
+      birthday: user.birthday || '',
+      skills: user.skills || []
+    };
+
+    res.json(userData);
+  } catch (err) {
+    console.error('Password login error:', err);
+    res.status(500).json({ error: 'Internal server error during login' });
+  }
+});
+
 // Health check — visit /api/health in browser to see DB status
 app.get('/api/health', async (req, res) => {
   const status = { server: 'ok', db: 'unknown', dbHost: '', time: new Date().toISOString() };
@@ -464,6 +637,8 @@ app.get('/api/initial-data', async (req, res) => {
     const templatesRes = await pool.query('SELECT * FROM task_templates');
     const sprintsRes = await pool.query('SELECT * FROM sprints');
     const releasesRes = await pool.query('SELECT * FROM releases');
+    const permissionSchemesRes = await pool.query('SELECT * FROM permission_schemes');
+    const projectWorkflowsRes = await pool.query('SELECT * FROM project_workflows');
 
     // Map DB column casing to JS camelCase
     const users = usersRes.rows.map(u => ({
@@ -487,7 +662,8 @@ app.get('/api/initial-data', async (req, res) => {
       endDate: p.end_date,
       budget: parseFloat(p.budget || '0'),
       members: p.members,
-      customColumns: p.custom_columns
+      customColumns: p.custom_columns,
+      permissionSchemeId: p.permission_scheme_id
     }));
 
     const tasks = tasksRes.rows.map(t => ({
@@ -549,7 +725,20 @@ app.get('/api/initial-data', async (req, res) => {
       releaseDate: r.release_date
     }));
 
-    res.json({ users, projects, tasks, timesheets, taskTemplates, sprints, releases });
+    const permissionSchemes = permissionSchemesRes.rows.map(ps => ({
+      id: ps.id,
+      name: ps.name,
+      description: ps.description,
+      permissions: ps.permissions
+    }));
+
+    const projectWorkflows = projectWorkflowsRes.rows.map(pw => ({
+      projectId: pw.project_id,
+      statuses: pw.statuses,
+      transitions: pw.transitions
+    }));
+
+    res.json({ users, projects, tasks, timesheets, taskTemplates, sprints, releases, permissionSchemes, projectWorkflows });
   } catch (err) {
     console.error('Error fetching initial data:', err);
     res.status(500).json({ error: err.message });
@@ -560,9 +749,18 @@ app.get('/api/initial-data', async (req, res) => {
 app.post('/api/users', async (req, res) => {
   const { id, name, email, avatar, globalRole, department, gender, birthday, skills } = req.body;
   try {
+    // Check if user already exists to preserve their password_hash, or set default ('password123' hashed)
+    const existingUser = await pool.query('SELECT password_hash FROM users WHERE id = $1 OR email = $2', [id, email]);
+    let pwHash = null;
+    if (existingUser.rows.length > 0 && existingUser.rows[0].password_hash) {
+      pwHash = existingUser.rows[0].password_hash;
+    } else {
+      pwHash = crypto.createHash('sha256').update('password123').digest('hex');
+    }
+
     await pool.query(
-      `INSERT INTO users (id, name, email, avatar, global_role, department, gender, birthday, skills)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `INSERT INTO users (id, name, email, avatar, global_role, department, gender, birthday, skills, password_hash)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        ON CONFLICT (id) DO UPDATE SET
          name = EXCLUDED.name,
          email = EXCLUDED.email,
@@ -571,8 +769,9 @@ app.post('/api/users', async (req, res) => {
          department = EXCLUDED.department,
          gender = EXCLUDED.gender,
          birthday = EXCLUDED.birthday,
-         skills = EXCLUDED.skills`,
-      [id, name, email, avatar, globalRole, department, gender, birthday, skills]
+         skills = EXCLUDED.skills,
+         password_hash = COALESCE(users.password_hash, EXCLUDED.password_hash)`,
+      [id, name, email, avatar, globalRole, department, gender, birthday, skills, pwHash]
     );
     res.json({ success: true });
   } catch (err) {
@@ -613,15 +812,15 @@ app.delete('/api/users/:id', async (req, res) => {
 
 // Projects REST API
 app.post('/api/projects', async (req, res) => {
-  const { id, name, description, status, startDate, endDate, budget, members, customColumns } = req.body;
+  const { id, name, description, status, startDate, endDate, budget, members, customColumns, permissionSchemeId } = req.body;
   try {
     const checkExist = await pool.query('SELECT 1 FROM projects WHERE id = $1', [id]);
     const isNew = checkExist.rows.length === 0;
     const cols = customColumns || ["To Do", "In Progress", "Review", "Done"];
 
     await pool.query(
-      `INSERT INTO projects (id, name, description, status, start_date, end_date, budget, members, custom_columns)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `INSERT INTO projects (id, name, description, status, start_date, end_date, budget, members, custom_columns, permission_scheme_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        ON CONFLICT (id) DO UPDATE SET
          name = EXCLUDED.name,
          description = EXCLUDED.description,
@@ -630,8 +829,9 @@ app.post('/api/projects', async (req, res) => {
          end_date = EXCLUDED.end_date,
          budget = EXCLUDED.budget,
          members = EXCLUDED.members,
-         custom_columns = EXCLUDED.custom_columns`,
-      [id, name, description, status, startDate, endDate, budget, JSON.stringify(members), JSON.stringify(cols)]
+         custom_columns = EXCLUDED.custom_columns,
+         permission_scheme_id = EXCLUDED.permission_scheme_id`,
+      [id, name, description, status, startDate, endDate, budget, JSON.stringify(members), JSON.stringify(cols), permissionSchemeId || null]
     );
 
     // Auto-generate main tasks from templates for new projects
@@ -677,10 +877,166 @@ app.post('/api/projects', async (req, res) => {
   }
 });
 
+// --- Permission and Workflow Validation Helpers ---
+async function checkPermission(userId, projectId, permissionKey, taskObject = null) {
+  if (!userId) return true; // Bypass validation if header X-User-Id is missing (local scripts, fallback compatibility)
+  try {
+    // 1. Get user global role
+    const userRes = await pool.query('SELECT global_role FROM users WHERE id = $1', [userId]);
+    if (userRes.rows.length === 0) return false;
+    const globalRole = userRes.rows[0].global_role;
+    
+    // Admin has superuser permissions
+    if (globalRole === 'Admin') return true;
+
+    // 2. Get project details and user's project role
+    const projectRes = await pool.query('SELECT permission_scheme_id, members FROM projects WHERE id = $1', [projectId]);
+    if (projectRes.rows.length === 0) return false;
+    const project = projectRes.rows[0];
+    
+    let projectRole = null;
+    const members = typeof project.members === 'string' ? JSON.parse(project.members) : project.members;
+    if (Array.isArray(members)) {
+      const member = members.find(m => m.userId === userId);
+      if (member) projectRole = member.role;
+    }
+
+    // If global role is Manager/Owner, they might act as Owner/PM by default
+    if (globalRole === 'Manager' && !projectRole) {
+      projectRole = 'PM'; // Managers default to PM on projects they manage
+    }
+
+    // 3. Load permission scheme
+    const schemeId = project.permission_scheme_id || 'scheme_default';
+    const schemeRes = await pool.query('SELECT permissions FROM permission_schemes WHERE id = $1', [schemeId]);
+    if (schemeRes.rows.length === 0) return false;
+    
+    const permissions = schemeRes.rows[0].permissions;
+    const allowedEntities = permissions[permissionKey];
+    if (!Array.isArray(allowedEntities)) return false;
+
+    // Check matches
+    if (allowedEntities.includes(globalRole)) return true;
+    if (projectRole && allowedEntities.includes(projectRole)) return true;
+    if (allowedEntities.includes('Member') && projectRole) return true; // Any member role
+    if (allowedEntities.includes('Assignee') && taskObject && taskObject.assignee_id === userId) return true;
+
+    return false;
+  } catch (err) {
+    console.error('Error in checkPermission:', err);
+    return false;
+  }
+}
+
+async function validateTransition(userId, projectId, taskObject, newStatus) {
+  if (!taskObject) return { allowed: true };
+  if (taskObject.status === newStatus) return { allowed: true };
+
+  try {
+    // Load project workflow
+    const wfRes = await pool.query('SELECT statuses, transitions FROM project_workflows WHERE project_id = $1', [projectId]);
+    if (wfRes.rows.length === 0) return { allowed: true }; // No workflow -> allow all
+    
+    const workflow = wfRes.rows[0];
+    const statuses = Array.isArray(workflow.statuses) ? workflow.statuses : JSON.parse(workflow.statuses || '[]');
+    const transitions = Array.isArray(workflow.transitions) ? workflow.transitions : JSON.parse(workflow.transitions || '[]');
+
+    // 1. Verify new status is a valid column
+    if (!statuses.includes(newStatus)) {
+      return { allowed: false, reason: `Status column "${newStatus}" does not exist in this project.` };
+    }
+
+    // 2. If no transitions are specified, default to allowing all transitions
+    if (transitions.length === 0) {
+      return { allowed: true };
+    }
+
+    // 3. Find transition rule
+    const transition = transitions.find(t => (t.from === taskObject.status || t.from === '*') && t.to === newStatus);
+    if (!transition) {
+      return { allowed: false, reason: `Transition from "${taskObject.status}" to "${newStatus}" is not allowed by this project's workflow.` };
+    }
+
+    // 4. Validate conditions
+    const conditions = transition.conditions || [];
+    for (const cond of conditions) {
+      if (cond.type === 'pm_or_admin_only') {
+        const userRes = await pool.query('SELECT global_role FROM users WHERE id = $1', [userId]);
+        const globalRole = userRes.rows[0]?.global_role;
+        const projectRes = await pool.query('SELECT members FROM projects WHERE id = $1', [projectId]);
+        const members = projectRes.rows[0]?.members || [];
+        const memberRole = members.find(m => m.userId === userId)?.role;
+        if (globalRole !== 'Admin' && memberRole !== 'PM' && globalRole !== 'Manager') {
+          return { allowed: false, reason: `Only a Project Manager or Admin can perform this transition.` };
+        }
+      }
+      if (cond.type === 'assignee_only') {
+        if (taskObject.assignee_id !== userId) {
+          return { allowed: false, reason: `Only the assignee of this task can perform this transition.` };
+        }
+      }
+      if (cond.type === 'min_story_points') {
+        if (!taskObject.story_points || taskObject.story_points <= 0) {
+          return { allowed: false, reason: `This transition requires the task to have story points set.` };
+        }
+      }
+      if (cond.type === 'has_description') {
+        if (!taskObject.description || taskObject.description.trim() === '') {
+          return { allowed: false, reason: `This transition requires the task to have a description.` };
+        }
+      }
+      if (cond.type === 'has_estimated_hours') {
+        if (!taskObject.estimated_hours || parseFloat(taskObject.estimated_hours) <= 0) {
+          return { allowed: false, reason: `This transition requires the task to have estimated hours set.` };
+        }
+      }
+    }
+
+    return { allowed: true };
+  } catch (err) {
+    console.error('Error in validateTransition:', err);
+    return { allowed: false, reason: `Server error validating transition: ${err.message}` };
+  }
+}
+
 // Tasks REST API
 app.post('/api/tasks', async (req, res) => {
   const { id, projectId, assigneeId, title, description, status, priority, estimatedHours, createdAt, parentId, startDate, endDate, sprintId, releaseId, storyPoints, issueType } = req.body;
+  const userId = req.headers['x-user-id'];
   try {
+    // Check if it is an update
+    const oldTaskRes = await pool.query('SELECT * FROM tasks WHERE id = $1', [id]);
+    const oldTask = oldTaskRes.rows[0];
+
+    if (userId) {
+      if (oldTask) {
+        // Edit Validation
+        const hasEditPermission = await checkPermission(userId, projectId, 'edit_task', oldTask);
+        if (!hasEditPermission) {
+          return res.status(403).json({ error: 'Permission denied: You do not have permission to edit tasks in this project.' });
+        }
+
+        // Transition Validation if status changes
+        if (oldTask.status !== status) {
+          const hasTransPermission = await checkPermission(userId, projectId, 'transition_task', oldTask);
+          if (!hasTransPermission) {
+            return res.status(403).json({ error: 'Permission denied: You do not have permission to transition tasks in this project.' });
+          }
+
+          const transResult = await validateTransition(userId, projectId, oldTask, status);
+          if (!transResult.allowed) {
+            return res.status(400).json({ error: transResult.reason });
+          }
+        }
+      } else {
+        // Create Validation
+        const hasCreatePermission = await checkPermission(userId, projectId, 'create_task');
+        if (!hasCreatePermission) {
+          return res.status(403).json({ error: 'Permission denied: You do not have permission to create tasks in this project.' });
+        }
+      }
+    }
+
     await pool.query(
       `INSERT INTO tasks (id, project_id, assignee_id, title, description, status, priority, estimated_hours, created_at, parent_id, start_date, end_date, sprint_id, release_id, story_points, issue_type)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
@@ -728,7 +1084,19 @@ app.post('/api/tasks', async (req, res) => {
 
 app.delete('/api/tasks/:id', async (req, res) => {
   const { id } = req.params;
+  const userId = req.headers['x-user-id'];
   try {
+    const taskRes = await pool.query('SELECT * FROM tasks WHERE id = $1', [id]);
+    const task = taskRes.rows[0];
+    if (!task) return res.status(404).json({ error: 'Task not found' });
+
+    if (userId) {
+      const hasPermission = await checkPermission(userId, task.project_id, 'delete_task', task);
+      if (!hasPermission) {
+        return res.status(403).json({ error: 'Permission denied: You do not have permission to delete tasks in this project.' });
+      }
+    }
+
     await pool.query('DELETE FROM tasks WHERE id = $1', [id]);
     res.json({ success: true });
   } catch (err) {
@@ -740,7 +1108,15 @@ app.delete('/api/tasks/:id', async (req, res) => {
 // Sprints REST API
 app.post('/api/sprints', async (req, res) => {
   const { id, projectId, name, status, startDate, endDate } = req.body;
+  const userId = req.headers['x-user-id'];
   try {
+    if (userId) {
+      const hasPermission = await checkPermission(userId, projectId, 'manage_sprints');
+      if (!hasPermission) {
+        return res.status(403).json({ error: 'Permission denied: You do not have permission to manage sprints in this project.' });
+      }
+    }
+
     await pool.query(
       `INSERT INTO sprints (id, project_id, name, status, start_date, end_date)
        VALUES ($1, $2, $3, $4, $5, $6)
@@ -761,7 +1137,19 @@ app.post('/api/sprints', async (req, res) => {
 
 app.delete('/api/sprints/:id', async (req, res) => {
   const { id } = req.params;
+  const userId = req.headers['x-user-id'];
   try {
+    const sprintRes = await pool.query('SELECT * FROM sprints WHERE id = $1', [id]);
+    const sprint = sprintRes.rows[0];
+    if (!sprint) return res.status(404).json({ error: 'Sprint not found' });
+
+    if (userId) {
+      const hasPermission = await checkPermission(userId, sprint.project_id, 'manage_sprints');
+      if (!hasPermission) {
+        return res.status(403).json({ error: 'Permission denied: You do not have permission to manage sprints in this project.' });
+      }
+    }
+
     await pool.query('DELETE FROM sprints WHERE id = $1', [id]);
     res.json({ success: true });
   } catch (err) {
@@ -773,7 +1161,15 @@ app.delete('/api/sprints/:id', async (req, res) => {
 // Releases REST API
 app.post('/api/releases', async (req, res) => {
   const { id, projectId, name, status, releaseDate } = req.body;
+  const userId = req.headers['x-user-id'];
   try {
+    if (userId) {
+      const hasPermission = await checkPermission(userId, projectId, 'manage_releases');
+      if (!hasPermission) {
+        return res.status(403).json({ error: 'Permission denied: You do not have permission to manage releases in this project.' });
+      }
+    }
+
     await pool.query(
       `INSERT INTO releases (id, project_id, name, status, release_date)
        VALUES ($1, $2, $3, $4, $5)
@@ -793,7 +1189,19 @@ app.post('/api/releases', async (req, res) => {
 
 app.delete('/api/releases/:id', async (req, res) => {
   const { id } = req.params;
+  const userId = req.headers['x-user-id'];
   try {
+    const releaseRes = await pool.query('SELECT * FROM releases WHERE id = $1', [id]);
+    const release = releaseRes.rows[0];
+    if (!release) return res.status(404).json({ error: 'Release not found' });
+
+    if (userId) {
+      const hasPermission = await checkPermission(userId, release.project_id, 'manage_releases');
+      if (!hasPermission) {
+        return res.status(403).json({ error: 'Permission denied: You do not have permission to manage releases in this project.' });
+      }
+    }
+
     await pool.query('DELETE FROM releases WHERE id = $1', [id]);
     res.json({ success: true });
   } catch (err) {
@@ -801,6 +1209,121 @@ app.delete('/api/releases/:id', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// Permission Schemes API
+app.get('/api/permission-schemes', async (req, res) => {
+  try {
+    const schemesRes = await pool.query('SELECT * FROM permission_schemes');
+    const schemes = schemesRes.rows.map(ps => ({
+      id: ps.id,
+      name: ps.name,
+      description: ps.description,
+      permissions: ps.permissions
+    }));
+    res.json(schemes);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/permission-schemes', async (req, res) => {
+  const { id, name, description, permissions } = req.body;
+  const userId = req.headers['x-user-id'];
+  try {
+    if (userId) {
+      const userRes = await pool.query('SELECT global_role FROM users WHERE id = $1', [userId]);
+      if (userRes.rows[0]?.global_role !== 'Admin') {
+        return res.status(403).json({ error: 'Permission denied: Only global Admins can manage permission schemes.' });
+      }
+    }
+    
+    await pool.query(
+      `INSERT INTO permission_schemes (id, name, description, permissions)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (id) DO UPDATE SET
+         name = EXCLUDED.name,
+         description = EXCLUDED.description,
+         permissions = EXCLUDED.permissions`,
+      [id, name, description, JSON.stringify(permissions)]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/permission-schemes/:id', async (req, res) => {
+  const { id } = req.params;
+  const userId = req.headers['x-user-id'];
+  try {
+    if (userId) {
+      const userRes = await pool.query('SELECT global_role FROM users WHERE id = $1', [userId]);
+      if (userRes.rows[0]?.global_role !== 'Admin') {
+        return res.status(403).json({ error: 'Permission denied: Only global Admins can manage permission schemes.' });
+      }
+    }
+    if (id === 'scheme_default') {
+      return res.status(400).json({ error: 'Cannot delete the default permission scheme.' });
+    }
+    await pool.query('DELETE FROM permission_schemes WHERE id = $1', [id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Project Workflows API
+app.get('/api/projects/:projectId/workflow', async (req, res) => {
+  const { projectId } = req.params;
+  try {
+    const wfRes = await pool.query('SELECT * FROM project_workflows WHERE project_id = $1', [projectId]);
+    if (wfRes.rows.length === 0) {
+      return res.json({ projectId, statuses: ["To Do", "In Progress", "Review", "Done"], transitions: [] });
+    }
+    const pw = wfRes.rows[0];
+    res.json({
+      projectId: pw.project_id,
+      statuses: pw.statuses,
+      transitions: pw.transitions
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/projects/:projectId/workflow', async (req, res) => {
+  const { projectId } = req.params;
+  const { statuses, transitions } = req.body;
+  const userId = req.headers['x-user-id'];
+  try {
+    if (userId) {
+      const hasPermission = await checkPermission(userId, projectId, 'manage_members');
+      if (!hasPermission) {
+        return res.status(403).json({ error: 'Permission denied: You do not have permission to manage workflows for this project.' });
+      }
+    }
+
+    await pool.query(
+      `INSERT INTO project_workflows (project_id, statuses, transitions)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (project_id) DO UPDATE SET
+         statuses = EXCLUDED.statuses,
+         transitions = EXCLUDED.transitions`,
+      [projectId, JSON.stringify(statuses), JSON.stringify(transitions)]
+    );
+
+    // Keep custom_columns in projects in sync
+    await pool.query(
+      'UPDATE projects SET custom_columns = $1 WHERE id = $2',
+      [JSON.stringify(statuses), projectId]
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 // Task Commits API
 app.get('/api/tasks/:taskId/commits', async (req, res) => {

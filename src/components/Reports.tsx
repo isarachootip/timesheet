@@ -1,22 +1,69 @@
 import { useState } from 'react';
-import { BarChart3, TrendingUp, Download, Printer } from 'lucide-react';
+import { BarChart3, TrendingUp, Download, Printer, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 import type { User, Project, TimesheetEntry } from '../types';
 
 interface ReportsProps {
   timesheets: TimesheetEntry[];
   projects: Project[];
   users: User[];
+  currentUser: User | null;
 }
 
-export const Reports = ({ timesheets, projects, users }: ReportsProps) => {
+export const Reports = ({ timesheets, projects, users, currentUser }: ReportsProps) => {
   const [reportType, setReportType] = useState<'daily' | 'monthly' | 'yearly'>('monthly');
   const [selectedProject, setSelectedProject] = useState<string>('all');
   const [selectedUser, setSelectedUser] = useState<string>('all');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
 
+  const isAdmin = currentUser?.globalRole === 'Admin';
+  
+  // Filter timesheets to only show the user's own if they are not Admin
+  const visibleTimesheets = isAdmin
+    ? timesheets
+    : timesheets.filter(ts => ts.userId === currentUser?.id);
+
+  // Default to the month of the latest timesheet entry, or June 2026
+  const [calendarDate, setCalendarDate] = useState<Date>(() => {
+    if (visibleTimesheets.length > 0) {
+      const dates = visibleTimesheets.map(t => new Date(t.date));
+      const latestDate = new Date(Math.max(...dates.map(d => d.getTime())));
+      if (!isNaN(latestDate.getTime())) {
+        return new Date(latestDate.getFullYear(), latestDate.getMonth(), 1);
+      }
+    }
+    return new Date(2026, 5, 1);
+  });
+
+  const prevMonth = () => setCalendarDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  const nextMonth = () => setCalendarDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+
+  const getCalendarDays = () => {
+    const year = calendarDate.getFullYear();
+    const month = calendarDate.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const startDayOfWeek = firstDay.getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const cells: Array<{ dateStr: string | null; dayNum: number | null }> = [];
+
+    for (let i = 0; i < startDayOfWeek; i++) {
+      cells.push({ dateStr: null, dayNum: null });
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      cells.push({ dateStr, dayNum: day });
+    }
+
+    while (cells.length % 7 !== 0) {
+      cells.push({ dateStr: null, dayNum: null });
+    }
+
+    return cells;
+  };
+
   // ── Filtering ──
-  const filteredTimesheets = timesheets.filter(ts => {
+  const filteredTimesheets = visibleTimesheets.filter(ts => {
     if (selectedProject !== 'all' && ts.projectId !== selectedProject) return false;
     if (selectedUser !== 'all' && ts.userId !== selectedUser) return false;
     if (startDate && ts.date < startDate) return false;
@@ -32,8 +79,8 @@ export const Reports = ({ timesheets, projects, users }: ReportsProps) => {
 
   const utilizationPct = totalHours > 0 ? Math.round((approvedHours / totalHours) * 100) : 0;
 
-  // Project stats (uses all timesheets for percentage reference, filtered for display)
-  const totalAllHours = timesheets.reduce((s, t) => s + t.hours, 0);
+  // Project stats (uses all visible timesheets for percentage reference, filtered for display)
+  const totalAllHours = visibleTimesheets.reduce((s, t) => s + t.hours, 0);
   const projectStats = projects.map(project => {
     const hours = filteredTimesheets
       .filter(ts => ts.projectId === project.id)
@@ -105,13 +152,25 @@ export const Reports = ({ timesheets, projects, users }: ReportsProps) => {
 
   return (
     <>
-      {/* Print styles */}
+      {/* Print and responsive styles */}
       <style>{`
         @media print {
           .no-print { display: none !important; }
           body { background: white !important; color: black !important; }
           .glass-panel { background: white !important; border: 1px solid #ccc !important; box-shadow: none !important; }
           .reports-row { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 1024px) {
+          .reports-lower-grid { grid-template-columns: 1fr !important; }
+        }
+        .calendar-cell-active {
+          background: rgba(255, 255, 255, 0.015);
+          border: 1px solid rgba(255, 255, 255, 0.04);
+          transition: all 0.15s ease;
+        }
+        .calendar-cell-active:hover {
+          background: rgba(255, 255, 255, 0.04);
+          border-color: rgba(99, 102, 241, 0.4);
         }
       `}</style>
 
@@ -206,19 +265,21 @@ export const Reports = ({ timesheets, projects, users }: ReportsProps) => {
           </div>
 
           {/* User filter */}
-          <div className="glass-panel" style={{ padding: '0.25rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>User:</span>
-            <select
-              value={selectedUser}
-              onChange={e => setSelectedUser(e.target.value)}
-              style={{ ...selectStyle, border: 'none', background: 'transparent' }}
-            >
-              <option value="all" style={{ background: 'var(--bg-secondary)' }}>All Users</option>
-              {users.map(u => (
-                <option key={u.id} value={u.id} style={{ background: 'var(--bg-secondary)' }}>{u.name}</option>
-              ))}
-            </select>
-          </div>
+          {isAdmin && (
+            <div className="glass-panel" style={{ padding: '0.25rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>User:</span>
+              <select
+                value={selectedUser}
+                onChange={e => setSelectedUser(e.target.value)}
+                style={{ ...selectStyle, border: 'none', background: 'transparent' }}
+              >
+                <option value="all" style={{ background: 'var(--bg-secondary)' }}>All Users</option>
+                {users.map(u => (
+                  <option key={u.id} value={u.id} style={{ background: 'var(--bg-secondary)' }}>{u.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Date range */}
           <div className="glass-panel" style={{ padding: '0.4rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -248,22 +309,28 @@ export const Reports = ({ timesheets, projects, users }: ReportsProps) => {
         </div>
 
         {/* ── KPI Row ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
-          <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Total Logged Hours</span>
-            <div style={{ fontSize: '1.875rem', fontWeight: 700 }}>{totalHours} hrs</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{filteredTimesheets.length} entries</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+          <div className="glass-panel" style={{ padding: '0.75rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 500 }}>Total Logged Hours</span>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+              <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>{totalHours}</span>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>hrs ({filteredTimesheets.length} entries)</span>
+            </div>
           </div>
-          <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Approved Hours</span>
-            <div style={{ fontSize: '1.875rem', fontWeight: 700, color: 'var(--accent-secondary)' }}>{approvedHours} hrs</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>out of {totalHours} total</div>
+          <div className="glass-panel" style={{ padding: '0.75rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 500 }}>Approved Hours</span>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+              <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent-secondary)' }}>{approvedHours}</span>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>hrs / {totalHours} total</span>
+            </div>
           </div>
-          <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Approval Rate ({reportType})</span>
-            <div style={{ fontSize: '1.875rem', fontWeight: 700 }}>{utilizationPct}%</div>
-            <div style={{ width: '100%', height: '4px', background: 'var(--bg-tertiary)', borderRadius: '999px', overflow: 'hidden', marginTop: '0.25rem' }}>
-              <div style={{ height: '100%', width: `${utilizationPct}%`, background: 'var(--accent-primary)', borderRadius: '999px', transition: 'width 0.4s' }} />
+          <div className="glass-panel" style={{ padding: '0.75rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 500 }}>Approval Rate</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%' }}>
+              <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>{utilizationPct}%</span>
+              <div style={{ flex: 1, height: '4px', background: 'var(--bg-tertiary)', borderRadius: '999px', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${utilizationPct}%`, background: 'var(--accent-primary)', borderRadius: '999px', transition: 'width 0.4s' }} />
+              </div>
             </div>
           </div>
         </div>
@@ -321,83 +388,226 @@ export const Reports = ({ timesheets, projects, users }: ReportsProps) => {
           </div>
         </div>
 
-        {/* ── Timesheet Detail Table ── */}
-        <div className="glass-panel" style={{ padding: '1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-            <h3 style={{ fontSize: '1.125rem', margin: 0 }}>Timesheet Details</h3>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-              Showing {displayedRows.length} of {filteredTimesheets.length} entries
-            </span>
+        {/* ── Lower Row: Calendar and Detail Table side-by-side ── */}
+        <div className="reports-lower-grid" style={{ 
+          display: 'grid', 
+          gridTemplateColumns: '1.4fr 1fr', 
+          gap: '1.5rem',
+          alignItems: 'stretch'
+        }}>
+          {/* Monthly Timesheet Calendar */}
+          <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 style={{ fontSize: '1.125rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <CalendarIcon size={18} color="var(--accent-primary)" />
+                Timesheet Calendar
+              </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <button type="button" onClick={prevMonth} className="hover-lift" style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'var(--text-primary)', padding: '0.3rem', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                  <ChevronLeft size={16} />
+                </button>
+                <span style={{ fontSize: '0.9rem', fontWeight: 600, minWidth: '100px', textAlign: 'center' }}>
+                  {(() => {
+                    const monthNames = [
+                      'January', 'February', 'March', 'April', 'May', 'June',
+                      'July', 'August', 'September', 'October', 'November', 'December'
+                    ];
+                    return `${monthNames[calendarDate.getMonth()]} ${calendarDate.getFullYear()}`;
+                  })()}
+                </span>
+                <button type="button" onClick={nextMonth} className="hover-lift" style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'var(--text-primary)', padding: '0.3rem', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* Calendar Grid */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              {/* Day Headers */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.25rem', textAlign: 'center', marginBottom: '0.25rem' }}>
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                  <span key={d} style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>{d}</span>
+                ))}
+              </div>
+
+              {/* Day Grid Cells */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.25rem' }}>
+                {getCalendarDays().map((cell, idx) => {
+                  const dayEntries = cell.dateStr ? filteredTimesheets.filter(ts => ts.date === cell.dateStr) : [];
+                  const dailyTotal = dayEntries.reduce((sum, e) => sum + e.hours, 0);
+
+                  return (
+                    <div 
+                      key={idx} 
+                      className={cell.dayNum ? "calendar-cell-active" : ""}
+                      style={{ 
+                        minHeight: '85px', 
+                        borderRadius: 'var(--radius-sm)', 
+                        padding: '0.35rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'flex-start',
+                        background: cell.dayNum ? undefined : 'rgba(255,255,255,0.005)',
+                        border: cell.dayNum ? undefined : '1px solid transparent'
+                      }}
+                    >
+                      {cell.dayNum && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: dailyTotal > 0 ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                            {cell.dayNum}
+                          </span>
+                          {dailyTotal > 0 && (
+                            <span style={{ fontSize: '0.65rem', padding: '0.1rem 0.25rem', background: 'rgba(99, 102, 241, 0.15)', color: 'rgba(129, 140, 248, 1)', borderRadius: '3px', fontWeight: 700 }}>
+                              {dailyTotal}h
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflowY: 'auto', flex: 1, maxHeight: '55px' }}>
+                        {dayEntries.map(entry => {
+                          const proj = projects.find(p => p.id === entry.projectId);
+                          const projName = proj ? proj.name : 'Unknown';
+                          const user = users.find(u => u.id === entry.userId);
+                          const userName = user ? user.name.split(' ')[0] : 'Unknown';
+                          const displayLabel = `${isAdmin && selectedUser === 'all' ? `${userName}: ` : ''}${entry.description || projName}`;
+
+                          const statusBg: Record<string, string> = {
+                            Draft: 'rgba(107, 114, 128, 0.1)',
+                            Pending: 'rgba(245, 158, 11, 0.1)',
+                            Approved: 'rgba(16, 185, 129, 0.1)',
+                            Rejected: 'rgba(239, 68, 68, 0.1)',
+                          };
+                          const statusBorder: Record<string, string> = {
+                            Draft: 'rgba(107, 114, 128, 0.3)',
+                            Pending: 'rgba(245, 158, 11, 0.4)',
+                            Approved: 'rgba(16, 185, 129, 0.4)',
+                            Rejected: 'rgba(239, 68, 68, 0.4)',
+                          };
+                          const statusColor: Record<string, string> = {
+                            Draft: 'rgba(156, 163, 175, 1)',
+                            Pending: 'rgba(251, 191, 36, 1)',
+                            Approved: 'rgba(52, 211, 153, 1)',
+                            Rejected: 'rgba(248, 113, 113, 1)',
+                          };
+
+                          return (
+                            <div 
+                              key={entry.id}
+                              style={{
+                                fontSize: '0.62rem',
+                                padding: '0.15rem 0.25rem',
+                                borderRadius: '3px',
+                                background: statusBg[entry.status],
+                                borderLeft: `2.5px solid ${statusColor[entry.status]}`,
+                                borderRight: `1px solid ${statusBorder[entry.status]}`,
+                                borderTop: `1px solid ${statusBorder[entry.status]}`,
+                                borderBottom: `1px solid ${statusBorder[entry.status]}`,
+                                color: 'var(--text-primary)',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                cursor: 'default'
+                              }}
+                              title={`${userName} - ${projName}: ${entry.hours}h - ${entry.description} (${entry.status})`}
+                            >
+                              {displayLabel}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                  {['Date', 'User', 'Project', 'Hours', 'Description', 'Status'].map(h => (
-                    <th key={h} style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {displayedRows.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                      No timesheet entries match the current filters.
-                    </td>
+          {/* Compact Timesheet Details Table */}
+          <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 style={{ fontSize: '1.125rem', margin: 0 }}>Timesheet Details</h3>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                {displayedRows.length} of {filteredTimesheets.length} entries
+              </span>
+            </div>
+
+            <div style={{ overflowX: 'auto', maxHeight: '380px', overflowY: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border-color)', position: 'sticky', top: 0, background: 'var(--bg-secondary)', zIndex: 10 }}>
+                    <th style={{ padding: '0.5rem 0.75rem', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Date</th>
+                    {isAdmin && (
+                      <th style={{ padding: '0.5rem 0.75rem', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>User</th>
+                    )}
+                    <th style={{ padding: '0.5rem 0.75rem', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Project</th>
+                    <th style={{ padding: '0.5rem 0.75rem', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Hours</th>
+                    <th style={{ padding: '0.5rem 0.75rem', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Description</th>
+                    <th style={{ padding: '0.5rem 0.75rem', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Status</th>
                   </tr>
-                ) : (
-                  displayedRows.map((ts, idx) => {
-                    const user = users.find(u => u.id === ts.userId);
-                    const project = projects.find(p => p.id === ts.projectId);
-                    const statusColor: Record<string, string> = {
-                      Draft: 'rgba(107,114,128,0.7)',
-                      Pending: 'rgba(245,158,11,0.8)',
-                      Approved: 'rgba(16,185,129,0.8)',
-                      Rejected: 'rgba(239,68,68,0.8)',
-                    };
-                    return (
-                      <tr
-                        key={ts.id}
-                        style={{
-                          borderBottom: '1px solid rgba(255,255,255,0.04)',
-                          background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)',
-                        }}
-                      >
-                        <td style={{ padding: '0.65rem 1rem', whiteSpace: 'nowrap' }}>{ts.date}</td>
-                        <td style={{ padding: '0.65rem 1rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            {user?.avatar && (
-                              <img src={user.avatar} alt={user.name} style={{ width: '22px', height: '22px', borderRadius: '50%' }} />
-                            )}
-                            <span>{user?.name || ts.userId}</span>
-                          </div>
-                        </td>
-                        <td style={{ padding: '0.65rem 1rem' }}>{project?.name || ts.projectId}</td>
-                        <td style={{ padding: '0.65rem 1rem', fontWeight: 600 }}>{ts.hours}h</td>
-                        <td style={{ padding: '0.65rem 1rem', color: 'var(--text-secondary)', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {ts.description || '—'}
-                        </td>
-                        <td style={{ padding: '0.65rem 1rem' }}>
-                          <span style={{
-                            fontSize: '0.72rem',
-                            fontWeight: 600,
-                            padding: '0.2rem 0.55rem',
-                            borderRadius: '999px',
-                            background: statusColor[ts.status] || 'rgba(107,114,128,0.7)',
-                            color: 'white',
-                          }}>
-                            {ts.status}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {displayedRows.length === 0 ? (
+                    <tr>
+                      <td colSpan={isAdmin ? 6 : 5} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                        No timesheet entries match the current filters.
+                      </td>
+                    </tr>
+                  ) : (
+                    displayedRows.map((ts, idx) => {
+                      const user = users.find(u => u.id === ts.userId);
+                      const project = projects.find(p => p.id === ts.projectId);
+                      const statusColor: Record<string, string> = {
+                        Draft: 'rgba(107,114,128,0.7)',
+                        Pending: 'rgba(245,158,11,0.8)',
+                        Approved: 'rgba(16,185,129,0.8)',
+                        Rejected: 'rgba(239,68,68,0.8)',
+                      };
+                      return (
+                        <tr
+                          key={ts.id}
+                          style={{
+                            borderBottom: '1px solid rgba(255,255,255,0.03)',
+                            background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)',
+                          }}
+                        >
+                          <td style={{ padding: '0.45rem 0.75rem', whiteSpace: 'nowrap' }}>{ts.date}</td>
+                          {isAdmin && (
+                            <td style={{ padding: '0.45rem 0.75rem', whiteSpace: 'nowrap' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                {user?.avatar && (
+                                  <img src={user.avatar} alt={user.name} style={{ width: '18px', height: '18px', borderRadius: '50%' }} />
+                                )}
+                                <span style={{ maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis' }} title={user?.name}>{user?.name || ts.userId}</span>
+                              </div>
+                            </td>
+                          )}
+                          <td style={{ padding: '0.45rem 0.75rem', whiteSpace: 'nowrap', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }} title={project?.name || ts.projectId}>
+                            {project?.name || ts.projectId}
+                          </td>
+                          <td style={{ padding: '0.45rem 0.75rem', fontWeight: 600 }}>{ts.hours}h</td>
+                          <td style={{ padding: '0.45rem 0.75rem', color: 'var(--text-secondary)', maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={ts.description}>
+                            {ts.description || '—'}
+                          </td>
+                          <td style={{ padding: '0.45rem 0.75rem' }}>
+                            <span style={{
+                              fontSize: '0.68rem',
+                              fontWeight: 600,
+                              padding: '0.15rem 0.45rem',
+                              borderRadius: '999px',
+                              background: statusColor[ts.status] || 'rgba(107,114,128,0.7)',
+                              color: 'white',
+                            }}>
+                              {ts.status}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>

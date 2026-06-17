@@ -32,6 +32,7 @@ export interface Project {
   budget?: number;
   members: ProjectMember[];
   customColumns?: string[];
+  permissionSchemeId?: string;
 }
 
 export interface Sprint {
@@ -101,4 +102,22 @@ export interface TimesheetEntry {
   approvedBy?: string;
   approvedAt?: string;
 }
+
+export interface PermissionScheme {
+  id: string;
+  name: string;
+  description: string;
+  permissions: Record<string, string[]>;
+}
+
+export interface ProjectWorkflow {
+  projectId: string;
+  statuses: string[];
+  transitions: Array<{
+    from: string;
+    to: string;
+    conditions: Array<{ type: string; value?: any }>;
+  }>;
+}
+
 
