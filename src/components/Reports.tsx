@@ -388,12 +388,11 @@ export const Reports = ({ timesheets, projects, users, currentUser }: ReportsPro
           </div>
         </div>
 
-        {/* ── Lower Row: Calendar and Detail Table side-by-side ── */}
-        <div className="reports-lower-grid" style={{ 
-          display: 'grid', 
-          gridTemplateColumns: '1.4fr 1fr', 
-          gap: '1.5rem',
-          alignItems: 'stretch'
+        {/* ── Lower Row: Calendar and Detail Table stacked vertically ── */}
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: '1.5rem'
         }}>
           {/* Monthly Timesheet Calendar */}
           <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
