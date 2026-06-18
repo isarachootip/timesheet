@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { TaskTemplate, TaskPriority, PermissionScheme, User, CostRate } from '../types';
 import { Plus, Trash2, Edit, X, Save, Shield, ShieldCheck, Coins } from 'lucide-react';
 
@@ -170,56 +170,79 @@ export const Settings = ({
   };
 
   // Cost Rates States & Handlers
-  const [isRateModalOpen, setIsRateModalOpen] = useState(false);
-  const [editingRate, setEditingRate] = useState<CostRate | null>(null);
-  const [rateRoleName, setRateRoleName] = useState('');
-  const [ratePerDay, setRatePerDay] = useState('');
-  const [ratePerHour, setRatePerHour] = useState('');
-  const [rateCurrency, setRateCurrency] = useState('THB');
+  const [editingRateId, setEditingRateId] = useState<string | null>(null);
+  const newRoleInputRef = useRef<HTMLInputElement>(null);
 
-  const openAddRateModal = () => {
-    setEditingRate(null);
-    setRateRoleName('');
-    setRatePerDay('');
-    setRatePerHour('');
-    setRateCurrency('THB');
-    setIsRateModalOpen(true);
+  // States for row editing
+  const [inlineRoleName, setInlineRoleName] = useState('');
+  const [inlinePerDay, setInlinePerDay] = useState('');
+  const [inlinePerHour, setInlinePerHour] = useState('');
+  const [inlineCurrency, setInlineCurrency] = useState('THB');
+
+  // States for adding a new rate row
+  const [newRoleName, setNewRoleName] = useState('');
+  const [newPerDay, setNewPerDay] = useState('');
+  const [newPerHour, setNewPerHour] = useState('');
+  const [newCurrency, setNewCurrency] = useState('THB');
+
+  const focusNewRoleInput = () => {
+    if (newRoleInputRef.current) {
+      newRoleInputRef.current.focus();
+      newRoleInputRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
   };
 
-  const openEditRateModal = (rate: CostRate) => {
-    setEditingRate(rate);
-    setRateRoleName(rate.roleName);
-    setRatePerDay(String(rate.ratePerDay));
-    setRatePerHour(String(rate.ratePerHour));
-    setRateCurrency(rate.currency);
-    setIsRateModalOpen(true);
+  const startInlineEdit = (rate: CostRate) => {
+    setEditingRateId(rate.id);
+    setInlineRoleName(rate.roleName);
+    setInlinePerDay(String(rate.ratePerDay));
+    setInlinePerHour(String(rate.ratePerHour));
+    setInlineCurrency(rate.currency);
   };
 
-  const handleSaveRate = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!rateRoleName) return alert('Role name is required');
-    const day = parseFloat(ratePerDay) || 0;
-    const hour = parseFloat(ratePerHour) || 0;
+  const cancelInlineEdit = () => {
+    setEditingRateId(null);
+  };
 
-    const rateId = editingRate ? editingRate.id : 'rate_' + Date.now();
+  const handleSaveInlineRate = (id: string) => {
+    if (!inlineRoleName) return alert('Role name is required');
+    const day = parseFloat(inlinePerDay) || 0;
+    const hour = parseFloat(inlinePerHour) || 0;
+
     const data: CostRate = {
-      id: rateId,
-      roleName: rateRoleName,
+      id,
+      roleName: inlineRoleName,
       ratePerDay: day,
       ratePerHour: hour,
-      currency: rateCurrency
+      currency: inlineCurrency
     };
 
-    setCostRates(prev => {
-      const exists = prev.some(s => s.id === rateId);
-      if (exists) {
-        return prev.map(s => s.id === rateId ? data : s);
-      } else {
-        return [...prev, data];
-      }
-    });
+    setCostRates(prev => prev.map(s => s.id === id ? data : s));
+    setEditingRateId(null);
+  };
 
-    setIsRateModalOpen(false);
+  const handleAddInlineRate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newRoleName) return alert('Role name is required');
+    const day = parseFloat(newPerDay) || 0;
+    const hour = parseFloat(newPerHour) || 0;
+
+    const rateId = 'rate_' + Date.now();
+    const data: CostRate = {
+      id: rateId,
+      roleName: newRoleName,
+      ratePerDay: day,
+      ratePerHour: hour,
+      currency: newCurrency
+    };
+
+    setCostRates(prev => [...prev, data]);
+
+    // Clear form inputs
+    setNewRoleName('');
+    setNewPerDay('');
+    setNewPerHour('');
+    setNewCurrency('THB');
   };
 
   const handleDeleteRate = (id: string) => {
@@ -228,23 +251,45 @@ export const Settings = ({
     }
   };
 
-  const handleDayChange = (val: string) => {
-    setRatePerDay(val);
+  // Input sync helpers for inline editing row
+  const handleInlineDayChange = (val: string) => {
+    setInlinePerDay(val);
     const num = parseFloat(val);
     if (!isNaN(num)) {
-      setRatePerHour((num / 8).toFixed(2));
+      setInlinePerHour((num / 8).toFixed(2));
     } else {
-      setRatePerHour('');
+      setInlinePerHour('');
     }
   };
 
-  const handleHourChange = (val: string) => {
-    setRatePerHour(val);
+  const handleInlineHourChange = (val: string) => {
+    setInlinePerHour(val);
     const num = parseFloat(val);
     if (!isNaN(num)) {
-      setRatePerDay((num * 8).toFixed(2));
+      setInlinePerDay((num * 8).toFixed(2));
     } else {
-      setRatePerDay('');
+      setInlinePerDay('');
+    }
+  };
+
+  // Input sync helpers for new row
+  const handleNewDayChange = (val: string) => {
+    setNewPerDay(val);
+    const num = parseFloat(val);
+    if (!isNaN(num)) {
+      setNewPerHour((num / 8).toFixed(2));
+    } else {
+      setNewPerHour('');
+    }
+  };
+
+  const handleNewHourChange = (val: string) => {
+    setNewPerHour(val);
+    const num = parseFloat(val);
+    if (!isNaN(num)) {
+      setNewPerDay((num * 8).toFixed(2));
+    } else {
+      setNewPerDay('');
     }
   };
 
@@ -300,7 +345,7 @@ export const Settings = ({
           </button>
         )}
         {activeTab === 'cost_rates' && isGlobalAdmin && (
-          <button onClick={openAddRateModal} style={{ 
+          <button onClick={focusNewRoleInput} style={{ 
             background: 'var(--accent-primary)', 
             color: 'white', 
             border: 'none', 
@@ -629,64 +674,217 @@ export const Settings = ({
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <div className="glass-panel" style={{ padding: '1.5rem' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Labor Rate Configuration (ตั้งค่าอัตราค่าแรง)</h3>
-            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
-              Define default daily and hourly cost rates for each project resource role. These rates are used in the Reports dashboard to calculate project costs based on logged timesheets.
-            </p>
+          {(() => {
+            const inlineInputStyle: React.CSSProperties = {
+              background: 'var(--bg-tertiary)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '4px',
+              padding: '0.35rem 0.5rem',
+              color: 'var(--text-primary)',
+              fontSize: '0.85rem',
+              outline: 'none',
+              width: '100%',
+            };
 
-            <div style={{ overflowX: 'auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem', textAlign: 'left' }}>
-                <thead>
-                  <tr style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
-                    <th style={{ padding: '0.75rem 1rem' }}>Resource Role</th>
-                    <th style={{ padding: '0.75rem 1rem' }}>Daily Rate (8 hrs)</th>
-                    <th style={{ padding: '0.75rem 1rem' }}>Hourly Rate</th>
-                    <th style={{ padding: '0.75rem 1rem' }}>Currency</th>
-                    {isGlobalAdmin && <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Actions</th>}
-                  </tr>
-                </thead>
-                <tbody style={{ color: 'var(--text-secondary)' }}>
-                  {costRates.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                        No labor rates configured. Click "Add Labor Rate" to configure one.
-                      </td>
-                    </tr>
-                  ) : (
-                    costRates.map(rate => (
-                      <tr key={rate.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                        <td style={{ padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--text-primary)' }}>{rate.roleName}</td>
-                        <td style={{ padding: '0.75rem 1rem' }}>฿{rate.ratePerDay.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        <td style={{ padding: '0.75rem 1rem' }}>฿{rate.ratePerHour.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/hr</td>
-                        <td style={{ padding: '0.75rem 1rem' }}>{rate.currency}</td>
-                        {isGlobalAdmin && (
-                          <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
-                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                              <button 
-                                onClick={() => openEditRateModal(rate)} 
-                                title="Edit Rate" 
-                                style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
-                              >
-                                <Edit size={16} />
-                              </button>
-                              <button 
-                                onClick={() => handleDeleteRate(rate.id)} 
-                                title="Delete Rate" 
-                                style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer' }}
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </td>
-                        )}
+            const inlineSelectStyle: React.CSSProperties = {
+              background: 'var(--bg-tertiary)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '4px',
+              padding: '0.3rem 0.5rem',
+              color: 'var(--text-primary)',
+              fontSize: '0.85rem',
+              outline: 'none',
+              width: '100%',
+            };
+
+            return (
+              <div className="glass-panel" style={{ padding: '1.5rem' }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Labor Rate Configuration (ตั้งค่าอัตราค่าแรง)</h3>
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+                  Define default daily and hourly cost rates for each project resource role. These rates are used in the Reports dashboard to calculate project costs based on logged timesheets.
+                </p>
+
+                <div style={{ overflowX: 'auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
+                        <th style={{ padding: '0.75rem 1rem', width: '30%' }}>Resource Role</th>
+                        <th style={{ padding: '0.75rem 1rem', width: '22%' }}>Daily Rate (8 hrs)</th>
+                        <th style={{ padding: '0.75rem 1rem', width: '22%' }}>Hourly Rate</th>
+                        <th style={{ padding: '0.75rem 1rem', width: '13%' }}>Currency</th>
+                        {isGlobalAdmin && <th style={{ padding: '0.75rem 1rem', textAlign: 'right', width: '13%' }}>Actions</th>}
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                    </thead>
+                    <tbody style={{ color: 'var(--text-secondary)' }}>
+                      {costRates.map(rate => {
+                        const isEditing = editingRateId === rate.id;
+                        return (
+                          <tr key={rate.id} style={{ borderBottom: '1px solid var(--border-color)', background: isEditing ? 'rgba(255, 255, 255, 0.02)' : 'transparent' }}>
+                            {isEditing ? (
+                              <>
+                                <td style={{ padding: '0.5rem' }}>
+                                  <input 
+                                    type="text" 
+                                    value={inlineRoleName} 
+                                    onChange={e => setInlineRoleName(e.target.value)} 
+                                    style={inlineInputStyle} 
+                                    required 
+                                  />
+                                </td>
+                                <td style={{ padding: '0.5rem' }}>
+                                  <input 
+                                    type="number" 
+                                    step="any"
+                                    value={inlinePerDay} 
+                                    onChange={e => handleInlineDayChange(e.target.value)} 
+                                    style={inlineInputStyle} 
+                                    required 
+                                  />
+                                </td>
+                                <td style={{ padding: '0.5rem' }}>
+                                  <input 
+                                    type="number" 
+                                    step="any"
+                                    value={inlinePerHour} 
+                                    onChange={e => handleInlineHourChange(e.target.value)} 
+                                    style={inlineInputStyle} 
+                                    required 
+                                  />
+                                </td>
+                                <td style={{ padding: '0.5rem' }}>
+                                  <select 
+                                    value={inlineCurrency} 
+                                    onChange={e => setInlineCurrency(e.target.value)} 
+                                    style={inlineSelectStyle}
+                                  >
+                                    <option value="THB">THB</option>
+                                    <option value="USD">USD</option>
+                                  </select>
+                                </td>
+                                <td style={{ padding: '0.5rem', textAlign: 'right' }}>
+                                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                    <button 
+                                      onClick={() => handleSaveInlineRate(rate.id)} 
+                                      title="Save Changes" 
+                                      style={{ background: 'transparent', border: 'none', color: 'var(--accent-secondary)', cursor: 'pointer' }}
+                                    >
+                                      <Save size={16} />
+                                    </button>
+                                    <button 
+                                      onClick={cancelInlineEdit} 
+                                      title="Cancel" 
+                                      style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                                    >
+                                      <X size={16} />
+                                    </button>
+                                  </div>
+                                </td>
+                              </>
+                            ) : (
+                              <>
+                                <td style={{ padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--text-primary)' }}>{rate.roleName}</td>
+                                <td style={{ padding: '0.75rem 1rem' }}>฿{rate.ratePerDay.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td style={{ padding: '0.75rem 1rem' }}>฿{rate.ratePerHour.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/hr</td>
+                                <td style={{ padding: '0.75rem 1rem' }}>{rate.currency}</td>
+                                {isGlobalAdmin && (
+                                  <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
+                                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                      <button 
+                                        onClick={() => startInlineEdit(rate)} 
+                                        title="Edit Rate" 
+                                        style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                                      >
+                                        <Edit size={16} />
+                                      </button>
+                                      <button 
+                                        onClick={() => handleDeleteRate(rate.id)} 
+                                        title="Delete Rate" 
+                                        style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer' }}
+                                      >
+                                        <Trash2 size={16} />
+                                      </button>
+                                    </div>
+                                  </td>
+                                )}
+                              </>
+                            )}
+                          </tr>
+                        );
+                      })}
+
+                      {/* Inline Add Row */}
+                      {isGlobalAdmin && (
+                        <tr style={{ background: 'rgba(255, 255, 255, 0.01)', borderTop: '1px solid var(--border-color)' }}>
+                          <td style={{ padding: '0.5rem' }}>
+                            <input 
+                              ref={newRoleInputRef}
+                              type="text" 
+                              placeholder="Add new role name..." 
+                              value={newRoleName} 
+                              onChange={e => setNewRoleName(e.target.value)} 
+                              style={inlineInputStyle} 
+                            />
+                          </td>
+                          <td style={{ padding: '0.5rem' }}>
+                            <input 
+                              type="number" 
+                              step="any" 
+                              placeholder="Daily rate..." 
+                              value={newPerDay} 
+                              onChange={e => handleNewDayChange(e.target.value)} 
+                              style={inlineInputStyle} 
+                            />
+                          </td>
+                          <td style={{ padding: '0.5rem' }}>
+                            <input 
+                              type="number" 
+                              step="any" 
+                              placeholder="Hourly rate..." 
+                              value={newPerHour} 
+                              onChange={e => handleNewHourChange(e.target.value)} 
+                              style={inlineInputStyle} 
+                            />
+                          </td>
+                          <td style={{ padding: '0.5rem' }}>
+                            <select 
+                              value={newCurrency} 
+                              onChange={e => setNewCurrency(e.target.value)} 
+                              style={inlineSelectStyle}
+                            >
+                              <option value="THB">THB</option>
+                              <option value="USD">USD</option>
+                            </select>
+                          </td>
+                          <td style={{ padding: '0.5rem', textAlign: 'right' }}>
+                            <button 
+                              onClick={handleAddInlineRate} 
+                              title="Add Labor Rate" 
+                              style={{ 
+                                background: 'var(--accent-primary)', 
+                                border: 'none', 
+                                color: 'white', 
+                                borderRadius: 'var(--radius-sm)', 
+                                padding: '0.35rem 0.75rem', 
+                                cursor: 'pointer', 
+                                fontSize: '0.8rem', 
+                                fontWeight: 600,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.25rem' 
+                              }}
+                              className="hover-lift"
+                            >
+                              <Plus size={14} /> Add
+                            </button>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 
@@ -933,105 +1131,6 @@ export const Settings = ({
                   <Save size={18} /> Save Permission Scheme
                 </button>
               )}
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Labor Rate CRUD Modal */}
-      {isRateModalOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.7)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1100
-        }}>
-          <div className="glass-panel" style={{ padding: '2rem', width: '500px', maxWidth: '95%', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <div className="flex-between">
-              <h2 className="text-gradient" style={{ fontSize: '1.5rem' }}>
-                {editingRate ? 'Edit Labor Rate' : 'Add New Labor Rate'}
-              </h2>
-              <button onClick={() => setIsRateModalOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-                <X size={20} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveRate} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Resource Role Name *</label>
-                <input 
-                  type="text" 
-                  value={rateRoleName} 
-                  onChange={e => setRateRoleName(e.target.value)} 
-                  style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none' }}
-                  placeholder="e.g. Backend Developer"
-                  required
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                  <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Daily Rate (THB) *</label>
-                  <input 
-                    type="number" 
-                    step="any"
-                    value={ratePerDay} 
-                    onChange={e => handleDayChange(e.target.value)} 
-                    style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none' }}
-                    placeholder="e.g. 6500.00"
-                    required
-                  />
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                  <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Hourly Rate (THB) *</label>
-                  <input 
-                    type="number" 
-                    step="any"
-                    value={ratePerHour} 
-                    onChange={e => handleHourChange(e.target.value)} 
-                    style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none' }}
-                    placeholder="e.g. 812.50"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Currency</label>
-                <select 
-                  value={rateCurrency} 
-                  onChange={e => setRateCurrency(e.target.value)}
-                  style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
-                >
-                  <option value="THB">THB (฿)</option>
-                  <option value="USD">USD ($)</option>
-                </select>
-              </div>
-
-              <button type="submit" style={{ 
-                background: 'var(--accent-primary)', 
-                color: 'white', 
-                border: 'none', 
-                padding: '0.75rem', 
-                borderRadius: 'var(--radius-md)', 
-                fontWeight: 600, 
-                cursor: 'pointer',
-                marginTop: '1rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem'
-              }} className="hover-lift">
-                <Save size={18} /> Save Labor Rate
-              </button>
             </form>
           </div>
         </div>
