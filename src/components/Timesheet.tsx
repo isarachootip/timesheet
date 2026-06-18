@@ -103,25 +103,9 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <div className="flex-between">
-        <div>
-          <h1 className="text-gradient" style={{ marginBottom: '0.5rem' }}>Timesheet</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>Log your hours and track your daily activities.</p>
-        </div>
-        <button onClick={openLogModal} style={{ 
-          background: 'var(--accent-primary)', 
-          color: 'white', 
-          border: 'none', 
-          padding: '0.75rem 1.5rem', 
-          borderRadius: 'var(--radius-md)', 
-          fontWeight: 500, 
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem'
-        }} className="hover-lift">
-          <Plus size={18} /> Log Time
-        </button>
+      <div>
+        <h1 className="text-gradient" style={{ marginBottom: '0.5rem' }}>Timesheet</h1>
+        <p style={{ color: 'var(--text-secondary)' }}>Log your hours and track your daily activities.</p>
       </div>
 
       <div className="timesheet-row" style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '2rem' }}>
@@ -219,7 +203,24 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
           <div className="glass-panel" style={{ padding: '1.5rem', minHeight: '400px' }}>
             <div className="flex-between" style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
               <h3 style={{ fontSize: '1.125rem' }}>Entries for {format(selectedDate, 'MMMM d, yyyy')}</h3>
-              <div style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>{totalHoursToday} Hours Total</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>{totalHoursToday} Hours Total</div>
+                <button onClick={openLogModal} style={{ 
+                  background: 'var(--accent-primary)', 
+                  color: 'white', 
+                  border: 'none', 
+                  padding: '0.5rem 1rem', 
+                  borderRadius: 'var(--radius-md)', 
+                  fontWeight: 500, 
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  fontSize: '0.85rem'
+                }} className="hover-lift">
+                  <Plus size={16} /> Log Time
+                </button>
+              </div>
             </div>
 
             {todaysEntries.length === 0 ? (
