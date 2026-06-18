@@ -26,6 +26,7 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
   // User form states
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [globalRole, setGlobalRole] = useState<GlobalRole>('Employee');
   const [department, setDepartment] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState('');
@@ -230,6 +231,7 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
     setEditingUser(null);
     setName('');
     setEmail('');
+    setPassword('');
     setGlobalRole('Employee');
     setDepartment('');
     setSelectedProjectId('');
@@ -246,6 +248,7 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
     setEditingUser(user);
     setName(user.name);
     setEmail(user.email);
+    setPassword('');
     setGlobalRole(user.globalRole);
     setDepartment(user.department);
     setGender(user.gender || '');
@@ -314,6 +317,7 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
   const handleSaveUser = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email) return alert('Name and Email are required');
+    if (!editingUser && !password) return alert('Password is required for new employee');
 
     const userId = editingUser ? editingUser.id : 'u_' + Date.now();
     const skillsArray = skills ? skills.split(',').map(s => s.trim()).filter(s => s.length > 0) : [];
@@ -327,7 +331,8 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
       gender,
       birthday,
       skills: skillsArray,
-      avatar: avatar || `https://i.pravatar.cc/150?u=${userId}`
+      avatar: avatar || `https://i.pravatar.cc/150?u=${userId}`,
+      ...(password ? { password } : {})
     };
 
     // 1. Update users list
@@ -690,6 +695,18 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                   onChange={e => setEmail(e.target.value)} 
                   style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none' }}
                   required
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Password {editingUser ? '' : '*'}</label>
+                <input 
+                  type="password" 
+                  value={password} 
+                  onChange={e => setPassword(e.target.value)} 
+                  placeholder={editingUser ? 'Leave blank to keep existing password' : 'Enter password'}
+                  style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none' }}
+                  required={!editingUser}
                 />
               </div>
 

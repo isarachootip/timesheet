@@ -15,6 +15,7 @@ export interface User {
   gender?: 'Male' | 'Female' | 'Other' | '';
   birthday?: string;
   skills?: string[];
+  password?: string;
 }
 
 export interface ProjectMember {

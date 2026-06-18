@@ -190,6 +190,49 @@ const initDB = async () => {
       );
     `);
 
+    // Create Project Baselines Table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS project_baselines (
+        id VARCHAR(50) PRIMARY KEY,
+        project_id VARCHAR(50) NOT NULL,
+        name VARCHAR(150) NOT NULL,
+        description TEXT,
+        created_at VARCHAR(50) NOT NULL,
+        created_by VARCHAR(50),
+        is_active BOOLEAN NOT NULL DEFAULT FALSE
+      );
+    `);
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_active_baseline_per_project 
+      ON project_baselines (project_id) 
+      WHERE is_active = TRUE;
+    `);
+
+    // Create Task Snapshots Table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS task_snapshots (
+        id VARCHAR(50) PRIMARY KEY,
+        baseline_id VARCHAR(50) NOT NULL,
+        task_id VARCHAR(50) NOT NULL,
+        title VARCHAR(200) NOT NULL,
+        description TEXT,
+        status VARCHAR(50) NOT NULL,
+        priority VARCHAR(50) NOT NULL,
+        estimated_hours NUMERIC NOT NULL DEFAULT 0,
+        start_date VARCHAR(50),
+        end_date VARCHAR(50),
+        story_points INTEGER DEFAULT 0,
+        assignee_id VARCHAR(50),
+        parent_id VARCHAR(50),
+        sprint_id VARCHAR(50),
+        release_id VARCHAR(50)
+      );
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_task_snapshots_baseline ON task_snapshots(baseline_id);
+      CREATE INDEX IF NOT EXISTS idx_task_snapshots_task ON task_snapshots(task_id);
+    `);
+
     // Seed permission schemes if empty (independent of user count)
     const schemeCount = await client.query('SELECT COUNT(*) FROM permission_schemes');
     if (parseInt(schemeCount.rows[0].count) === 0) {
@@ -404,6 +447,38 @@ const initDB = async () => {
     const defaultPwHash = crypto.createHash('sha256').update('password123').digest('hex');
     await client.query('UPDATE users SET password_hash = $1 WHERE password_hash IS NULL', [defaultPwHash]);
 
+    // Auto-create initial plan baseline for existing projects with tasks
+    const projectsWithTasksRes = await client.query(`
+      SELECT DISTINCT p.id, p.name FROM projects p 
+      JOIN tasks t ON t.project_id = p.id
+      WHERE NOT EXISTS (SELECT 1 FROM project_baselines WHERE project_id = p.id)
+    `);
+    for (const p of projectsWithTasksRes.rows) {
+      console.log(`Auto-generating initial baseline for existing project: ${p.name}`);
+      const baselineId = 'b_' + Math.random().toString(36).substr(2, 9);
+      const createdAt = new Date().toISOString();
+      
+      await client.query(
+        `INSERT INTO project_baselines (id, project_id, name, description, created_at, is_active)
+         VALUES ($1, $2, 'Initial Plan', 'Automatically captured initial workspace plan.', $3, TRUE)`,
+        [baselineId, p.id, createdAt]
+      );
+      
+      const tasksRes = await client.query(
+        `SELECT id, title, description, status, priority, estimated_hours, start_date, end_date, story_points, assignee_id, parent_id, sprint_id, release_id 
+         FROM tasks WHERE project_id = $1`,
+        [p.id]
+      );
+      for (const t of tasksRes.rows) {
+        const snapId = 'snap_' + Math.random().toString(36).substr(2, 9);
+        await client.query(
+          `INSERT INTO task_snapshots (id, baseline_id, task_id, title, description, status, priority, estimated_hours, start_date, end_date, story_points, assignee_id, parent_id, sprint_id, release_id)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+          [snapId, baselineId, t.id, t.title, t.description || '', t.status, t.priority, t.estimated_hours || 0, t.start_date, t.end_date, t.story_points || 0, t.assignee_id, t.parent_id, t.sprint_id, t.release_id]
+        );
+      }
+    }
+
     client.release();
   } catch (err) {
     console.error('Error initializing database:', err.message);
@@ -605,6 +680,330 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
+// ==========================================
+// Project Baselines & Versioning API
+// ==========================================
+
+const generateId = (prefix) => prefix + '_' + Math.random().toString(36).substr(2, 9);
+
+// 1. Get all baselines for a project
+app.get('/api/projects/:projectId/baselines', async (req, res) => {
+  const { projectId } = req.params;
+  try {
+    const result = await pool.query(
+      `SELECT id, project_id as "projectId", name, description, created_at as "createdAt", created_by as "createdBy", is_active as "isActive" 
+       FROM project_baselines 
+       WHERE project_id = $1 
+       ORDER BY created_at DESC`,
+      [projectId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching project baselines:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 2. Create a project plan baseline (Snapshot current tasks)
+app.post('/api/projects/:projectId/baselines', async (req, res) => {
+  const { projectId } = req.params;
+  const { name, description } = req.body;
+  const userId = req.headers['x-user-id'];
+  const baselineId = generateId('b');
+  const createdAt = new Date().toISOString();
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    await client.query(
+      `INSERT INTO project_baselines (id, project_id, name, description, created_at, created_by, is_active)
+       VALUES ($1, $2, $3, $4, $5, $6, FALSE)`,
+      [baselineId, projectId, name, description || '', createdAt, userId || null]
+    );
+
+    const tasksRes = await client.query(
+      `SELECT id, title, description, status, priority, estimated_hours, start_date, end_date, story_points, assignee_id, parent_id, sprint_id, release_id 
+       FROM tasks WHERE project_id = $1`,
+      [projectId]
+    );
+
+    for (const task of tasksRes.rows) {
+      const snapshotId = generateId('snap');
+      await client.query(
+        `INSERT INTO task_snapshots (id, baseline_id, task_id, title, description, status, priority, estimated_hours, start_date, end_date, story_points, assignee_id, parent_id, sprint_id, release_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+        [
+          snapshotId,
+          baselineId,
+          task.id,
+          task.title,
+          task.description || '',
+          task.status,
+          task.priority,
+          task.estimated_hours || 0,
+          task.start_date,
+          task.end_date,
+          task.story_points || 0,
+          task.assignee_id,
+          task.parent_id,
+          task.sprint_id,
+          task.release_id
+        ]
+      );
+    }
+
+    await client.query('COMMIT');
+    res.status(201).json({ success: true, baselineId });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Error creating plan baseline:', err);
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
+  }
+});
+
+// 3. Activate a project baseline (Workspace Swapping)
+app.put('/api/projects/:projectId/baselines/:baselineId/activate', async (req, res) => {
+  const { projectId, baselineId } = req.params;
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const baselineCheck = await client.query(
+      'SELECT id, name FROM project_baselines WHERE id = $1 AND project_id = $2',
+      [baselineId, projectId]
+    );
+    if (baselineCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Target baseline not found' });
+    }
+
+    const currentActiveRes = await client.query(
+      'SELECT id FROM project_baselines WHERE project_id = $1 AND is_active = TRUE',
+      [projectId]
+    );
+    
+    if (currentActiveRes.rows.length > 0) {
+      const activeId = currentActiveRes.rows[0].id;
+      await client.query('DELETE FROM task_snapshots WHERE baseline_id = $1', [activeId]);
+      
+      const liveTasksRes = await client.query(
+        `SELECT id, title, description, status, priority, estimated_hours, start_date, end_date, story_points, assignee_id, parent_id, sprint_id, release_id 
+         FROM tasks WHERE project_id = $1`,
+        [projectId]
+      );
+      
+      for (const t of liveTasksRes.rows) {
+        await client.query(
+          `INSERT INTO task_snapshots (id, baseline_id, task_id, title, description, status, priority, estimated_hours, start_date, end_date, story_points, assignee_id, parent_id, sprint_id, release_id)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+          [generateId('snap'), activeId, t.id, t.title, t.description || '', t.status, t.priority, t.estimated_hours || 0, t.start_date, t.end_date, t.story_points || 0, t.assignee_id, t.parent_id, t.sprint_id, t.release_id]
+        );
+      }
+    }
+
+    const snapshotsRes = await client.query(
+      `SELECT task_id, title, description, status, priority, estimated_hours, start_date, end_date, story_points, assignee_id, parent_id, sprint_id, release_id 
+       FROM task_snapshots WHERE baseline_id = $1`,
+      [baselineId]
+    );
+
+    if (snapshotsRes.rows.length > 0) {
+      const targetTaskIds = snapshotsRes.rows.map(s => s.task_id);
+      
+      await client.query(
+        'DELETE FROM tasks WHERE project_id = $1 AND id NOT IN (SELECT unnest($2::varchar[]))',
+        [projectId, targetTaskIds]
+      );
+
+      const createdAt = new Date().toISOString();
+      for (const snap of snapshotsRes.rows) {
+        await client.query(
+          `INSERT INTO tasks (id, project_id, assignee_id, title, description, status, priority, estimated_hours, created_at, start_date, end_date, story_points, parent_id, sprint_id, release_id, issue_type)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 'Task')
+           ON CONFLICT (id) DO UPDATE SET
+             assignee_id = EXCLUDED.assignee_id,
+             title = EXCLUDED.title,
+             description = EXCLUDED.description,
+             status = EXCLUDED.status,
+             priority = EXCLUDED.priority,
+             estimated_hours = EXCLUDED.estimated_hours,
+             start_date = EXCLUDED.start_date,
+             end_date = EXCLUDED.end_date,
+             story_points = EXCLUDED.story_points,
+             parent_id = EXCLUDED.parent_id,
+             sprint_id = EXCLUDED.sprint_id,
+             release_id = EXCLUDED.release_id`,
+          [
+            snap.task_id,
+            projectId,
+            snap.assignee_id,
+            snap.title,
+            snap.description || '',
+            snap.status,
+            snap.priority,
+            snap.estimated_hours || 0,
+            createdAt,
+            snap.start_date,
+            snap.end_date,
+            snap.story_points || 0,
+            snap.parent_id,
+            snap.sprint_id,
+            snap.release_id
+          ]
+        );
+      }
+    }
+
+    await client.query('UPDATE project_baselines SET is_active = FALSE WHERE project_id = $1', [projectId]);
+    await client.query('UPDATE project_baselines SET is_active = TRUE WHERE id = $1', [baselineId]);
+
+    await client.query('COMMIT');
+    res.json({ success: true, message: `Baseline "${baselineCheck.rows[0].name}" activated.` });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Error activating baseline:', err);
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
+  }
+});
+
+// 4. Fetch comparison between two baselines (or baseline vs live)
+app.get('/api/projects/:projectId/baselines/compare', async (req, res) => {
+  const { projectId } = req.params;
+  const { baseId, compareId } = req.query;
+
+  if (!baseId || !compareId) {
+    return res.status(400).json({ error: 'Missing baseId or compareId query parameters' });
+  }
+
+  try {
+    const baseMetaRes = await pool.query('SELECT name FROM project_baselines WHERE id = $1', [baseId]);
+    if (baseMetaRes.rows.length === 0) return res.status(404).json({ error: 'Base baseline not found' });
+    
+    let compareName = 'Current Live Plan';
+    if (compareId !== 'live') {
+      const compMetaRes = await pool.query('SELECT name FROM project_baselines WHERE id = $1', [compareId]);
+      if (compMetaRes.rows.length === 0) return res.status(404).json({ error: 'Comparison baseline not found' });
+      compareName = compMetaRes.rows[0].name;
+    }
+
+    const baseTasksRes = await pool.query(
+      `SELECT task_id, title, status, start_date, end_date, estimated_hours, story_points 
+       FROM task_snapshots WHERE baseline_id = $1`,
+      [baseId]
+    );
+
+    let compareTasks = [];
+    if (compareId === 'live') {
+      const liveTasksRes = await pool.query(
+        `SELECT id as task_id, title, status, start_date, end_date, estimated_hours, story_points 
+         FROM tasks WHERE project_id = $1`,
+        [projectId]
+      );
+      compareTasks = liveTasksRes.rows;
+    } else {
+      const compSnapRes = await pool.query(
+        `SELECT task_id, title, status, start_date, end_date, estimated_hours, story_points 
+         FROM task_snapshots WHERE baseline_id = $1`,
+        [compareId]
+      );
+      compareTasks = compSnapRes.rows;
+    }
+
+    const baseMap = new Map(baseTasksRes.rows.map(t => [t.task_id, t]));
+    const compareMap = new Map(compareTasks.map(t => [t.task_id, t]));
+    
+    const allTaskIds = new Set([...baseMap.keys(), ...compareMap.keys()]);
+    const taskComparisons = [];
+    
+    let totalBaseHours = 0;
+    let totalCompareHours = 0;
+    let totalBasePoints = 0;
+    let totalComparePoints = 0;
+    let totalDaysDrift = 0;
+
+    for (const taskId of allTaskIds) {
+      const baseTask = baseMap.get(taskId);
+      const compTask = compareMap.get(taskId);
+      const title = baseTask?.title || compTask?.title;
+      
+      const bHours = parseFloat(baseTask?.estimated_hours || 0);
+      const cHours = parseFloat(compTask?.estimated_hours || 0);
+      const bPoints = parseInt(baseTask?.story_points || 0);
+      const cPoints = parseInt(compTask?.story_points || 0);
+
+      totalBaseHours += bHours;
+      totalCompareHours += cHours;
+      totalBasePoints += bPoints;
+      totalComparePoints += cPoints;
+
+      let startDelayDays = 0;
+      let endDelayDays = 0;
+
+      if (baseTask?.start_date && compTask?.start_date) {
+        const diffMs = new Date(compTask.start_date).getTime() - new Date(baseTask.start_date).getTime();
+        startDelayDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+      }
+      if (baseTask?.end_date && compTask?.end_date) {
+        const diffMs = new Date(compTask.end_date).getTime() - new Date(baseTask.end_date).getTime();
+        endDelayDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+        totalDaysDrift += endDelayDays;
+      }
+
+      taskComparisons.push({
+        taskId,
+        title,
+        base: baseTask ? {
+          startDate: baseTask.start_date,
+          endDate: baseTask.end_date,
+          estimatedHours: bHours,
+          storyPoints: bPoints,
+          status: baseTask.status
+        } : null,
+        compare: compTask ? {
+          startDate: compTask.start_date,
+          endDate: compTask.end_date,
+          estimatedHours: cHours,
+          storyPoints: cPoints,
+          status: compTask.status
+        } : null,
+        variance: {
+          startDelayDays,
+          endDelayDays,
+          hoursDrift: cHours - bHours,
+          pointsDrift: cPoints - bPoints
+        }
+      });
+    }
+
+    const actualsRes = await pool.query(
+      `SELECT SUM(hours) as total FROM timesheets WHERE project_id = $1 AND status = 'Approved'`,
+      [projectId]
+    );
+    const actualHoursLogged = parseFloat(actualsRes.rows[0]?.total || 0);
+
+    res.json({
+      projectId,
+      baseBaseline: { id: baseId, name: baseMetaRes.rows[0].name },
+      compareBaseline: { id: compareId, name: compareName },
+      varianceSummary: {
+        daysDrift: totalDaysDrift,
+        storyPointsDrift: totalComparePoints - totalBasePoints,
+        estimatedHoursDrift: totalCompareHours - totalBaseHours,
+        actualHoursLogged
+      },
+      tasks: taskComparisons
+    });
+  } catch (err) {
+    console.error('Error comparing baselines:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Health check — visit /api/health in browser to see DB status
 app.get('/api/health', async (req, res) => {
   const status = { server: 'ok', db: 'unknown', dbHost: '', time: new Date().toISOString() };
@@ -747,12 +1146,14 @@ app.get('/api/initial-data', async (req, res) => {
 
 // Users REST API
 app.post('/api/users', async (req, res) => {
-  const { id, name, email, avatar, globalRole, department, gender, birthday, skills } = req.body;
+  const { id, name, email, avatar, globalRole, department, gender, birthday, skills, password } = req.body;
   try {
     // Check if user already exists to preserve their password_hash, or set default ('password123' hashed)
     const existingUser = await pool.query('SELECT password_hash FROM users WHERE id = $1 OR email = $2', [id, email]);
     let pwHash = null;
-    if (existingUser.rows.length > 0 && existingUser.rows[0].password_hash) {
+    if (password && password.trim() !== '') {
+      pwHash = crypto.createHash('sha256').update(password).digest('hex');
+    } else if (existingUser.rows.length > 0 && existingUser.rows[0].password_hash) {
       pwHash = existingUser.rows[0].password_hash;
     } else {
       pwHash = crypto.createHash('sha256').update('password123').digest('hex');
@@ -770,7 +1171,7 @@ app.post('/api/users', async (req, res) => {
          gender = EXCLUDED.gender,
          birthday = EXCLUDED.birthday,
          skills = EXCLUDED.skills,
-         password_hash = COALESCE(users.password_hash, EXCLUDED.password_hash)`,
+         password_hash = EXCLUDED.password_hash`,
       [id, name, email, avatar, globalRole, department, gender, birthday, skills, pwHash]
     );
     res.json({ success: true });
@@ -782,9 +1183,10 @@ app.post('/api/users', async (req, res) => {
           `UPDATE users SET
              id = $1, name = $2, avatar = $3,
              global_role = $4, department = $5,
-             gender = $6, birthday = $7, skills = $8
-           WHERE email = $9`,
-          [id, name, avatar, globalRole, department, gender, birthday, skills, email]
+             gender = $6, birthday = $7, skills = $8,
+             password_hash = $9
+           WHERE email = $10`,
+          [id, name, avatar, globalRole, department, gender, birthday, skills, pwHash, email]
         );
         res.json({ success: true, note: 'merged by email' });
       } catch (updateErr) {
