@@ -44,6 +44,14 @@ console.log(`Connecting to PostgreSQL database host: ${dbHost}`);
 const initDB = async () => {
   try {
     const client = await pool.connect();
+
+    // Create Migrations Table (for one-time migrations)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS migrations (
+        id VARCHAR(100) PRIMARY KEY,
+        applied_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
     
     // Create Users Table
     await client.query(`
@@ -466,9 +474,15 @@ const initDB = async () => {
       await client.query('UPDATE users SET global_role = $1 WHERE email = $2', ['Admin', adminEmail]);
     }
 
-    // Set password for all users except isarachootip to 'test123'
-    const nonAdminPwHash = crypto.createHash('sha256').update('test123').digest('hex');
-    await client.query('UPDATE users SET password_hash = $1 WHERE email != $2', [nonAdminPwHash, adminEmail]);
+    // ONE-TIME: Set password for all users except isarachootip to 'test123'
+    const migrationId = 'set_non_admin_pw_test123';
+    const migrationDone = await client.query('SELECT id FROM migrations WHERE id = $1', [migrationId]);
+    if (migrationDone.rows.length === 0) {
+      const nonAdminPwHash = crypto.createHash('sha256').update('test123').digest('hex');
+      await client.query('UPDATE users SET password_hash = $1 WHERE email != $2', [nonAdminPwHash, adminEmail]);
+      await client.query('INSERT INTO migrations (id) VALUES ($1)', [migrationId]);
+      console.log('✅ One-time migration: set all non-admin passwords to test123.');
+    }
 
     // Auto-create initial plan baseline for existing projects with tasks
     const projectsWithTasksRes = await client.query(`
