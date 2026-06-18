@@ -27,11 +27,11 @@ export const mockUsers: User[] = [
   },
   {
     id: 'u4',
-    name: 'Sarah Williams',
-    email: 'sarah.w@company.com',
+    name: 'isarachootip',
+    email: 'isarachootip@gmail.com',
     avatar: 'https://i.pravatar.cc/150?u=u4',
     globalRole: 'Admin',
-    department: 'HR'
+    department: 'Management'
   }
 ];
 

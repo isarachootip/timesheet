@@ -297,7 +297,7 @@ const initDB = async () => {
         { id: 'u1', name: 'John Doe', email: 'john.doe@company.com', avatar: 'https://i.pravatar.cc/150?u=u1', globalRole: 'Manager', department: 'Engineering' },
         { id: 'u2', name: 'Jane Smith', email: 'jane.smith@company.com', avatar: 'https://i.pravatar.cc/150?u=u2', globalRole: 'Employee', department: 'Engineering' },
         { id: 'u3', name: 'Mike Johnson', email: 'mike.j@company.com', avatar: 'https://i.pravatar.cc/150?u=u3', globalRole: 'Employee', department: 'Design' },
-        { id: 'u4', name: 'Sarah Williams', email: 'sarah.w@company.com', avatar: 'https://i.pravatar.cc/150?u=u4', globalRole: 'Admin', department: 'HR' }
+        { id: 'u4', name: 'isarachootip', email: 'isarachootip@gmail.com', avatar: 'https://i.pravatar.cc/150?u=u4', globalRole: 'Admin', department: 'Management' }
       ];
       const defaultPwHash = crypto.createHash('sha256').update('password123').digest('hex');
       for (const u of mockUsers) {
@@ -446,6 +446,25 @@ const initDB = async () => {
     // Ensure all existing users have a password hash
     const defaultPwHash = crypto.createHash('sha256').update('password123').digest('hex');
     await client.query('UPDATE users SET password_hash = $1 WHERE password_hash IS NULL', [defaultPwHash]);
+
+    // Ensure admin user (isarachootip) exists in production
+    const adminEmail = 'isarachootip@gmail.com';
+    const adminExists = await client.query('SELECT id FROM users WHERE email = $1', [adminEmail]);
+    if (adminExists.rows.length === 0) {
+      const adminPwHash = crypto.createHash('sha256').update('password123').digest('hex');
+      await client.query(
+        `INSERT INTO users (id, name, email, avatar, global_role, department, password_hash)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT (id) DO UPDATE SET
+           name = EXCLUDED.name, email = EXCLUDED.email, global_role = EXCLUDED.global_role,
+           department = EXCLUDED.department, password_hash = COALESCE(users.password_hash, EXCLUDED.password_hash)`,
+        ['u_admin', 'isarachootip', adminEmail, 'https://i.pravatar.cc/150?u=u_admin', 'Admin', 'Management', adminPwHash]
+      );
+      console.log('✅ Admin user (isarachootip) created.');
+    } else {
+      // Ensure existing user has Admin role
+      await client.query('UPDATE users SET global_role = $1 WHERE email = $2', ['Admin', adminEmail]);
+    }
 
     // Auto-create initial plan baseline for existing projects with tasks
     const projectsWithTasksRes = await client.query(`
