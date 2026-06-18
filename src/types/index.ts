@@ -98,6 +98,8 @@ export interface TimesheetEntry {
   taskId?: string;
   date: string;
   hours: number;
+  startTime?: string;
+  endTime?: string;
   description: string;
   status: TimesheetStatus;
   approvedBy?: string;

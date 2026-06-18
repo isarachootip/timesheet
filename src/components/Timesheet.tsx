@@ -20,6 +20,8 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
   const [projectId, setProjectId] = useState('');
   const [taskId, setTaskId] = useState('');
   const [hours, setHours] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
   const [description, setDescription] = useState('');
   const [entryStatus, setEntryStatus] = useState<TimesheetStatus>('Pending');
 
@@ -62,9 +64,32 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
     setProjectId(projects[0]?.id || '');
     setTaskId('');
     setHours('');
+    setStartTime('');
+    setEndTime('');
     setDescription('');
     setEntryStatus('Pending');
     setIsModalOpen(true);
+  };
+
+  // Auto-calculate hours from startTime and endTime
+  const calcHoursFromTime = (start: string, end: string) => {
+    if (!start || !end) return;
+    const [sh, sm] = start.split(':').map(Number);
+    const [eh, em] = end.split(':').map(Number);
+    let diff = (eh * 60 + em) - (sh * 60 + sm);
+    if (diff <= 0) diff += 24 * 60; // overnight
+    const h = Math.round(diff / 30) * 0.5; // round to nearest 0.5h
+    if (h > 0) setHours(String(h));
+  };
+
+  const handleStartTimeChange = (v: string) => {
+    setStartTime(v);
+    calcHoursFromTime(v, endTime);
+  };
+
+  const handleEndTimeChange = (v: string) => {
+    setEndTime(v);
+    calcHoursFromTime(startTime, v);
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -78,6 +103,8 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
       taskId: taskId || undefined,
       date: format(selectedDate, 'yyyy-MM-dd'),
       hours: Number(hours),
+      startTime: startTime || undefined,
+      endTime: endTime || undefined,
       description,
       status: entryStatus
     };
@@ -248,6 +275,12 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                         </span>
                       </div>
                       <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{entry.description}</p>
+                      {entry.startTime && entry.endTime && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.4rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          <Clock size={12} />
+                          <span>{entry.startTime} → {entry.endTime}</span>
+                        </div>
+                      )}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
@@ -377,7 +410,32 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Hours Spent *</label>
+                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Work Period</label>
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Start Time</span>
+                    <input 
+                      type="time" 
+                      value={startTime} 
+                      onChange={e => handleStartTimeChange(e.target.value)} 
+                      style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
+                    />
+                  </div>
+                  <span style={{ color: 'var(--text-muted)', marginTop: '1rem' }}>→</span>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>End Time</span>
+                    <input 
+                      type="time" 
+                      value={endTime} 
+                      onChange={e => handleEndTimeChange(e.target.value)} 
+                      style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Hours Spent * {startTime && endTime && <span style={{ fontSize: '0.75rem', color: 'var(--accent-primary)' }}>(auto-calculated)</span>}</label>
                 <input 
                   type="number" 
                   step="0.5"

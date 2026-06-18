@@ -179,11 +179,17 @@ const initDB = async () => {
         task_id VARCHAR(50),
         date VARCHAR(50) NOT NULL,
         hours NUMERIC NOT NULL,
+        start_time VARCHAR(10),
+        end_time VARCHAR(10),
         description TEXT,
         status VARCHAR(50) NOT NULL,
         approved_by VARCHAR(50),
         approved_at VARCHAR(50)
       );
+    `);
+    await client.query(`
+      ALTER TABLE timesheets ADD COLUMN IF NOT EXISTS start_time VARCHAR(10);
+      ALTER TABLE timesheets ADD COLUMN IF NOT EXISTS end_time VARCHAR(10);
     `);
 
     // Create Task Commits Table
@@ -1141,6 +1147,8 @@ app.get('/api/initial-data', async (req, res) => {
       taskId: ts.task_id,
       date: ts.date,
       hours: parseFloat(ts.hours || '0'),
+      startTime: ts.start_time || undefined,
+      endTime: ts.end_time || undefined,
       description: ts.description,
       status: ts.status,
       approvedBy: ts.approved_by,
@@ -1875,26 +1883,28 @@ app.post('/api/webhooks/gitlab', async (req, res) => {
 
 // Timesheets REST API
 app.post('/api/timesheets', async (req, res) => {
-  const { id, userId, projectId, taskId, date, hours, description, status, approvedBy, approvedAt } = req.body;
+  const { id, userId, projectId, taskId, date, hours, startTime, endTime, description, status, approvedBy, approvedAt } = req.body;
   try {
     // Check existing status before update to detect transitions
     const existingTimesheet = await pool.query('SELECT status FROM timesheets WHERE id = $1', [id]);
     const oldStatus = existingTimesheet.rows[0]?.status;
 
     await pool.query(
-      `INSERT INTO timesheets (id, user_id, project_id, task_id, date, hours, description, status, approved_by, approved_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      `INSERT INTO timesheets (id, user_id, project_id, task_id, date, hours, start_time, end_time, description, status, approved_by, approved_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        ON CONFLICT (id) DO UPDATE SET
          user_id = EXCLUDED.user_id,
          project_id = EXCLUDED.project_id,
          task_id = EXCLUDED.task_id,
          date = EXCLUDED.date,
          hours = EXCLUDED.hours,
+         start_time = EXCLUDED.start_time,
+         end_time = EXCLUDED.end_time,
          description = EXCLUDED.description,
          status = EXCLUDED.status,
          approved_by = EXCLUDED.approved_by,
          approved_at = EXCLUDED.approved_at`,
-      [id, userId, projectId, taskId, date, hours, description, status, approvedBy, approvedAt]
+      [id, userId, projectId, taskId, date, hours, startTime || null, endTime || null, description, status, approvedBy, approvedAt]
     );
 
     // Send email notifications asynchronously (non-blocking)
