@@ -253,7 +253,7 @@ const initDB = async () => {
           browse_project: ["Admin", "Manager", "PM", "Member"],
           create_task: ["Admin", "PM", "Member"],
           edit_task: ["Admin", "PM", "Assignee"],
-          assign_task: ["Admin", "PM"],
+          assign_task: ["Admin", "Manager", "PM"],
           delete_task: ["Admin", "PM"],
           transition_task: ["Admin", "PM", "Assignee", "Member"],
           manage_sprints: ["Admin", "PM"],
@@ -324,7 +324,7 @@ const initDB = async () => {
           browse_project: ["Admin", "Manager", "PM", "Member"],
           create_task: ["Admin", "PM", "Member"],
           edit_task: ["Admin", "PM", "Assignee"],
-          assign_task: ["Admin", "PM"],
+          assign_task: ["Admin", "Manager", "PM"],
           delete_task: ["Admin", "PM"],
           transition_task: ["Admin", "PM", "Assignee", "Member"],
           manage_sprints: ["Admin", "PM"],
@@ -482,6 +482,19 @@ const initDB = async () => {
       await client.query('UPDATE users SET password_hash = $1 WHERE email != $2', [nonAdminPwHash, adminEmail]);
       await client.query('INSERT INTO migrations (id) VALUES ($1)', [migrationId]);
       console.log('✅ One-time migration: set all non-admin passwords to test123.');
+    }
+
+    // ONE-TIME: Add Manager to assign_task in default permission scheme
+    const migAssign = 'add_manager_to_assign_task';
+    const migAssignDone = await client.query('SELECT id FROM migrations WHERE id = $1', [migAssign]);
+    if (migAssignDone.rows.length === 0) {
+      await client.query(`
+        UPDATE permission_schemes 
+        SET permissions = jsonb_set(permissions, '{assign_task}', '["Admin", "Manager", "PM"]'::jsonb)
+        WHERE permissions->'assign_task' IS NOT NULL
+      `);
+      await client.query('INSERT INTO migrations (id) VALUES ($1)', [migAssign]);
+      console.log('✅ One-time migration: added Manager to assign_task permission.');
     }
 
     // Auto-create initial plan baseline for existing projects with tasks

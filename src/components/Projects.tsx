@@ -146,7 +146,9 @@ export const Projects = ({
 
   const canCreateProject = () => {
     if (!currentUser) return false;
-    return currentUser.globalRole === 'Admin' || currentUser.globalRole === 'Manager';
+    if (currentUser.globalRole === 'Admin' || currentUser.globalRole === 'Manager') return true;
+    // Allow PM (project role) to create projects
+    return projects.some(p => p.members?.some(m => m.userId === currentUser.id && m.role === 'PM'));
   };
 
   // Workflow Editor State
