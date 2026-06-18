@@ -1,6 +1,56 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Project, Task, User, TaskPriority, TaskStatus, TaskTemplate, PermissionScheme } from '../types';
-import { Calendar, CheckCircle2, Clock, ArrowRight, Plus, Edit, Trash2, X, Save, Zap, ChevronDown, ChevronRight } from 'lucide-react';
+import { Calendar, CheckCircle2, Clock, ArrowRight, Plus, Edit, Trash2, X, Save, Zap, ChevronDown, ChevronRight, BarChart3 } from 'lucide-react';
+
+interface Baseline {
+  id: string;
+  projectId: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  createdBy?: string;
+  isActive: boolean;
+}
+
+interface TaskComparison {
+  taskId: string;
+  title: string;
+  base: {
+    startDate?: string;
+    endDate?: string;
+    estimatedHours: number;
+    storyPoints: number;
+    status: string;
+  } | null;
+  compare: {
+    startDate?: string;
+    endDate?: string;
+    estimatedHours: number;
+    storyPoints: number;
+    status: string;
+  } | null;
+  variance: {
+    startDelayDays: number;
+    endDelayDays: number;
+    hoursDrift: number;
+    pointsDrift: number;
+  };
+}
+
+interface VarianceSummary {
+  daysDrift: number;
+  storyPointsDrift: number;
+  estimatedHoursDrift: number;
+  actualHoursLogged: number;
+}
+
+interface CompareData {
+  projectId: string;
+  baseBaseline: { id: string; name: string };
+  compareBaseline: { id: string; name: string };
+  varianceSummary: VarianceSummary;
+  tasks: TaskComparison[];
+}
 
 interface ProjectPlanProps {
   projects: Project[];
@@ -10,15 +60,160 @@ interface ProjectPlanProps {
   taskTemplates: TaskTemplate[];
   permissionSchemes: PermissionScheme[];
   currentUser: User | null;
+  fetchInitialData?: () => void;
 }
 
-export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, permissionSchemes, currentUser }: ProjectPlanProps) => {
+export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, permissionSchemes, currentUser, fetchInitialData }: ProjectPlanProps) => {
   const [selectedProjectId, setSelectedProjectId] = useState<string>(projects[0]?.id || '');
   const [expandedMilestones, setExpandedMilestones] = useState<Set<string>>(new Set());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [defaultParentId, setDefaultParentId] = useState<string | undefined>(undefined);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Baseline states
+  const [baselines, setBaselines] = useState<Baseline[]>([]);
+  const [activeBaselineId, setActiveBaselineId] = useState<string>('');
+  const [compareBaselineId, setCompareBaselineId] = useState<string>('');
+  const [compareData, setCompareData] = useState<CompareData | null>(null);
+  const [loadingCompare, setLoadingCompare] = useState<boolean>(false);
+  const [isBaselineModalOpen, setIsBaselineModalOpen] = useState(false);
+  const [newBaselineName, setNewBaselineName] = useState('');
+  const [newBaselineDesc, setNewBaselineDesc] = useState('');
+  const [savingBaseline, setSavingBaseline] = useState(false);
+  const [activatingBaseline, setActivatingBaseline] = useState(false);
+
+  // Fetch baselines when project changes
+  useEffect(() => {
+    if (!selectedProjectId) return;
+    fetchBaselines();
+  }, [selectedProjectId]);
+
+  const fetchBaselines = async () => {
+    try {
+      const res = await fetch(`/api/projects/${selectedProjectId}/baselines`);
+      if (res.ok) {
+        const data = await res.json();
+        setBaselines(data);
+        const active = data.find((b: Baseline) => b.isActive);
+        if (active) {
+          setActiveBaselineId(active.id);
+          setCompareBaselineId('live');
+        } else if (data.length > 0) {
+          setActiveBaselineId(data[0].id);
+          setCompareBaselineId('live');
+        } else {
+          setActiveBaselineId('');
+          setCompareBaselineId('');
+          setCompareData(null);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch baselines:', err);
+    }
+  };
+
+  // Fetch comparison data when activeBaselineId or compareBaselineId changes
+  useEffect(() => {
+    if (!selectedProjectId || !activeBaselineId || !compareBaselineId) {
+      setCompareData(null);
+      return;
+    }
+    fetchCompareData();
+  }, [selectedProjectId, activeBaselineId, compareBaselineId]);
+
+  const fetchCompareData = async () => {
+    setLoadingCompare(true);
+    try {
+      const res = await fetch(
+        `/api/projects/${selectedProjectId}/baselines/compare?baseId=${activeBaselineId}&compareId=${compareBaselineId}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setCompareData(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch comparison data:', err);
+    } finally {
+      setLoadingCompare(false);
+    }
+  };
+
+  const handleActivateBaseline = async (baselineId: string) => {
+    if (!hasProjectPermission(selectedProjectId, 'edit_task')) {
+      alert('Permission denied: You do not have permission to change the active plan.');
+      return;
+    }
+    if (!confirm('Are you sure you want to activate this baseline? This will swap your active workspace tasks to this baseline version.')) {
+      return;
+    }
+
+    setActivatingBaseline(true);
+    try {
+      const res = await fetch(`/api/projects/${selectedProjectId}/baselines/${baselineId}/activate`, {
+        method: 'PUT',
+        headers: {
+          'X-User-Id': currentUser?.id || '',
+        },
+      });
+      if (res.ok) {
+        alert('Baseline activated successfully!');
+        await fetchBaselines();
+        if (fetchInitialData) {
+          fetchInitialData();
+        }
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to activate baseline');
+      }
+    } catch (err) {
+      console.error('Error activating baseline:', err);
+      alert('Failed to activate baseline due to network error.');
+    } finally {
+      setActivatingBaseline(false);
+    }
+  };
+
+  const handleSaveBaseline = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!hasProjectPermission(selectedProjectId, 'edit_task')) {
+      alert('Permission denied: You do not have permission to save baselines.');
+      return;
+    }
+    if (!newBaselineName.trim()) {
+      alert('Please enter a baseline name.');
+      return;
+    }
+
+    setSavingBaseline(true);
+    try {
+      const res = await fetch(`/api/projects/${selectedProjectId}/baselines`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Id': currentUser?.id || '',
+        },
+        body: JSON.stringify({
+          name: newBaselineName,
+          description: newBaselineDesc,
+        }),
+      });
+      if (res.ok) {
+        setIsBaselineModalOpen(false);
+        setNewBaselineName('');
+        setNewBaselineDesc('');
+        await fetchBaselines();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to save baseline');
+      }
+    } catch (err) {
+      console.error('Error saving baseline:', err);
+      alert('Failed to save baseline due to network error.');
+    } finally {
+      setSavingBaseline(false);
+    }
+  };
 
   // Task form states
   const [formTitle, setFormTitle] = useState('');
@@ -302,6 +497,66 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
               ))}
             </select>
           </div>
+
+          {/* Active Baseline Plan Selector */}
+          {baselines.length > 0 && (
+            <div className="glass-panel" style={{ padding: '0.4rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Active Plan:</span>
+              <select
+                value={activeBaselineId}
+                onChange={e => handleActivateBaseline(e.target.value)}
+                disabled={activatingBaseline}
+                style={{ background: 'transparent', border: 'none', color: '#10b981', outline: 'none', cursor: 'pointer', fontSize: '0.95rem', fontWeight: 600 }}
+              >
+                {baselines.map(b => (
+                  <option key={b.id} value={b.id} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
+                    {b.name} {b.isActive ? '(Active)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Compare Baseline Plan Selector */}
+          {baselines.length > 0 && (
+            <div className="glass-panel" style={{ padding: '0.4rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Compare vs:</span>
+              <select
+                value={compareBaselineId}
+                onChange={e => setCompareBaselineId(e.target.value)}
+                style={{ background: 'transparent', border: 'none', color: '#38bdf8', outline: 'none', cursor: 'pointer', fontSize: '0.95rem', fontWeight: 600 }}
+              >
+                <option value="live" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Current Live Plan</option>
+                {baselines.filter(b => b.id !== activeBaselineId).map(b => (
+                  <option key={b.id} value={b.id} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Save Version Button */}
+          <button 
+            onClick={() => setIsBaselineModalOpen(true)} 
+            className="hover-lift" 
+            style={{ 
+              background: 'rgba(255,255,255,0.06)', 
+              color: 'white', 
+              border: '1px solid rgba(255,255,255,0.12)', 
+              padding: '0.6rem 1.25rem', 
+              borderRadius: '8px', 
+              fontWeight: 600, 
+              cursor: 'pointer', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.5rem', 
+              fontSize: '0.9rem' 
+            }}
+          >
+            <Save size={16} /> Save Version
+          </button>
+
           {/* Add Main Task button */}
           <button onClick={openAddMainTask} className="hover-lift" style={{ background: 'var(--accent-primary)', color: 'white', border: 'none', padding: '0.6rem 1.25rem', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
             <Plus size={16} /> Add Milestone
@@ -311,6 +566,149 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
 
       {project ? (
         <>
+          {/* ─── Variance Dashboard Widgets ─── */}
+          {compareData && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <BarChart3 size={18} color="#38bdf8" />
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'white' }}>
+                  Comparison Variance: <span style={{ color: '#10b981' }}>{compareData.baseBaseline.name}</span> vs <span style={{ color: '#38bdf8' }}>{compareData.compareBaseline.name}</span>
+                </h3>
+              </div>
+
+              {loadingCompare ? (
+                <div className="glass-panel flex-center" style={{ padding: '2rem', color: 'var(--text-secondary)' }}>
+                  Loading comparison metrics...
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
+                  {/* Schedule Drift */}
+                  <div style={{ 
+                    background: compareData.varianceSummary.daysDrift > 0 
+                      ? 'linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(239,68,68,0.04) 100%)' 
+                      : compareData.varianceSummary.daysDrift < 0 
+                        ? 'linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(16,185,129,0.04) 100%)' 
+                        : 'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%)',
+                    border: `1px solid ${
+                      compareData.varianceSummary.daysDrift > 0 
+                        ? 'rgba(239,68,68,0.25)' 
+                        : compareData.varianceSummary.daysDrift < 0 
+                          ? 'rgba(16,185,129,0.25)' 
+                          : 'rgba(255,255,255,0.08)'
+                    }`,
+                    borderRadius: '14px', 
+                    padding: '1.25rem', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    justifyContent: 'center' 
+                  }}>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.2rem' }}>Schedule Slippage (Drift)</p>
+                    <h3 style={{ 
+                      fontSize: '1.5rem', 
+                      fontWeight: 800, 
+                      color: compareData.varianceSummary.daysDrift > 0 
+                        ? '#f87171' 
+                        : compareData.varianceSummary.daysDrift < 0 
+                          ? '#34d399' 
+                          : 'white' 
+                    }}>
+                      {compareData.varianceSummary.daysDrift > 0 ? `+${compareData.varianceSummary.daysDrift} Days` : compareData.varianceSummary.daysDrift < 0 ? `${compareData.varianceSummary.daysDrift} Days` : 'On Track (0d)'}
+                    </h3>
+                    <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                      {compareData.varianceSummary.daysDrift > 0 ? 'Slipped compared to baseline' : compareData.varianceSummary.daysDrift < 0 ? 'Ahead of baseline schedule' : 'No delay detected'}
+                    </p>
+                  </div>
+
+                  {/* Estimate Variance */}
+                  <div style={{ 
+                    background: compareData.varianceSummary.estimatedHoursDrift > 0 
+                      ? 'linear-gradient(135deg, rgba(245,158,11,0.15) 0%, rgba(245,158,11,0.04) 100%)' 
+                      : 'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%)',
+                    border: `1px solid ${
+                      compareData.varianceSummary.estimatedHoursDrift > 0 
+                        ? 'rgba(245,158,11,0.25)' 
+                        : 'rgba(255,255,255,0.08)'
+                    }`,
+                    borderRadius: '14px', 
+                    padding: '1.25rem', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    justifyContent: 'center' 
+                  }}>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.2rem' }}>Estimate Drift</p>
+                    <h3 style={{ 
+                      fontSize: '1.5rem', 
+                      fontWeight: 800, 
+                      color: compareData.varianceSummary.estimatedHoursDrift > 0 
+                        ? '#fbbf24' 
+                        : compareData.varianceSummary.estimatedHoursDrift < 0 
+                          ? '#34d399' 
+                          : 'white' 
+                    }}>
+                      {compareData.varianceSummary.estimatedHoursDrift > 0 ? `+${compareData.varianceSummary.estimatedHoursDrift}h` : compareData.varianceSummary.estimatedHoursDrift < 0 ? `${compareData.varianceSummary.estimatedHoursDrift}h` : '0h Variance'}
+                    </h3>
+                    <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                      {compareData.varianceSummary.estimatedHoursDrift > 0 ? 'Scope expansion (hours)' : compareData.varianceSummary.estimatedHoursDrift < 0 ? 'Fewer hours estimated' : 'Same estimated hours'}
+                    </p>
+                  </div>
+
+                  {/* Story Point Drift */}
+                  <div style={{ 
+                    background: compareData.varianceSummary.storyPointsDrift > 0 
+                      ? 'linear-gradient(135deg, rgba(167,139,250,0.15) 0%, rgba(167,139,250,0.04) 100%)' 
+                      : 'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%)',
+                    border: `1px solid ${
+                      compareData.varianceSummary.storyPointsDrift > 0 
+                        ? 'rgba(167,139,250,0.25)' 
+                        : 'rgba(255,255,255,0.08)'
+                    }`,
+                    borderRadius: '14px', 
+                    padding: '1.25rem', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    justifyContent: 'center' 
+                  }}>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.2rem' }}>Story Points Drift</p>
+                    <h3 style={{ 
+                      fontSize: '1.5rem', 
+                      fontWeight: 800, 
+                      color: compareData.varianceSummary.storyPointsDrift > 0 
+                        ? '#a78bfa' 
+                        : compareData.varianceSummary.storyPointsDrift < 0 
+                          ? '#34d399' 
+                          : 'white' 
+                    }}>
+                      {compareData.varianceSummary.storyPointsDrift > 0 ? `+${compareData.varianceSummary.storyPointsDrift} SP` : compareData.varianceSummary.storyPointsDrift < 0 ? `${compareData.varianceSummary.storyPointsDrift} SP` : '0 SP Drift'}
+                    </h3>
+                    <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                      {compareData.varianceSummary.storyPointsDrift > 0 ? 'Scope expansion (SP)' : compareData.varianceSummary.storyPointsDrift < 0 ? 'Fewer SP planned' : 'Same story points'}
+                    </p>
+                  </div>
+
+                  {/* Approved Timesheet Hours */}
+                  <div style={{ 
+                    background: 'linear-gradient(135deg, rgba(56,189,248,0.15) 0%, rgba(56,189,248,0.04) 100%)',
+                    border: '1px solid rgba(56,189,248,0.25)',
+                    borderRadius: '14px', 
+                    padding: '1.25rem', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    justifyContent: 'center' 
+                  }}>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.2rem' }}>Approved Actual Hours</p>
+                    <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#38bdf8' }}>
+                      {compareData.varianceSummary.actualHoursLogged}h
+                    </h3>
+                    <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                      Actual logged from timesheets
+                    </p>
+                  </div>
+                </div>
+              )}
+              <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.08)', margin: '1rem 0' }} />
+            </div>
+          )}
+
           {/* ─── Summary Cards ─── */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
             {/* Duration */}
@@ -393,33 +791,142 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
                   </div>
                 </div>
                 {/* Gantt rows */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: compareData ? '1.25rem' : '0.85rem' }}>
                   {projectMilestones.map(m => {
-                    const taskStart = m.startDate ? new Date(m.startDate).getTime() : projStart;
-                    const taskEnd = m.endDate ? new Date(m.endDate).getTime() : projEnd;
-                    const leftOffset = projDuration > 0 ? Math.max(0, Math.min(100, ((taskStart - projStart) / projDuration) * 100)) : 0;
-                    const widthVal = projDuration > 0 ? Math.max(2, Math.min(100 - leftOffset, ((taskEnd - taskStart) / projDuration) * 100)) : 100;
-                    const progress = calculateMilestoneProgress(m.id, m.status);
                     const subtasks = getSubtasks(m.id);
+                    const progress = calculateMilestoneProgress(m.id, m.status);
 
-                    return (
-                      <div key={m.id} style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)', paddingBottom: '0.65rem' }}>
-                        <div style={{ width: '240px', display: 'flex', flexDirection: 'column' }}>
-                          <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'white', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }} title={m.title}>{m.title}</span>
-                          <span style={{ fontSize: '0.72rem', color: '#6b7280', marginTop: '0.1rem' }}>{subtasks.length} subtasks · {m.estimatedHours}h</span>
-                        </div>
-                        <div style={{ flex: 1, position: 'relative', height: '34px', marginLeft: '1rem' }}>
-                          <div style={{
-                            position: 'absolute', left: `${leftOffset}%`, width: `${widthVal}%`, height: '28px', top: '3px',
-                            background: 'rgba(99,102,241,0.15)', border: `2px solid ${getPriorityColor(m.priority)}`,
-                            borderRadius: '6px', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 8px',
-                          }} title={`${m.title}: ${m.startDate || 'TBD'} → ${m.endDate || 'TBD'}`}>
-                            <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${progress}%`, background: getPriorityColor(m.priority), opacity: 0.2 }} />
-                            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'white', zIndex: 1 }}>{progress}%</span>
+                    const getGanttGeometry = (startDateStr?: string, endDateStr?: string) => {
+                      const start = startDateStr ? new Date(startDateStr).getTime() : projStart;
+                      const end = endDateStr ? new Date(endDateStr).getTime() : projEnd;
+                      const left = projDuration > 0 ? Math.max(0, Math.min(100, ((start - projStart) / projDuration) * 100)) : 0;
+                      const width = projDuration > 0 ? Math.max(2, Math.min(100 - left, ((end - start) / projDuration) * 100)) : 100;
+                      return { left, width, start, end };
+                    };
+
+                    if (compareData) {
+                      const compTask = compareData.tasks.find(t => t.taskId === m.id);
+                      
+                      const compGeom = compTask?.compare 
+                        ? getGanttGeometry(compTask.compare.startDate, compTask.compare.endDate)
+                        : getGanttGeometry(m.startDate, m.endDate);
+                        
+                      const baseGeom = compTask?.base 
+                        ? getGanttGeometry(compTask.base.startDate, compTask.base.endDate)
+                        : getGanttGeometry(m.startDate, m.endDate);
+
+                      const compEndPos = compGeom.left + compGeom.width;
+                      const baseEndPos = baseGeom.left + baseGeom.width;
+                      
+                      const hasDrift = compTask && compTask.variance.endDelayDays !== 0;
+                      const delayDays = compTask ? compTask.variance.endDelayDays : 0;
+                      
+                      return (
+                        <div key={m.id} style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)', paddingBottom: '0.75rem' }}>
+                          {/* Label */}
+                          <div style={{ width: '240px', display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'white', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }} title={m.title}>{m.title}</span>
+                            <span style={{ fontSize: '0.72rem', color: '#6b7280', marginTop: '0.1rem' }}>
+                              {subtasks.length} subtasks · Est: {compTask?.compare?.estimatedHours ?? m.estimatedHours}h vs Base: {compTask?.base?.estimatedHours ?? 0}h
+                            </span>
+                          </div>
+                          
+                          {/* Visual Timelines */}
+                          <div style={{ flex: 1, position: 'relative', height: '56px', marginLeft: '1rem' }}>
+                            {/* Comparison Target Bar (Top) */}
+                            {compTask?.compare ? (
+                              <div style={{
+                                position: 'absolute', left: `${compGeom.left}%`, width: `${compGeom.width}%`, height: '20px', top: '2px',
+                                background: 'rgba(56, 189, 248, 0.15)', border: '2px solid #38bdf8',
+                                borderRadius: '5px', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 6px',
+                                zIndex: 2
+                              }} title={`Comparison: ${compGeom.start ? new Date(compGeom.start).toLocaleDateString() : 'TBD'} → ${compGeom.end ? new Date(compGeom.end).toLocaleDateString() : 'TBD'}`}>
+                                <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${progress}%`, background: '#38bdf8', opacity: 0.2 }} />
+                                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#38bdf8', zIndex: 1 }}>{progress}% (Comp)</span>
+                              </div>
+                            ) : (
+                              <div style={{ position: 'absolute', left: 0, top: '2px', height: '20px', fontSize: '0.7rem', color: '#4b5563', fontStyle: 'italic' }}>
+                                Not in comparison plan
+                              </div>
+                            )}
+
+                            {/* Baseline Target Bar (Bottom) */}
+                            {compTask?.base ? (
+                              <div style={{
+                                position: 'absolute', left: `${baseGeom.left}%`, width: `${baseGeom.width}%`, height: '20px', bottom: '2px',
+                                background: 'rgba(255,255,255,0.03)', border: '2px dashed rgba(255,255,255,0.3)',
+                                borderRadius: '5px', display: 'flex', alignItems: 'center', padding: '0 6px',
+                                zIndex: 1
+                              }} title={`Baseline: ${baseGeom.start ? new Date(baseGeom.start).toLocaleDateString() : 'TBD'} → ${baseGeom.end ? new Date(baseGeom.end).toLocaleDateString() : 'TBD'}`}>
+                                <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>Base Plan</span>
+                              </div>
+                            ) : (
+                              <div style={{ position: 'absolute', left: 0, bottom: '2px', height: '20px', fontSize: '0.7rem', color: '#4b5563', fontStyle: 'italic' }}>
+                                Not in baseline plan
+                              </div>
+                            )}
+
+                            {/* Delay Connector Line & Label */}
+                            {hasDrift && (
+                              <>
+                                {/* Horizontal dotted connector */}
+                                <div style={{
+                                  position: 'absolute',
+                                  left: `${Math.min(compEndPos, baseEndPos)}%`,
+                                  width: `${Math.max(2, Math.abs(compEndPos - baseEndPos))}%`,
+                                  height: '0px',
+                                  borderTop: `2px dotted ${delayDays > 0 ? '#ef4444' : '#10b981'}`,
+                                  top: '26px',
+                                  zIndex: 0
+                                }} />
+                                {/* Delay badge */}
+                                <span style={{
+                                  position: 'absolute',
+                                  left: `${Math.max(compEndPos, baseEndPos) + 1}%`,
+                                  top: '18px',
+                                  fontSize: '0.68rem',
+                                  fontWeight: 800,
+                                  padding: '0.1rem 0.35rem',
+                                  borderRadius: '4px',
+                                  background: delayDays > 0 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)',
+                                  color: delayDays > 0 ? '#f87171' : '#34d399',
+                                  border: `1px solid ${delayDays > 0 ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
+                                  whiteSpace: 'nowrap',
+                                  zIndex: 3
+                                }}>
+                                  {delayDays > 0 ? `+${delayDays}d Delay` : `${delayDays}d Ahead`}
+                                </span>
+                              </>
+                            )}
                           </div>
                         </div>
-                      </div>
-                    );
+                      );
+                    } else {
+                      // Normal single bar Gantt row (as originally implemented)
+                      const taskStart = m.startDate ? new Date(m.startDate).getTime() : projStart;
+                      const taskEnd = m.endDate ? new Date(m.endDate).getTime() : projEnd;
+                      const leftOffset = projDuration > 0 ? Math.max(0, Math.min(100, ((taskStart - projStart) / projDuration) * 100)) : 0;
+                      const widthVal = projDuration > 0 ? Math.max(2, Math.min(100 - leftOffset, ((taskEnd - taskStart) / projDuration) * 100)) : 100;
+                      
+                      return (
+                        <div key={m.id} style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)', paddingBottom: '0.65rem' }}>
+                          <div style={{ width: '240px', display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'white', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }} title={m.title}>{m.title}</span>
+                            <span style={{ fontSize: '0.72rem', color: '#6b7280', marginTop: '0.1rem' }}>{subtasks.length} subtasks · {m.estimatedHours}h</span>
+                          </div>
+                          <div style={{ flex: 1, position: 'relative', height: '34px', marginLeft: '1rem' }}>
+                            <div style={{
+                              position: 'absolute', left: `${leftOffset}%`, width: `${widthVal}%`, height: '28px', top: '3px',
+                              background: 'rgba(99,102,241,0.15)', border: `2px solid ${getPriorityColor(m.priority)}`,
+                              borderRadius: '6px', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 8px',
+                            }} title={`${m.title}: ${m.startDate || 'TBD'} → ${m.endDate || 'TBD'}`}>
+                              <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${progress}%`, background: getPriorityColor(m.priority), opacity: 0.2 }} />
+                              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'white', zIndex: 1 }}>{progress}%</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
                   })}
                 </div>
               </div>
@@ -645,6 +1152,79 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
               <button type="submit" className="hover-lift" style={{ background: 'linear-gradient(135deg, var(--accent-primary), #7c3aed)', color: 'white', border: 'none', padding: '0.85rem', borderRadius: '10px', fontWeight: 700, cursor: 'pointer', marginTop: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '1rem' }}>
                 <Save size={18} /> {editingTask ? 'Update Task' : 'Save Task'}
               </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Save Baseline Modal ─── */}
+      {isBaselineModalOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}>
+          <div style={{ background: '#1a1f2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '2rem', width: '480px', maxWidth: '95vw' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h2 className="text-gradient" style={{ fontSize: '1.5rem', fontWeight: 700 }}>Save Baseline Version</h2>
+              <button onClick={() => setIsBaselineModalOpen(false)} style={{ background: 'transparent', border: 'none', color: '#6b7280', cursor: 'pointer' }}><X size={22} /></button>
+            </div>
+
+            <form onSubmit={handleSaveBaseline} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div>
+                <label style={labelStyle}>Version Name *</label>
+                <input 
+                  type="text" 
+                  value={newBaselineName} 
+                  onChange={e => setNewBaselineName(e.target.value)} 
+                  style={inputStyle} 
+                  placeholder="e.g. preplan, v1_start, plan_final..." 
+                  required 
+                />
+              </div>
+
+              <div>
+                <label style={labelStyle}>Description</label>
+                <textarea 
+                  value={newBaselineDesc} 
+                  onChange={e => setNewBaselineDesc(e.target.value)} 
+                  style={{ ...inputStyle, minHeight: '80px', resize: 'vertical' }} 
+                  placeholder="Describe the context of this plan version..." 
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                <button 
+                  type="button" 
+                  onClick={() => setIsBaselineModalOpen(false)} 
+                  style={{ 
+                    flex: 1, 
+                    background: 'rgba(255,255,255,0.06)', 
+                    color: 'white', 
+                    border: '1px solid rgba(255,255,255,0.1)', 
+                    padding: '0.75rem', 
+                    borderRadius: '8px', 
+                    fontWeight: 600, 
+                    cursor: 'pointer' 
+                  }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={savingBaseline}
+                  className="hover-lift" 
+                  style={{ 
+                    flex: 1, 
+                    background: 'linear-gradient(135deg, var(--accent-primary), #7c3aed)', 
+                    color: 'white', 
+                    border: 'none', 
+                    padding: '0.75rem', 
+                    borderRadius: '8px', 
+                    fontWeight: 700, 
+                    cursor: 'pointer',
+                    opacity: savingBaseline ? 0.7 : 1
+                  }}
+                >
+                  {savingBaseline ? 'Saving...' : 'Save Baseline'}
+                </button>
+              </div>
             </form>
           </div>
         </div>

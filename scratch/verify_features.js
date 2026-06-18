@@ -28,7 +28,7 @@ async function runVerification() {
       SELECT table_name 
       FROM information_schema.tables 
       WHERE table_schema = 'public' 
-        AND table_name IN ('permission_schemes', 'project_workflows', 'projects');
+        AND table_name IN ('permission_schemes', 'project_workflows', 'projects', 'project_baselines', 'task_snapshots');
     `);
     const tables = tablesRes.rows.map(r => r.table_name);
     console.log('Found tables:', tables);
@@ -43,6 +43,18 @@ async function runVerification() {
       console.log('✓ "project_workflows" table exists.');
     } else {
       console.error('✗ "project_workflows" table is MISSING.');
+    }
+
+    if (tables.includes('project_baselines')) {
+      console.log('✓ "project_baselines" table exists.');
+    } else {
+      console.error('✗ "project_baselines" table is MISSING.');
+    }
+
+    if (tables.includes('task_snapshots')) {
+      console.log('✓ "task_snapshots" table exists.');
+    } else {
+      console.error('✗ "task_snapshots" table is MISSING.');
     }
 
     // 2. Check permission_scheme_id column in projects

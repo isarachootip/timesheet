@@ -118,3 +118,41 @@ CREATE TABLE IF NOT EXISTS task_commits (
     timestamp VARCHAR(50)
 );
 
+-- 9. Project Baselines (Plan Versions)
+CREATE TABLE IF NOT EXISTS project_baselines (
+    id VARCHAR(50) PRIMARY KEY,
+    project_id VARCHAR(50) NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    name VARCHAR(150) NOT NULL,
+    description TEXT,
+    created_at VARCHAR(50) NOT NULL,
+    created_by VARCHAR(50) REFERENCES users(id) ON DELETE SET NULL,
+    is_active BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_active_baseline_per_project 
+ON project_baselines (project_id) 
+WHERE is_active = TRUE;
+
+-- 10. Task Snapshots
+CREATE TABLE IF NOT EXISTS task_snapshots (
+    id VARCHAR(50) PRIMARY KEY,
+    baseline_id VARCHAR(50) NOT NULL REFERENCES project_baselines(id) ON DELETE CASCADE,
+    task_id VARCHAR(50) NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    description TEXT,
+    status VARCHAR(50) NOT NULL,
+    priority VARCHAR(50) NOT NULL,
+    estimated_hours NUMERIC NOT NULL DEFAULT 0,
+    start_date VARCHAR(50),
+    end_date VARCHAR(50),
+    story_points INTEGER DEFAULT 0,
+    assignee_id VARCHAR(50) REFERENCES users(id) ON DELETE SET NULL,
+    parent_id VARCHAR(50),
+    sprint_id VARCHAR(50),
+    release_id VARCHAR(50)
+);
+
+CREATE INDEX IF NOT EXISTS idx_task_snapshots_baseline ON task_snapshots(baseline_id);
+CREATE INDEX IF NOT EXISTS idx_task_snapshots_task ON task_snapshots(task_id);
+
+

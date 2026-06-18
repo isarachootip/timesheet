@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Clock, Plus, CheckCircle2, Calendar as CalendarIcon, X, Trash2 } from 'lucide-react';
-import { format, subDays, isSameDay } from 'date-fns';
+import { Clock, Plus, CheckCircle2, Calendar as CalendarIcon, X, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { format, isSameDay, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, isSameMonth } from 'date-fns';
 import type { TimesheetEntry, Project, Task, User, TimesheetStatus } from '../types';
 
 interface TimesheetProps {
@@ -12,7 +12,8 @@ interface TimesheetProps {
 }
 
 export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentUser }: TimesheetProps) => {
-  const [selectedDate, setSelectedDate] = useState(new Date('2026-06-09'));
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Form states
@@ -25,23 +26,34 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
   // Filter project-specific tasks
   const projectTasks = tasks.filter(t => t.projectId === projectId);
 
-  // Generate week view around the selected date
-  const weekDays = Array.from({ length: 7 }).map((_, i) => subDays(selectedDate, 3 - i));
+  // Generate calendar grid for the current month
+  const monthStart = startOfMonth(currentMonth);
+  const monthEnd = endOfMonth(currentMonth);
+  const calendarStart = startOfWeek(monthStart, { weekStartsOn: 0 });
+  const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
+  const calendarDays: Date[] = [];
+  let day = calendarStart;
+  while (day <= calendarEnd) {
+    calendarDays.push(day);
+    day = addDays(day, 1);
+  }
 
   // Filter entries
   const userEntries = timesheets.filter(ts => ts.userId === currentUser.id);
   const todaysEntries = userEntries.filter(ts => isSameDay(new Date(ts.date), selectedDate));
   const totalHoursToday = todaysEntries.reduce((sum, entry) => sum + entry.hours, 0);
 
-  // Weekly stats
-  const startOfWeek = subDays(selectedDate, 3); // simplistic weekly range mapping
-  const thisWeeksEntries = userEntries.filter(ts => {
+  // Monthly stats (instead of weekly)
+  const thisMonthEntries = userEntries.filter(ts => {
     const entryDate = new Date(ts.date);
-    return entryDate >= startOfWeek && entryDate <= selectedDate;
+    return isSameMonth(entryDate, currentMonth);
   });
-  const weeklyHours = thisWeeksEntries.reduce((sum, entry) => sum + entry.hours, 0);
-  const approvedHours = thisWeeksEntries.filter(ts => ts.status === 'Approved').reduce((sum, entry) => sum + entry.hours, 0);
-  const pendingHours = thisWeeksEntries.filter(ts => ts.status === 'Pending').reduce((sum, entry) => sum + entry.hours, 0);
+  const monthlyHours = thisMonthEntries.reduce((sum, entry) => sum + entry.hours, 0);
+  const approvedHours = thisMonthEntries.filter(ts => ts.status === 'Approved').reduce((sum, entry) => sum + entry.hours, 0);
+  const pendingHours = thisMonthEntries.filter(ts => ts.status === 'Pending').reduce((sum, entry) => sum + entry.hours, 0);
+
+  // Check if a date has entries (for dot indicator)
+  const dateHasEntries = (d: Date) => userEntries.some(ts => isSameDay(new Date(ts.date), d));
 
   const getProjectName = (id: string) => projects.find(p => p.id === id)?.name || 'Unknown Project';
   const getTaskName = (id?: string) => id ? (tasks.find(t => t.id === id)?.title || 'Unknown Task') : 'General';
@@ -80,6 +92,15 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
     }
   };
 
+  const handleDateClick = (d: Date) => {
+    setSelectedDate(d);
+    if (!isSameMonth(d, currentMonth)) {
+      setCurrentMonth(d);
+    }
+  };
+
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       <div className="flex-between">
@@ -107,33 +128,91 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
         
         {/* Left Column: Entries */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {/* Week Navigation */}
-          <div className="glass-panel" style={{ padding: '1rem', display: 'flex', justifyContent: 'space-between' }}>
-            {weekDays.map((date, i) => {
-              const isSelected = isSameDay(date, selectedDate);
-              return (
-                <div 
-                  key={i} 
-                  onClick={() => setSelectedDate(date)}
-                  style={{ 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    alignItems: 'center', 
-                    gap: '0.25rem',
-                    padding: '0.75rem 1rem',
-                    borderRadius: 'var(--radius-md)',
-                    background: isSelected ? 'var(--accent-primary)' : 'transparent',
-                    color: isSelected ? 'white' : 'var(--text-secondary)',
-                    cursor: 'pointer',
-                    transition: 'all var(--transition-fast)'
-                  }}
-                  className={!isSelected ? "hover-lift" : ""}
-                >
-                  <span style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>{format(date, 'EEE')}</span>
-                  <span style={{ fontSize: '1.25rem', fontWeight: 700 }}>{format(date, 'dd')}</span>
-                </div>
-              );
-            })}
+          {/* Mini Monthly Calendar */}
+          <div className="glass-panel" style={{ padding: '1rem 1.25rem' }}>
+            {/* Month Navigation */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <button onClick={() => setCurrentMonth(prev => subMonths(prev, 1))} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0.25rem' }} className="hover-lift">
+                <ChevronLeft size={18} />
+              </button>
+              <span style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>{format(currentMonth, 'MMMM yyyy')}</span>
+              <button onClick={() => setCurrentMonth(prev => addMonths(prev, 1))} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0.25rem' }} className="hover-lift">
+                <ChevronRight size={18} />
+              </button>
+            </div>
+
+            {/* Day Names Header */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', textAlign: 'center', marginBottom: '0.25rem' }}>
+              {dayNames.map(dn => (
+                <div key={dn} style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', padding: '0.25rem 0' }}>{dn}</div>
+              ))}
+            </div>
+
+            {/* Calendar Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
+              {calendarDays.map((d, i) => {
+                const isSelected = isSameDay(d, selectedDate);
+                const isToday = isSameDay(d, new Date());
+                const isCurrentMonth = isSameMonth(d, currentMonth);
+                const hasEntries = dateHasEntries(d);
+
+                return (
+                  <div
+                    key={i}
+                    onClick={() => handleDateClick(d)}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '0.3rem 0',
+                      borderRadius: 'var(--radius-sm)',
+                      background: isSelected ? 'var(--accent-primary)' : isToday ? 'rgba(0, 206, 209, 0.15)' : 'transparent',
+                      color: isSelected ? 'white' : !isCurrentMonth ? 'var(--text-muted)' : 'var(--text-primary)',
+                      cursor: 'pointer',
+                      transition: 'all var(--transition-fast)',
+                      fontSize: '0.8rem',
+                      fontWeight: isSelected || isToday ? 700 : 400,
+                      position: 'relative',
+                      opacity: isCurrentMonth ? 1 : 0.4,
+                      border: isToday && !isSelected ? '1px solid var(--accent-primary)' : '1px solid transparent',
+                      minHeight: '32px'
+                    }}
+                  >
+                    {format(d, 'd')}
+                    {hasEntries && (
+                      <div style={{
+                        width: '4px',
+                        height: '4px',
+                        borderRadius: '50%',
+                        background: isSelected ? 'white' : 'var(--accent-secondary)',
+                        marginTop: '1px'
+                      }} />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Today Button */}
+            <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
+              <button 
+                onClick={() => { setSelectedDate(new Date()); setCurrentMonth(new Date()); }} 
+                style={{ 
+                  background: 'transparent', 
+                  border: '1px solid var(--border-color)', 
+                  color: 'var(--accent-primary)', 
+                  padding: '0.3rem 1rem', 
+                  borderRadius: 'var(--radius-md)', 
+                  fontSize: '0.75rem', 
+                  fontWeight: 600, 
+                  cursor: 'pointer' 
+                }} 
+                className="hover-lift"
+              >
+                Today
+              </button>
+            </div>
           </div>
 
           {/* Daily Entries */}
@@ -203,19 +282,19 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <div className="glass-panel" style={{ padding: '1.5rem' }}>
             <h3 style={{ fontSize: '1.125rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <CalendarIcon size={18} /> Weekly Summary
+              <CalendarIcon size={18} /> Monthly Summary
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <div className="flex-between">
                 <span style={{ color: 'var(--text-secondary)' }}>Total Logged</span>
-                <span style={{ fontWeight: 600 }}>{weeklyHours}h</span>
+                <span style={{ fontWeight: 600 }}>{monthlyHours}h</span>
               </div>
               <div className="flex-between">
                 <span style={{ color: 'var(--text-secondary)' }}>Target</span>
-                <span style={{ fontWeight: 600 }}>40h</span>
+                <span style={{ fontWeight: 600 }}>160h</span>
               </div>
               <div style={{ width: '100%', height: '6px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-full)', marginTop: '0.5rem', overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${Math.min(100, (weeklyHours / 40) * 100)}%`, background: 'var(--accent-secondary)' }} />
+                <div style={{ height: '100%', width: `${Math.min(100, (monthlyHours / 160) * 100)}%`, background: 'var(--accent-secondary)' }} />
               </div>
             </div>
           </div>
@@ -229,7 +308,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                 </div>
                 <div>
                   <div style={{ fontWeight: 500, fontSize: '0.875rem' }}>{approvedHours}h Approved</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>This week</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>This month</div>
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
