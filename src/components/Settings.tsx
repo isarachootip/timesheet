@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import type { TaskTemplate, TaskPriority, PermissionScheme, User } from '../types';
-import { Plus, Trash2, Edit, X, Save, Shield, ShieldCheck } from 'lucide-react';
+import type { TaskTemplate, TaskPriority, PermissionScheme, User, CostRate } from '../types';
+import { Plus, Trash2, Edit, X, Save, Shield, ShieldCheck, Coins } from 'lucide-react';
 
 interface SettingsProps {
   taskTemplates: TaskTemplate[];
@@ -8,6 +8,8 @@ interface SettingsProps {
   permissionSchemes: PermissionScheme[];
   setPermissionSchemes: React.Dispatch<React.SetStateAction<PermissionScheme[]>>;
   currentUser: User | null;
+  costRates: CostRate[];
+  setCostRates: React.Dispatch<React.SetStateAction<CostRate[]>>;
 }
 
 export const Settings = ({ 
@@ -15,11 +17,13 @@ export const Settings = ({
   setTaskTemplates, 
   permissionSchemes, 
   setPermissionSchemes, 
-  currentUser 
+  currentUser,
+  costRates,
+  setCostRates
 }: SettingsProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<TaskTemplate | null>(null);
-  const [activeTab, setActiveTab] = useState<'templates' | 'integrations' | 'permission_schemes'>('templates');
+  const [activeTab, setActiveTab] = useState<'templates' | 'integrations' | 'permission_schemes' | 'cost_rates'>('templates');
 
   // Form states
   const [title, setTitle] = useState('');
@@ -165,6 +169,85 @@ export const Settings = ({
     });
   };
 
+  // Cost Rates States & Handlers
+  const [isRateModalOpen, setIsRateModalOpen] = useState(false);
+  const [editingRate, setEditingRate] = useState<CostRate | null>(null);
+  const [rateRoleName, setRateRoleName] = useState('');
+  const [ratePerDay, setRatePerDay] = useState('');
+  const [ratePerHour, setRatePerHour] = useState('');
+  const [rateCurrency, setRateCurrency] = useState('THB');
+
+  const openAddRateModal = () => {
+    setEditingRate(null);
+    setRateRoleName('');
+    setRatePerDay('');
+    setRatePerHour('');
+    setRateCurrency('THB');
+    setIsRateModalOpen(true);
+  };
+
+  const openEditRateModal = (rate: CostRate) => {
+    setEditingRate(rate);
+    setRateRoleName(rate.roleName);
+    setRatePerDay(String(rate.ratePerDay));
+    setRatePerHour(String(rate.ratePerHour));
+    setRateCurrency(rate.currency);
+    setIsRateModalOpen(true);
+  };
+
+  const handleSaveRate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rateRoleName) return alert('Role name is required');
+    const day = parseFloat(ratePerDay) || 0;
+    const hour = parseFloat(ratePerHour) || 0;
+
+    const rateId = editingRate ? editingRate.id : 'rate_' + Date.now();
+    const data: CostRate = {
+      id: rateId,
+      roleName: rateRoleName,
+      ratePerDay: day,
+      ratePerHour: hour,
+      currency: rateCurrency
+    };
+
+    setCostRates(prev => {
+      const exists = prev.some(s => s.id === rateId);
+      if (exists) {
+        return prev.map(s => s.id === rateId ? data : s);
+      } else {
+        return [...prev, data];
+      }
+    });
+
+    setIsRateModalOpen(false);
+  };
+
+  const handleDeleteRate = (id: string) => {
+    if (confirm('Are you sure you want to delete this cost rate? Project cost calculations for members using this role may fallback to default rates.')) {
+      setCostRates(prev => prev.filter(s => s.id !== id));
+    }
+  };
+
+  const handleDayChange = (val: string) => {
+    setRatePerDay(val);
+    const num = parseFloat(val);
+    if (!isNaN(num)) {
+      setRatePerHour((num / 8).toFixed(2));
+    } else {
+      setRatePerHour('');
+    }
+  };
+
+  const handleHourChange = (val: string) => {
+    setRatePerHour(val);
+    const num = parseFloat(val);
+    if (!isNaN(num)) {
+      setRatePerDay((num * 8).toFixed(2));
+    } else {
+      setRatePerDay('');
+    }
+  };
+
   const isGlobalAdmin = currentUser?.globalRole === 'Admin';
 
   const getPriorityBadgeColor = (prio: TaskPriority) => {
@@ -216,6 +299,22 @@ export const Settings = ({
             <Shield size={18} /> New Permission Scheme
           </button>
         )}
+        {activeTab === 'cost_rates' && isGlobalAdmin && (
+          <button onClick={openAddRateModal} style={{ 
+            background: 'var(--accent-primary)', 
+            color: 'white', 
+            border: 'none', 
+            padding: '0.75rem 1.5rem', 
+            borderRadius: 'var(--radius-md)', 
+            fontWeight: 500, 
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }} className="hover-lift">
+            <Coins size={18} /> Add Labor Rate
+          </button>
+        )}
       </div>
 
       {/* Tabs */}
@@ -262,6 +361,22 @@ export const Settings = ({
         >
           Permission Schemes
         </button>
+        {isGlobalAdmin && (
+          <button 
+            onClick={() => setActiveTab('cost_rates')}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: activeTab === 'cost_rates' ? 'var(--text-primary)' : 'var(--text-secondary)',
+              borderBottom: activeTab === 'cost_rates' ? '2px solid var(--accent-primary)' : '2px solid transparent',
+              padding: '0.5rem 1rem',
+              cursor: 'pointer',
+              fontWeight: activeTab === 'cost_rates' ? 600 : 400
+            }}
+          >
+            Labor Rates (ค่าแรง)
+          </button>
+        )}
       </div>
 
       {activeTab === 'templates' ? (
@@ -434,7 +549,7 @@ export const Settings = ({
             </table>
           </div>
         </div>
-      ) : (
+      ) : activeTab === 'permission_schemes' ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {!isGlobalAdmin && (
             <div style={{
@@ -510,6 +625,67 @@ export const Settings = ({
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div className="glass-panel" style={{ padding: '1.5rem' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Labor Rate Configuration (ตั้งค่าอัตราค่าแรง)</h3>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+              Define default daily and hourly cost rates for each project resource role. These rates are used in the Reports dashboard to calculate project costs based on logged timesheets.
+            </p>
+
+            <div style={{ overflowX: 'auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
+                    <th style={{ padding: '0.75rem 1rem' }}>Resource Role</th>
+                    <th style={{ padding: '0.75rem 1rem' }}>Daily Rate (8 hrs)</th>
+                    <th style={{ padding: '0.75rem 1rem' }}>Hourly Rate</th>
+                    <th style={{ padding: '0.75rem 1rem' }}>Currency</th>
+                    {isGlobalAdmin && <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Actions</th>}
+                  </tr>
+                </thead>
+                <tbody style={{ color: 'var(--text-secondary)' }}>
+                  {costRates.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        No labor rates configured. Click "Add Labor Rate" to configure one.
+                      </td>
+                    </tr>
+                  ) : (
+                    costRates.map(rate => (
+                      <tr key={rate.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                        <td style={{ padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--text-primary)' }}>{rate.roleName}</td>
+                        <td style={{ padding: '0.75rem 1rem' }}>฿{rate.ratePerDay.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td style={{ padding: '0.75rem 1rem' }}>฿{rate.ratePerHour.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/hr</td>
+                        <td style={{ padding: '0.75rem 1rem' }}>{rate.currency}</td>
+                        {isGlobalAdmin && (
+                          <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
+                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                              <button 
+                                onClick={() => openEditRateModal(rate)} 
+                                title="Edit Rate" 
+                                style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                              >
+                                <Edit size={16} />
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteRate(rate.id)} 
+                                title="Delete Rate" 
+                                style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer' }}
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -757,6 +933,105 @@ export const Settings = ({
                   <Save size={18} /> Save Permission Scheme
                 </button>
               )}
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Labor Rate CRUD Modal */}
+      {isRateModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.7)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1100
+        }}>
+          <div className="glass-panel" style={{ padding: '2rem', width: '500px', maxWidth: '95%', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div className="flex-between">
+              <h2 className="text-gradient" style={{ fontSize: '1.5rem' }}>
+                {editingRate ? 'Edit Labor Rate' : 'Add New Labor Rate'}
+              </h2>
+              <button onClick={() => setIsRateModalOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveRate} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Resource Role Name *</label>
+                <input 
+                  type="text" 
+                  value={rateRoleName} 
+                  onChange={e => setRateRoleName(e.target.value)} 
+                  style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none' }}
+                  placeholder="e.g. Backend Developer"
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Daily Rate (THB) *</label>
+                  <input 
+                    type="number" 
+                    step="any"
+                    value={ratePerDay} 
+                    onChange={e => handleDayChange(e.target.value)} 
+                    style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none' }}
+                    placeholder="e.g. 6500.00"
+                    required
+                  />
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Hourly Rate (THB) *</label>
+                  <input 
+                    type="number" 
+                    step="any"
+                    value={ratePerHour} 
+                    onChange={e => handleHourChange(e.target.value)} 
+                    style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none' }}
+                    placeholder="e.g. 812.50"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Currency</label>
+                <select 
+                  value={rateCurrency} 
+                  onChange={e => setRateCurrency(e.target.value)}
+                  style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
+                >
+                  <option value="THB">THB (฿)</option>
+                  <option value="USD">USD ($)</option>
+                </select>
+              </div>
+
+              <button type="submit" style={{ 
+                background: 'var(--accent-primary)', 
+                color: 'white', 
+                border: 'none', 
+                padding: '0.75rem', 
+                borderRadius: 'var(--radius-md)', 
+                fontWeight: 600, 
+                cursor: 'pointer',
+                marginTop: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem'
+              }} className="hover-lift">
+                <Save size={18} /> Save Labor Rate
+              </button>
             </form>
           </div>
         </div>

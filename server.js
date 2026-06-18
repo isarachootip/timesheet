@@ -247,6 +247,40 @@ const initDB = async () => {
       CREATE INDEX IF NOT EXISTS idx_task_snapshots_task ON task_snapshots(task_id);
     `);
 
+    // Create Cost Rates Table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS cost_rates (
+        id VARCHAR(50) PRIMARY KEY,
+        role_name VARCHAR(150) UNIQUE NOT NULL,
+        rate_per_day NUMERIC DEFAULT 0,
+        rate_per_hour NUMERIC DEFAULT 0,
+        currency VARCHAR(10) DEFAULT 'THB'
+      );
+    `);
+
+    // Seed default cost rates if table is empty
+    const costRatesCount = await client.query('SELECT COUNT(*) FROM cost_rates');
+    if (parseInt(costRatesCount.rows[0].count) === 0) {
+      console.log('Seeding default cost rates...');
+      const defaultRates = [
+        { id: 'cr_1', role_name: 'Business Solution Analyst', rate_per_day: 6500, rate_per_hour: 812.5 },
+        { id: 'cr_2', role_name: 'Tech Lead / Architecture', rate_per_day: 6500, rate_per_hour: 812.5 },
+        { id: 'cr_3', role_name: 'Backend Developer', rate_per_day: 6500, rate_per_hour: 812.5 },
+        { id: 'cr_4', role_name: 'Frontend Developer', rate_per_day: 6500, rate_per_hour: 812.5 },
+        { id: 'cr_5', role_name: 'Integration Engineer', rate_per_day: 6500, rate_per_hour: 812.5 },
+        { id: 'cr_6', role_name: 'Quality Assurance', rate_per_day: 6500, rate_per_hour: 812.5 },
+        { id: 'cr_7', role_name: 'Scrum Master / Project', rate_per_day: 6500, rate_per_hour: 812.5 },
+        { id: 'cr_8', role_name: 'DevOps / Release Mgmt', rate_per_day: 6500, rate_per_hour: 812.5 },
+        { id: 'cr_9', role_name: 'Application Support', rate_per_day: 6500, rate_per_hour: 812.5 },
+      ];
+      for (const r of defaultRates) {
+        await client.query(
+          `INSERT INTO cost_rates (id, role_name, rate_per_day, rate_per_hour, currency) VALUES ($1, $2, $3, $4, $5)`,
+          [r.id, r.role_name, r.rate_per_day, r.rate_per_hour, 'THB']
+        );
+      }
+    }
+
     // Seed permission schemes if empty (independent of user count)
     const schemeCount = await client.query('SELECT COUNT(*) FROM permission_schemes');
     if (parseInt(schemeCount.rows[0].count) === 0) {
@@ -1094,6 +1128,7 @@ app.get('/api/initial-data', async (req, res) => {
     const releasesRes = await pool.query('SELECT * FROM releases');
     const permissionSchemesRes = await pool.query('SELECT * FROM permission_schemes');
     const projectWorkflowsRes = await pool.query('SELECT * FROM project_workflows');
+    const costRatesRes = await pool.query('SELECT * FROM cost_rates');
 
     // Map DB column casing to JS camelCase
     const users = usersRes.rows.map(u => ({
@@ -1195,7 +1230,15 @@ app.get('/api/initial-data', async (req, res) => {
       transitions: pw.transitions
     }));
 
-    res.json({ users, projects, tasks, timesheets, taskTemplates, sprints, releases, permissionSchemes, projectWorkflows });
+    const costRates = costRatesRes.rows.map(cr => ({
+      id: cr.id,
+      roleName: cr.role_name,
+      ratePerDay: parseFloat(cr.rate_per_day || '0'),
+      ratePerHour: parseFloat(cr.rate_per_hour || '0'),
+      currency: cr.currency || 'THB'
+    }));
+
+    res.json({ users, projects, tasks, timesheets, taskTemplates, sprints, releases, permissionSchemes, projectWorkflows, costRates });
   } catch (err) {
     console.error('Error fetching initial data:', err);
     res.status(500).json({ error: err.message });
@@ -2072,6 +2115,38 @@ app.delete('/api/task-templates/:id', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('Error deleting task template:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Cost Rates REST API
+app.post('/api/cost-rates', async (req, res) => {
+  const { id, roleName, ratePerDay, ratePerHour, currency } = req.body;
+  try {
+    await pool.query(
+      `INSERT INTO cost_rates (id, role_name, rate_per_day, rate_per_hour, currency)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (id) DO UPDATE SET
+         role_name = EXCLUDED.role_name,
+         rate_per_day = EXCLUDED.rate_per_day,
+         rate_per_hour = EXCLUDED.rate_per_hour,
+         currency = EXCLUDED.currency`,
+      [id, roleName, ratePerDay, ratePerHour, currency || 'THB']
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error saving cost rate:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/cost-rates/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query('DELETE FROM cost_rates WHERE id = $1', [id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error deleting cost rate:', err);
     res.status(500).json({ error: err.message });
   }
 });

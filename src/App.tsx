@@ -11,7 +11,7 @@ import { Login } from './components/Login';
 import { Settings } from './components/Settings';
 import { ProjectPlan } from './components/ProjectPlan';
 import { mockUsers, mockProjects, mockTasks, mockTimesheets } from './data/mockData';
-import type { User, Project, Task, TimesheetEntry, TaskTemplate, Sprint, Release, PermissionScheme, ProjectWorkflow } from './types';
+import type { User, Project, Task, TimesheetEntry, TaskTemplate, Sprint, Release, PermissionScheme, ProjectWorkflow, CostRate } from './types';
 import './index.css';
 
 // --- Helper to use LocalStorage with fallback ---
@@ -229,6 +229,7 @@ function App() {
   const [releases, setReleases] = useState<Release[]>([]);
   const [permissionSchemes, setPermissionSchemes] = useState<PermissionScheme[]>([]);
   const [projectWorkflows, setProjectWorkflows] = useState<ProjectWorkflow[]>([]);
+  const [costRates, setCostRates] = useState<CostRate[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(() => getLocalStorage<User | null>('nt_current_user', null));
   const [loading, setLoading] = useState(true);
 
@@ -262,6 +263,7 @@ function App() {
         setReleases(data.releases || []);
         setPermissionSchemes(data.permissionSchemes || []);
         setProjectWorkflows(data.projectWorkflows || []);
+        setCostRates(data.costRates || []);
         setLoading(false);
       })
       .catch(err => {
@@ -271,6 +273,7 @@ function App() {
         setTasks(mockTasks);
         setTimesheets(mockTimesheets);
         setTaskTemplates([]);
+        setCostRates([]);
         setLoading(false);
       });
   };
@@ -607,6 +610,44 @@ function App() {
     });
   };
 
+  const handleSetCostRates: React.Dispatch<React.SetStateAction<CostRate[]>> = (value) => {
+    setCostRates(prev => {
+      const nextRates = typeof value === 'function' ? value(prev) : value;
+      const headers = { 'Content-Type': 'application/json', 'X-User-Id': currentUser?.id || '' };
+      if (nextRates.length < prev.length) {
+        const deletedRate = prev.find(p => !nextRates.some(n => n.id === p.id));
+        if (deletedRate) {
+          fetch(`/api/cost-rates/${deletedRate.id}`, { method: 'DELETE', headers })
+            .then(async res => {
+              if (!res.ok) {
+                const err = await res.json();
+                alert(err.error || 'Failed to delete cost rate');
+                fetchInitialData();
+              }
+            });
+        }
+      } else {
+        nextRates.forEach(n => {
+          const prevRate = prev.find(p => p.id === n.id);
+          if (JSON.stringify(prevRate) !== JSON.stringify(n)) {
+            fetch('/api/cost-rates', {
+              method: 'POST',
+              headers,
+              body: JSON.stringify(n)
+            }).then(async res => {
+              if (!res.ok) {
+                const err = await res.json();
+                alert(err.error || 'Failed to save cost rate');
+                fetchInitialData();
+              }
+            });
+          }
+        });
+      }
+      return nextRates;
+    });
+  };
+
   const handleLogin = (user: User) => {
     setCurrentUser(user);
   };
@@ -638,8 +679,8 @@ function App() {
           <Route path="/tasks" element={<Tasks tasks={tasks} setTasks={handleSetTasks} projects={projects} users={users} sprints={sprints} setSprints={handleSetSprints} releases={releases} setReleases={handleSetReleases} projectWorkflows={projectWorkflows} setProjectWorkflows={handleSetProjectWorkflows} permissionSchemes={permissionSchemes} currentUser={currentUser} />} />
           <Route path="/timesheet" element={<Timesheet timesheets={timesheets} setTimesheets={handleSetTimesheets} projects={projects} tasks={tasks} currentUser={currentUser} />} />
           <Route path="/team" element={<TeamApprovals users={users} setUsers={handleSetUsers} timesheets={timesheets} setTimesheets={handleSetTimesheets} projects={projects} setProjects={handleSetProjects} tasks={tasks} />} />
-          <Route path="/reports" element={<Reports timesheets={timesheets} projects={projects} users={users} currentUser={currentUser} />} />
-          <Route path="/settings" element={<Settings taskTemplates={taskTemplates} setTaskTemplates={handleSetTaskTemplates} permissionSchemes={permissionSchemes} setPermissionSchemes={handleSetPermissionSchemes} currentUser={currentUser} />} />
+          <Route path="/reports" element={<Reports timesheets={timesheets} projects={projects} users={users} currentUser={currentUser} tasks={tasks} costRates={costRates} />} />
+          <Route path="/settings" element={<Settings taskTemplates={taskTemplates} setTaskTemplates={handleSetTaskTemplates} permissionSchemes={permissionSchemes} setPermissionSchemes={handleSetPermissionSchemes} currentUser={currentUser} costRates={costRates} setCostRates={handleSetCostRates} />} />
         </Routes>
       </AppLayout>
     </Router>

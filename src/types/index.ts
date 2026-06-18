@@ -123,4 +123,12 @@ export interface ProjectWorkflow {
   }>;
 }
 
+export interface CostRate {
+  id: string;
+  roleName: string;
+  ratePerDay: number;
+  ratePerHour: number;
+  currency: string;
+}
+
 
