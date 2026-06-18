@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Task, TaskStatus, TaskPriority, Project, User, Sprint, Release, TaskCommit } from '../types';
-import { Plus, Filter, Clock, X, Edit, Trash2, GripVertical, Calendar, Bug, FileText, CheckSquare, Layers, GitBranch, GitCommit, ChevronRight, ChevronDown } from 'lucide-react';
+import { Plus, Filter, Clock, X, Edit, Trash2, GripVertical, Calendar, Bug, FileText, CheckSquare, Layers, GitBranch, GitCommit, ChevronRight, ChevronDown, BarChart3, CalendarRange } from 'lucide-react';
 import {
   DndContext,
   DragOverlay,
@@ -1171,7 +1171,8 @@ function DroppableBacklogSection({
 // ── Main Tasks Component ───────────────────────────────────────────────────────
 export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, releases, setReleases, projectWorkflows, setProjectWorkflows: _setProjectWorkflows, permissionSchemes, currentUser }: TasksProps) => {
   const [selectedProject, setSelectedProject] = useState<string>('all');
-  const [activeSubTab, setActiveSubTab] = useState<'board' | 'backlog' | 'releases' | 'grooming'>('board');
+  const [activeSubTab, setActiveSubTab] = useState<'summary' | 'backlog' | 'board' | 'timeline' | 'releases' | 'grooming'>('summary');
+  const [moreDropdownOpen, setMoreDropdownOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [commits, setCommits] = useState<TaskCommit[]>([]);
@@ -1931,23 +1932,23 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
       </div>
 
       {/* Sub-navbar */}
-      <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+      <div style={{ display: 'flex', gap: '0.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', alignItems: 'center' }}>
         <button
-          onClick={() => setActiveSubTab('board')}
+          onClick={() => setActiveSubTab('summary')}
           style={{
             background: 'transparent',
             border: 'none',
-            color: activeSubTab === 'board' ? 'var(--text-primary)' : 'var(--text-secondary)',
-            borderBottom: activeSubTab === 'board' ? '2px solid var(--accent-primary)' : '2px solid transparent',
+            color: activeSubTab === 'summary' ? 'var(--text-primary)' : 'var(--text-secondary)',
+            borderBottom: activeSubTab === 'summary' ? '2px solid #7C3AED' : '2px solid transparent',
             padding: '0.5rem 1rem',
             cursor: 'pointer',
-            fontWeight: activeSubTab === 'board' ? 600 : 400,
+            fontWeight: activeSubTab === 'summary' ? 600 : 400,
             display: 'flex',
             alignItems: 'center',
             gap: '0.4rem',
           }}
         >
-          <Layers size={16} /> Kanban Board
+          <BarChart3 size={16} /> Summary
         </button>
         <button
           onClick={() => setActiveSubTab('backlog')}
@@ -1955,7 +1956,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
             background: 'transparent',
             border: 'none',
             color: activeSubTab === 'backlog' ? 'var(--text-primary)' : 'var(--text-secondary)',
-            borderBottom: activeSubTab === 'backlog' ? '2px solid var(--accent-primary)' : '2px solid transparent',
+            borderBottom: activeSubTab === 'backlog' ? '2px solid #7C3AED' : '2px solid transparent',
             padding: '0.5rem 1rem',
             cursor: 'pointer',
             fontWeight: activeSubTab === 'backlog' ? 600 : 400,
@@ -1964,43 +1965,714 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
             gap: '0.4rem',
           }}
         >
-          <Layers size={16} /> Sprints & Backlog Planner
+          <Layers size={16} /> Backlog
         </button>
         <button
-          onClick={() => setActiveSubTab('releases')}
+          onClick={() => setActiveSubTab('board')}
           style={{
             background: 'transparent',
             border: 'none',
-            color: activeSubTab === 'releases' ? 'var(--text-primary)' : 'var(--text-secondary)',
-            borderBottom: activeSubTab === 'releases' ? '2px solid var(--accent-primary)' : '2px solid transparent',
+            color: activeSubTab === 'board' ? 'var(--text-primary)' : 'var(--text-secondary)',
+            borderBottom: activeSubTab === 'board' ? '2px solid #7C3AED' : '2px solid transparent',
             padding: '0.5rem 1rem',
             cursor: 'pointer',
-            fontWeight: activeSubTab === 'releases' ? 600 : 400,
+            fontWeight: activeSubTab === 'board' ? 600 : 400,
             display: 'flex',
             alignItems: 'center',
             gap: '0.4rem',
           }}
         >
-          <Calendar size={16} /> Releases / Versions
+          <Layers size={16} /> Board
         </button>
         <button
-          onClick={() => setActiveSubTab('grooming')}
+          onClick={() => setActiveSubTab('timeline')}
           style={{
             background: 'transparent',
             border: 'none',
-            color: activeSubTab === 'grooming' ? 'var(--text-primary)' : 'var(--text-secondary)',
-            borderBottom: activeSubTab === 'grooming' ? '2px solid var(--accent-primary)' : '2px solid transparent',
+            color: activeSubTab === 'timeline' ? 'var(--text-primary)' : 'var(--text-secondary)',
+            borderBottom: activeSubTab === 'timeline' ? '2px solid #7C3AED' : '2px solid transparent',
             padding: '0.5rem 1rem',
             cursor: 'pointer',
-            fontWeight: activeSubTab === 'grooming' ? 600 : 400,
+            fontWeight: activeSubTab === 'timeline' ? 600 : 400,
             display: 'flex',
             alignItems: 'center',
             gap: '0.4rem',
           }}
         >
-          <CheckSquare size={16} /> Backlog Grooming
+          <CalendarRange size={16} /> Timeline
         </button>
+        {/* More dropdown for Releases and Grooming */}
+        <div style={{ position: 'relative', marginLeft: '0.25rem' }}>
+          <button
+            onClick={() => setMoreDropdownOpen(!moreDropdownOpen)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: (activeSubTab === 'releases' || activeSubTab === 'grooming') ? 'var(--text-primary)' : 'var(--text-secondary)',
+              borderBottom: (activeSubTab === 'releases' || activeSubTab === 'grooming') ? '2px solid #7C3AED' : '2px solid transparent',
+              padding: '0.5rem 1rem',
+              cursor: 'pointer',
+              fontWeight: (activeSubTab === 'releases' || activeSubTab === 'grooming') ? 600 : 400,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+            }}
+          >
+            More ▾
+          </button>
+          {moreDropdownOpen && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                marginTop: '0.25rem',
+                background: 'var(--bg-primary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '0.5rem',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                zIndex: 100,
+                minWidth: '200px',
+                overflow: 'hidden',
+              }}
+            >
+              <button
+                onClick={() => { setActiveSubTab('releases'); setMoreDropdownOpen(false); }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  width: '100%',
+                  padding: '0.65rem 1rem',
+                  background: activeSubTab === 'releases' ? 'rgba(124, 58, 237, 0.08)' : 'transparent',
+                  border: 'none',
+                  color: activeSubTab === 'releases' ? '#7C3AED' : 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  fontWeight: activeSubTab === 'releases' ? 600 : 400,
+                  textAlign: 'left',
+                }}
+              >
+                <Calendar size={16} /> Releases / Versions
+              </button>
+              <button
+                onClick={() => { setActiveSubTab('grooming'); setMoreDropdownOpen(false); }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  width: '100%',
+                  padding: '0.65rem 1rem',
+                  background: activeSubTab === 'grooming' ? 'rgba(124, 58, 237, 0.08)' : 'transparent',
+                  border: 'none',
+                  color: activeSubTab === 'grooming' ? '#7C3AED' : 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  fontWeight: activeSubTab === 'grooming' ? 600 : 400,
+                  textAlign: 'left',
+                }}
+              >
+                <CheckSquare size={16} /> Backlog Grooming
+              </button>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* ── SUMMARY TAB ────────────────────────────────────────────────────────── */}
+      {activeSubTab === 'summary' && (() => {
+        const summaryTasks = selectedProject === 'all' ? tasks : tasks.filter(t => t.projectId === selectedProject);
+        const columns = activeColumns;
+        const doneCol = columns[columns.length - 1] || 'Done';
+        const todoCol = columns[0] || 'To Do';
+        const inProgressCol = columns.length > 2 ? columns[1] : 'In Progress';
+        const reviewCol = columns.length > 3 ? columns[2] : 'Review';
+
+        const todoCount = summaryTasks.filter(t => t.status === todoCol).length;
+        const inProgressCount = summaryTasks.filter(t => t.status === inProgressCol).length;
+        const reviewCount = summaryTasks.filter(t => t.status === reviewCol).length;
+        const doneCount = summaryTasks.filter(t => t.status === doneCol).length;
+        const totalCount = summaryTasks.length;
+        const donePercent = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+
+        // Team workload
+        const workloadMap: Record<string, number> = {};
+        summaryTasks.forEach(t => {
+          const key = t.assigneeId || '__unassigned__';
+          workloadMap[key] = (workloadMap[key] || 0) + 1;
+        });
+        const maxWorkload = Math.max(...Object.values(workloadMap), 1);
+
+        // Upcoming tasks (within 7 days)
+        const now = new Date();
+        const sevenDays = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        const upcomingTasks = summaryTasks
+          .filter(t => t.endDate && new Date(t.endDate) >= now && new Date(t.endDate) <= sevenDays && t.status !== doneCol)
+          .sort((a, b) => new Date(a.endDate!).getTime() - new Date(b.endDate!).getTime());
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {/* Sprint Progress Card */}
+            <div className="glass-panel" style={{ padding: '1.5rem' }}>
+              <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                Sprint Progress
+              </h3>
+              {activeSprint ? (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <div>
+                      <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '1rem' }}>{activeSprint.name}</span>
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginLeft: '0.75rem' }}>
+                        {activeSprint.startDate || '—'} → {activeSprint.endDate || '—'}
+                      </span>
+                    </div>
+                    <span style={{ fontWeight: 700, color: '#7C3AED', fontSize: '1.25rem' }}>{donePercent}%</span>
+                  </div>
+                  <div style={{ background: 'var(--bg-tertiary)', borderRadius: '999px', height: '10px', overflow: 'hidden' }}>
+                    <div style={{ width: `${donePercent}%`, height: '100%', background: 'linear-gradient(90deg, #7C3AED, #A78BFA)', borderRadius: '999px', transition: 'width 0.4s ease' }} />
+                  </div>
+                  <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.75rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    <span>{todoCol}: <strong>{summaryTasks.filter(t => t.sprintId === activeSprint.id && t.status === todoCol).length}</strong></span>
+                    <span>{inProgressCol}: <strong>{summaryTasks.filter(t => t.sprintId === activeSprint.id && t.status === inProgressCol).length}</strong></span>
+                    <span>{reviewCol}: <strong>{summaryTasks.filter(t => t.sprintId === activeSprint.id && t.status === reviewCol).length}</strong></span>
+                    <span>{doneCol}: <strong>{summaryTasks.filter(t => t.sprintId === activeSprint.id && t.status === doneCol).length}</strong></span>
+                  </div>
+                </div>
+              ) : (
+                <p style={{ color: 'var(--text-muted)', margin: 0 }}>No active sprint. Start a sprint from the Backlog tab.</p>
+              )}
+            </div>
+
+            {/* Task Status Breakdown */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
+              {[
+                { label: todoCol, count: todoCount, color: '#6B7280', bg: 'rgba(107, 114, 128, 0.08)' },
+                { label: inProgressCol, count: inProgressCount, color: '#3B82F6', bg: 'rgba(59, 130, 246, 0.08)' },
+                { label: reviewCol, count: reviewCount, color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.08)' },
+                { label: doneCol, count: doneCount, color: '#10B981', bg: 'rgba(16, 185, 129, 0.08)' },
+              ].map(card => (
+                <div
+                  key={card.label}
+                  className="glass-panel"
+                  style={{ padding: '1.25rem', background: card.bg, borderLeft: `3px solid ${card.color}` }}
+                >
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.35rem' }}>{card.label}</div>
+                  <div style={{ fontSize: '2rem', fontWeight: 700, color: card.color }}>{card.count}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Team Workload */}
+            <div className="glass-panel" style={{ padding: '1.5rem' }}>
+              <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                Team Workload
+              </h3>
+              {Object.keys(workloadMap).length === 0 ? (
+                <p style={{ color: 'var(--text-muted)', margin: 0 }}>No tasks assigned yet.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                  {Object.entries(workloadMap)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([uid, count]) => {
+                      const name = uid === '__unassigned__' ? 'Unassigned' : (users.find(u => u.id === uid)?.name || 'Unknown');
+                      const barWidth = Math.round((count / maxWorkload) * 100);
+                      return (
+                        <div key={uid} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <span style={{ minWidth: '120px', fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+                          <div style={{ flex: 1, background: 'var(--bg-tertiary)', borderRadius: '999px', height: '8px', overflow: 'hidden' }}>
+                            <div style={{ width: `${barWidth}%`, height: '100%', background: 'linear-gradient(90deg, #7C3AED, #A78BFA)', borderRadius: '999px', transition: 'width 0.3s ease' }} />
+                          </div>
+                          <span style={{ minWidth: '32px', textAlign: 'right', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>{count}</span>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+
+            {/* Upcoming Tasks */}
+            <div className="glass-panel" style={{ padding: '1.5rem' }}>
+              <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                Upcoming Tasks <span style={{ fontSize: '0.8rem', fontWeight: 400, color: 'var(--text-muted)' }}>(due within 7 days)</span>
+              </h3>
+              {upcomingTasks.length === 0 ? (
+                <p style={{ color: 'var(--text-muted)', margin: 0 }}>No upcoming tasks due in the next 7 days.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {upcomingTasks.map(t => {
+                    const priorityColors: Record<string, string> = { Urgent: 'var(--accent-danger)', High: 'var(--accent-warning)', Medium: '#3B82F6', Low: '#6B7280' };
+                    const daysLeft = Math.ceil((new Date(t.endDate!).getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                    return (
+                      <div
+                        key={t.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '0.65rem 0.85rem',
+                          background: 'rgba(124, 58, 237, 0.06)',
+                          borderRadius: '0.5rem',
+                          gap: '1rem',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
+                          <span
+                            style={{
+                              width: '8px',
+                              height: '8px',
+                              borderRadius: '50%',
+                              background: priorityColors[t.priority] || '#6B7280',
+                              flexShrink: 0,
+                            }}
+                          />
+                          <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexShrink: 0 }}>
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                            {users.find(u => u.id === t.assigneeId)?.name || 'Unassigned'}
+                          </span>
+                          <span style={{
+                            fontSize: '0.78rem',
+                            fontWeight: 600,
+                            color: daysLeft <= 1 ? 'var(--accent-danger)' : daysLeft <= 3 ? 'var(--accent-warning)' : 'var(--text-secondary)',
+                          }}>
+                            {daysLeft === 0 ? 'Today' : daysLeft === 1 ? 'Tomorrow' : `${daysLeft}d left`}
+                          </span>
+                          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{t.endDate}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── TIMELINE TAB ───────────────────────────────────────────────────────── */}
+      {activeSubTab === 'timeline' && (() => {
+        // Timeline Gantt Chart implementation
+        const timelineTasks = filteredTasks.filter(t => t.startDate || t.endDate);
+        const allDates = timelineTasks.flatMap(t => [t.startDate, t.endDate].filter(Boolean) as string[]);
+        
+        // Calculate date range
+        const today = new Date();
+        let minDate = allDates.length > 0 ? new Date(Math.min(...allDates.map(d => new Date(d).getTime()))) : new Date(today.getFullYear(), today.getMonth(), 1);
+        let maxDate = allDates.length > 0 ? new Date(Math.max(...allDates.map(d => new Date(d).getTime()))) : new Date(today.getFullYear(), today.getMonth() + 2, 0);
+        
+        // Add buffer
+        minDate = new Date(minDate.getTime() - 7 * 86400000);
+        maxDate = new Date(maxDate.getTime() + 14 * 86400000);
+        
+        const totalDays = Math.ceil((maxDate.getTime() - minDate.getTime()) / 86400000);
+        const dayWidth = 28; // pixels per day
+        const totalWidth = totalDays * dayWidth;
+        const rowHeight = 36;
+        
+        // Generate week markers
+        const weeks: { date: Date; left: number }[] = [];
+        const d = new Date(minDate);
+        d.setDate(d.getDate() - d.getDay()); // Start from Sunday
+        while (d <= maxDate) {
+          const left = Math.round((d.getTime() - minDate.getTime()) / 86400000) * dayWidth;
+          if (left >= 0) weeks.push({ date: new Date(d), left });
+          d.setDate(d.getDate() + 7);
+        }
+        
+        // Today marker
+        const todayLeft = Math.round((today.getTime() - minDate.getTime()) / 86400000) * dayWidth;
+        
+        const getBarStyle = (task: Task) => {
+          const start = task.startDate ? new Date(task.startDate) : today;
+          const end = task.endDate ? new Date(task.endDate) : new Date(start.getTime() + 7 * 86400000);
+          const left = Math.round((start.getTime() - minDate.getTime()) / 86400000) * dayWidth;
+          const width = Math.max(Math.round((end.getTime() - start.getTime()) / 86400000) * dayWidth, dayWidth);
+          return { left, width };
+        };
+        
+        const priorityColors: Record<string, string> = {
+          Urgent: '#EF4444',
+          High: '#F59E0B',
+          Medium: '#7C3AED',
+          Low: '#6B7280'
+        };
+        
+        const statusBg: Record<string, string> = {
+          'Done': 'rgba(16, 185, 129, 0.25)',
+          'In Progress': 'rgba(59, 130, 246, 0.25)',
+          'Review': 'rgba(245, 158, 11, 0.25)',
+          'To Do': 'rgba(107, 114, 128, 0.15)',
+        };
+        
+        // Group by sprint
+        const sprintGroups: { sprint: Sprint | null; tasks: Task[] }[] = [];
+        const activeSprints = projectSprints.filter(s => s.status === 'Active');
+        const plannedSprints = projectSprints.filter(s => s.status === 'Planned');
+        const allSprintsOrdered = [...activeSprints, ...plannedSprints];
+        
+        for (const sp of allSprintsOrdered) {
+          const spTasks = timelineTasks.filter(t => t.sprintId === sp.id);
+          if (spTasks.length > 0) sprintGroups.push({ sprint: sp, tasks: spTasks });
+        }
+        const backlogTasks = timelineTasks.filter(t => !t.sprintId);
+        if (backlogTasks.length > 0) sprintGroups.push({ sprint: null, tasks: backlogTasks });
+        
+        // Drag state for timeline
+        const [dragInfo, setDragInfo] = useState<{
+          taskId: string;
+          type: 'move' | 'resize-left' | 'resize-right';
+          startX: number;
+          origLeft: number;
+          origWidth: number;
+          origStartDate: string;
+          origEndDate: string;
+        } | null>(null);
+        
+        const handleTimelineMouseDown = (e: React.MouseEvent, task: Task, type: 'move' | 'resize-left' | 'resize-right') => {
+          e.preventDefault();
+          e.stopPropagation();
+          const bar = getBarStyle(task);
+          setDragInfo({
+            taskId: task.id,
+            type,
+            startX: e.clientX,
+            origLeft: bar.left,
+            origWidth: bar.width,
+            origStartDate: task.startDate || new Date().toISOString().slice(0, 10),
+            origEndDate: task.endDate || new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
+          });
+        };
+        
+        const handleTimelineMouseMove = (e: React.MouseEvent) => {
+          if (!dragInfo) return;
+          const dx = e.clientX - dragInfo.startX;
+          const daysDelta = Math.round(dx / dayWidth);
+          if (daysDelta === 0) return;
+          
+          const task = filteredTasks.find(t => t.id === dragInfo.taskId);
+          if (!task) return;
+          
+          const origStart = new Date(dragInfo.origStartDate);
+          const origEnd = new Date(dragInfo.origEndDate);
+          
+          let newStart: Date, newEnd: Date;
+          if (dragInfo.type === 'move') {
+            newStart = new Date(origStart.getTime() + daysDelta * 86400000);
+            newEnd = new Date(origEnd.getTime() + daysDelta * 86400000);
+          } else if (dragInfo.type === 'resize-left') {
+            newStart = new Date(origStart.getTime() + daysDelta * 86400000);
+            newEnd = origEnd;
+            if (newStart >= newEnd) return;
+          } else {
+            newStart = origStart;
+            newEnd = new Date(origEnd.getTime() + daysDelta * 86400000);
+            if (newEnd <= newStart) return;
+          }
+          
+          setTasks(prev => prev.map(t => t.id === dragInfo.taskId ? {
+            ...t,
+            startDate: newStart.toISOString().slice(0, 10),
+            endDate: newEnd.toISOString().slice(0, 10),
+          } : t));
+        };
+        
+        const handleTimelineMouseUp = () => {
+          if (dragInfo) {
+            // Save to server
+            const task = filteredTasks.find(t => t.id === dragInfo.taskId);
+            if (task) {
+              fetch('/api/tasks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(task),
+              }).catch(() => {});
+            }
+            setDragInfo(null);
+          }
+        };
+        
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {/* Timeline Header */}
+            <div className="glass-panel" style={{ padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <CalendarRange size={20} color="#7C3AED" />
+                <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>Timeline</span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  {timelineTasks.length} tasks with dates
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.75rem' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <div style={{ width: 12, height: 3, background: '#EF4444', borderRadius: 2 }} /> Urgent
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <div style={{ width: 12, height: 3, background: '#F59E0B', borderRadius: 2 }} /> High
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <div style={{ width: 12, height: 3, background: '#7C3AED', borderRadius: 2 }} /> Medium
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <div style={{ width: 12, height: 3, background: '#6B7280', borderRadius: 2 }} /> Low
+                </span>
+              </div>
+            </div>
+
+            {/* Gantt Chart */}
+            <div
+              className="glass-panel"
+              style={{ overflow: 'auto', padding: 0, cursor: dragInfo ? 'grabbing' : 'default' }}
+              onMouseMove={handleTimelineMouseMove}
+              onMouseUp={handleTimelineMouseUp}
+              onMouseLeave={handleTimelineMouseUp}
+            >
+              <div style={{ display: 'flex', minWidth: totalWidth + 260 }}>
+                {/* Left panel: task names */}
+                <div style={{ width: 260, minWidth: 260, borderRight: '1px solid var(--border-color)', background: 'rgba(22, 26, 34, 0.6)', position: 'sticky', left: 0, zIndex: 10 }}>
+                  {/* Header */}
+                  <div style={{ height: 40, borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', padding: '0 1rem', fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    Task
+                  </div>
+                  {/* Rows */}
+                  {sprintGroups.map((group, gi) => (
+                    <div key={gi}>
+                      {/* Sprint header */}
+                      <div style={{
+                        height: 32,
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: '0 1rem',
+                        fontWeight: 700,
+                        fontSize: '0.75rem',
+                        color: '#7C3AED',
+                        background: 'rgba(124, 58, 237, 0.08)',
+                        borderBottom: '1px solid var(--border-color)',
+                        gap: '0.5rem',
+                      }}>
+                        <Layers size={12} />
+                        {group.sprint ? group.sprint.name : '📋 Backlog'}
+                        <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>({group.tasks.length})</span>
+                      </div>
+                      {group.tasks.map(task => (
+                        <div
+                          key={task.id}
+                          style={{
+                            height: rowHeight,
+                            display: 'flex',
+                            alignItems: 'center',
+                            padding: '0 0.75rem',
+                            borderBottom: '1px solid rgba(255,255,255,0.04)',
+                            gap: '0.5rem',
+                            fontSize: '0.78rem',
+                            overflow: 'hidden',
+                          }}
+                        >
+                          <div style={{ width: 4, height: 4, borderRadius: '50%', background: priorityColors[task.priority] || '#6B7280', flexShrink: 0 }} />
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-primary)' }}>
+                            {task.title}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Right panel: timeline bars */}
+                <div style={{ flex: 1, position: 'relative' }}>
+                  {/* Week headers */}
+                  <div style={{ height: 40, borderBottom: '1px solid var(--border-color)', position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    {weeks.map((w, i) => (
+                      <div key={i} style={{
+                        position: 'absolute',
+                        left: w.left,
+                        width: dayWidth * 7,
+                        textAlign: 'center',
+                        fontSize: '0.7rem',
+                        color: 'var(--text-muted)',
+                        fontWeight: 500,
+                        borderLeft: '1px solid rgba(255,255,255,0.06)',
+                        height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        {w.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Today line */}
+                  {todayLeft >= 0 && todayLeft <= totalWidth && (
+                    <div style={{
+                      position: 'absolute',
+                      left: todayLeft,
+                      top: 0,
+                      bottom: 0,
+                      width: 2,
+                      background: '#EF4444',
+                      zIndex: 5,
+                      opacity: 0.7,
+                    }}>
+                      <div style={{
+                        position: 'absolute',
+                        top: 2,
+                        left: -14,
+                        background: '#EF4444',
+                        color: 'white',
+                        fontSize: '0.55rem',
+                        padding: '1px 4px',
+                        borderRadius: 3,
+                        fontWeight: 700,
+                      }}>
+                        TODAY
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Week grid lines */}
+                  {weeks.map((w, i) => (
+                    <div key={i} style={{
+                      position: 'absolute',
+                      left: w.left,
+                      top: 40,
+                      bottom: 0,
+                      width: 1,
+                      background: 'rgba(255,255,255,0.04)',
+                    }} />
+                  ))}
+
+                  {/* Task bars */}
+                  {sprintGroups.map((group, gi) => {
+                    // Calculate offset for sprint headers
+                    let offset = 0;
+                    for (let i = 0; i < gi; i++) {
+                      offset += 32 + sprintGroups[i].tasks.length * rowHeight;
+                    }
+                    
+                    return (
+                      <div key={gi}>
+                        {/* Sprint header row */}
+                        <div style={{
+                          height: 32,
+                          background: 'rgba(124, 58, 237, 0.04)',
+                          borderBottom: '1px solid var(--border-color)',
+                          position: 'relative',
+                        }}>
+                          {/* Sprint date range background */}
+                          {group.sprint?.startDate && group.sprint?.endDate && (() => {
+                            const spStart = new Date(group.sprint!.startDate!);
+                            const spEnd = new Date(group.sprint!.endDate!);
+                            const spLeft = Math.round((spStart.getTime() - minDate.getTime()) / 86400000) * dayWidth;
+                            const spWidth = Math.round((spEnd.getTime() - spStart.getTime()) / 86400000) * dayWidth;
+                            return (
+                              <div style={{
+                                position: 'absolute',
+                                left: spLeft,
+                                top: 4,
+                                width: Math.max(spWidth, dayWidth),
+                                height: 24,
+                                background: 'rgba(124, 58, 237, 0.1)',
+                                border: '1px dashed rgba(124, 58, 237, 0.3)',
+                                borderRadius: 4,
+                              }} />
+                            );
+                          })()}
+                        </div>
+                        
+                        {/* Task bars */}
+                        {group.tasks.map(task => {
+                          const bar = getBarStyle(task);
+                          const isDragging = dragInfo?.taskId === task.id;
+                          const pColor = priorityColors[task.priority] || '#6B7280';
+                          const sBg = statusBg[task.status] || statusBg['To Do'];
+                          
+                          return (
+                            <div
+                              key={task.id}
+                              style={{
+                                height: rowHeight,
+                                position: 'relative',
+                                borderBottom: '1px solid rgba(255,255,255,0.04)',
+                              }}
+                            >
+                              {/* Task bar */}
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  left: bar.left,
+                                  top: 6,
+                                  width: bar.width,
+                                  height: rowHeight - 12,
+                                  background: sBg,
+                                  borderLeft: `3px solid ${pColor}`,
+                                  borderRadius: 4,
+                                  cursor: isDragging ? 'grabbing' : 'grab',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  padding: '0 6px',
+                                  fontSize: '0.68rem',
+                                  color: 'var(--text-primary)',
+                                  overflow: 'hidden',
+                                  whiteSpace: 'nowrap',
+                                  userSelect: 'none',
+                                  boxShadow: isDragging ? '0 2px 8px rgba(124,58,237,0.3)' : 'none',
+                                  transition: isDragging ? 'none' : 'box-shadow 0.15s',
+                                  zIndex: isDragging ? 20 : 1,
+                                }}
+                                onMouseDown={(e) => handleTimelineMouseDown(e, task, 'move')}
+                                title={`${task.title}\n${task.startDate || '?'} → ${task.endDate || '?'}\nDrag to move`}
+                              >
+                                {/* Left resize handle */}
+                                <div
+                                  style={{
+                                    position: 'absolute',
+                                    left: 0,
+                                    top: 0,
+                                    width: 6,
+                                    height: '100%',
+                                    cursor: 'col-resize',
+                                    zIndex: 2,
+                                  }}
+                                  onMouseDown={(e) => handleTimelineMouseDown(e, task, 'resize-left')}
+                                />
+                                
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', paddingLeft: 2 }}>
+                                  {task.title}
+                                </span>
+                                
+                                {/* Right resize handle */}
+                                <div
+                                  style={{
+                                    position: 'absolute',
+                                    right: 0,
+                                    top: 0,
+                                    width: 6,
+                                    height: '100%',
+                                    cursor: 'col-resize',
+                                    zIndex: 2,
+                                  }}
+                                  onMouseDown={(e) => handleTimelineMouseDown(e, task, 'resize-right')}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* No tasks message */}
+            {timelineTasks.length === 0 && (
+              <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <CalendarRange size={48} style={{ marginBottom: '1rem', opacity: 0.3 }} />
+                <p>No tasks with dates found. Add start/end dates to tasks to see them on the timeline.</p>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* CONDITIONAL SUBTAB RENDERING */}
       {activeSubTab === 'board' && (
