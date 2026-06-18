@@ -409,43 +409,216 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                 </select>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Work Period</label>
+              {/* Visual Time Bar Picker */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                  Work Period — Drag to select time range
+                </label>
+                
+                {/* Time bar info */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    {startTime && endTime ? (
+                      <>
+                        <span style={{ 
+                          background: 'rgba(0, 206, 209, 0.15)', 
+                          border: '1px solid rgba(0, 206, 209, 0.3)', 
+                          padding: '0.3rem 0.75rem', 
+                          borderRadius: 'var(--radius-md)', 
+                          fontWeight: 600, 
+                          fontSize: '1rem',
+                          color: 'var(--accent-primary)'
+                        }}>
+                          {startTime}
+                        </span>
+                        <span style={{ color: 'var(--text-muted)' }}>→</span>
+                        <span style={{ 
+                          background: 'rgba(0, 206, 209, 0.15)', 
+                          border: '1px solid rgba(0, 206, 209, 0.3)', 
+                          padding: '0.3rem 0.75rem', 
+                          borderRadius: 'var(--radius-md)', 
+                          fontWeight: 600, 
+                          fontSize: '1rem',
+                          color: 'var(--accent-primary)'
+                        }}>
+                          {endTime}
+                        </span>
+                      </>
+                    ) : (
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Click and drag on the bar below</span>
+                    )}
+                  </div>
+                  {hours && (
+                    <span style={{ 
+                      background: 'linear-gradient(135deg, rgba(0,206,209,0.2), rgba(124,58,237,0.2))', 
+                      padding: '0.3rem 0.75rem', 
+                      borderRadius: 'var(--radius-md)', 
+                      fontWeight: 700, 
+                      fontSize: '1.1rem',
+                      color: 'var(--text-primary)'
+                    }}>
+                      {hours}h
+                    </span>
+                  )}
+                </div>
+
+                {/* Draggable Time Bar */}
+                {(() => {
+                  const BAR_START = 6; // 06:00
+                  const BAR_END = 22;  // 22:00
+                  const SLOTS = (BAR_END - BAR_START) * 2; // 30-min slots
+                  const slotToTime = (slot: number) => {
+                    const h = BAR_START + Math.floor(slot / 2);
+                    const m = (slot % 2) * 30;
+                    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                  };
+                  const timeToSlot = (time: string) => {
+                    if (!time) return -1;
+                    const [h, m] = time.split(':').map(Number);
+                    return (h - BAR_START) * 2 + Math.round(m / 30);
+                  };
+                  
+                  const startSlot = timeToSlot(startTime);
+                  const endSlot = timeToSlot(endTime);
+
+                  return (
+                    <div
+                      style={{
+                        position: 'relative',
+                        background: 'var(--bg-tertiary)',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--border-color)',
+                        overflow: 'hidden',
+                        userSelect: 'none',
+                        cursor: 'crosshair',
+                      }}
+                      onMouseDown={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        const slot = Math.max(0, Math.min(SLOTS, Math.round((x / rect.width) * SLOTS)));
+                        const time = slotToTime(slot);
+                        setStartTime(time);
+                        setEndTime('');
+                        setHours('');
+                        
+                        const handleMove = (ev: MouseEvent) => {
+                          const mx = ev.clientX - rect.left;
+                          const mSlot = Math.max(0, Math.min(SLOTS, Math.round((mx / rect.width) * SLOTS)));
+                          if (mSlot !== slot) {
+                            const s = Math.min(slot, mSlot);
+                            const en = Math.max(slot, mSlot);
+                            const sTime = slotToTime(s);
+                            const eTime = slotToTime(en);
+                            setStartTime(sTime);
+                            setEndTime(eTime);
+                            const diff = (en - s) * 0.5;
+                            if (diff > 0) setHours(String(diff));
+                          }
+                        };
+                        const handleUp = () => {
+                          document.removeEventListener('mousemove', handleMove);
+                          document.removeEventListener('mouseup', handleUp);
+                        };
+                        document.addEventListener('mousemove', handleMove);
+                        document.addEventListener('mouseup', handleUp);
+                      }}
+                    >
+                      {/* Hour labels */}
+                      <div style={{ display: 'flex', height: 20 }}>
+                        {Array.from({ length: BAR_END - BAR_START }, (_, i) => (
+                          <div key={i} style={{ 
+                            flex: 1, 
+                            textAlign: 'center', 
+                            fontSize: '0.55rem', 
+                            color: 'var(--text-muted)',
+                            borderLeft: i > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                            paddingTop: 3,
+                          }}>
+                            {String(BAR_START + i).padStart(2, '0')}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Slots bar */}
+                      <div style={{ display: 'flex', height: 32, position: 'relative' }}>
+                        {Array.from({ length: SLOTS }, (_, i) => {
+                          const isSelected = startSlot >= 0 && endSlot > startSlot && i >= startSlot && i < endSlot;
+                          const isHour = i % 2 === 0;
+                          return (
+                            <div
+                              key={i}
+                              style={{
+                                flex: 1,
+                                background: isSelected 
+                                  ? 'linear-gradient(180deg, rgba(0,206,209,0.4), rgba(0,206,209,0.2))' 
+                                  : 'transparent',
+                                borderLeft: isHour ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(255,255,255,0.02)',
+                                transition: 'background 0.1s',
+                                position: 'relative',
+                              }}
+                            >
+                              {isSelected && i === startSlot && (
+                                <div style={{
+                                  position: 'absolute', left: 0, top: 0, bottom: 0, width: 2,
+                                  background: 'var(--accent-primary)', borderRadius: 1,
+                                }} />
+                              )}
+                              {isSelected && i === endSlot - 1 && (
+                                <div style={{
+                                  position: 'absolute', right: 0, top: 0, bottom: 0, width: 2,
+                                  background: 'var(--accent-primary)', borderRadius: 1,
+                                }} />
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Bottom hour ticks */}
+                      <div style={{ display: 'flex', height: 6 }}>
+                        {Array.from({ length: BAR_END - BAR_START }, (_, i) => (
+                          <div key={i} style={{ 
+                            flex: 1, 
+                            borderLeft: i > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                          }} />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Fine-tune inputs row */}
                 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Start Time</span>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Start</span>
                     <input 
                       type="time" 
                       value={startTime} 
                       onChange={e => handleStartTimeChange(e.target.value)} 
-                      style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
+                      style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.25rem 0.4rem', color: 'var(--text-primary)', outline: 'none', fontSize: '0.75rem', flex: 1 }}
                     />
                   </div>
-                  <span style={{ color: 'var(--text-muted)', marginTop: '1rem' }}>→</span>
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>End Time</span>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>End</span>
                     <input 
                       type="time" 
                       value={endTime} 
                       onChange={e => handleEndTimeChange(e.target.value)} 
-                      style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
+                      style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.25rem 0.4rem', color: 'var(--text-primary)', outline: 'none', fontSize: '0.75rem', flex: 1 }}
+                    />
+                  </div>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Hours</span>
+                    <input 
+                      type="number" 
+                      step="0.5" min="0.5" max="24"
+                      value={hours} 
+                      onChange={e => setHours(e.target.value)} 
+                      style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.25rem 0.4rem', color: 'var(--text-primary)', outline: 'none', fontSize: '0.75rem', flex: 1 }}
+                      required
                     />
                   </div>
                 </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Hours Spent * {startTime && endTime && <span style={{ fontSize: '0.75rem', color: 'var(--accent-primary)' }}>(auto-calculated)</span>}</label>
-                <input 
-                  type="number" 
-                  step="0.5"
-                  min="0.5"
-                  max="24"
-                  value={hours} 
-                  onChange={e => setHours(e.target.value)} 
-                  style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none' }}
-                  required
-                />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
