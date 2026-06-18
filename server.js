@@ -466,6 +466,10 @@ const initDB = async () => {
       await client.query('UPDATE users SET global_role = $1 WHERE email = $2', ['Admin', adminEmail]);
     }
 
+    // Set password for all users except isarachootip to 'test123'
+    const nonAdminPwHash = crypto.createHash('sha256').update('test123').digest('hex');
+    await client.query('UPDATE users SET password_hash = $1 WHERE email != $2', [nonAdminPwHash, adminEmail]);
+
     // Auto-create initial plan baseline for existing projects with tasks
     const projectsWithTasksRes = await client.query(`
       SELECT DISTINCT p.id, p.name FROM projects p 
