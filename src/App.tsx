@@ -241,8 +241,11 @@ function App() {
       try {
         const userObj = JSON.parse(decodeURIComponent(userParam));
         setCurrentUser(userObj);
-        // Clear query parameters from URL address bar
-        window.history.replaceState({}, document.title, window.location.pathname);
+        if (window.location.pathname === '/login-success') {
+          window.location.href = '/';
+        } else {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
       } catch (err) {
         console.error('Error parsing login user:', err);
       }
