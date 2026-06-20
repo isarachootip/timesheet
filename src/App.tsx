@@ -10,6 +10,7 @@ import { Reports } from './components/Reports';
 import { Login } from './components/Login';
 import { Settings } from './components/Settings';
 import { ProjectPlan } from './components/ProjectPlan';
+import ChatWidget from './components/ChatWidget';
 import { mockUsers, mockProjects, mockTasks, mockTimesheets } from './data/mockData';
 import type { User, Project, Task, TimesheetEntry, TaskTemplate, Sprint, Release, PermissionScheme, ProjectWorkflow, CostRate } from './types';
 import './index.css';
@@ -658,6 +659,18 @@ function App() {
   const handleLogout = () => {
     setCurrentUser(null);
   };
+
+  const isWidgetRoute = window.location.pathname === '/widget-iframe';
+
+  if (isWidgetRoute) {
+    return (
+      <Router>
+        <Routes>
+          <Route path="/widget-iframe" element={<ChatWidget />} />
+        </Routes>
+      </Router>
+    );
+  }
 
   if (!currentUser) {
     return <Login onLogin={handleLogin} availableUsers={users.length > 0 ? users : mockUsers} />;

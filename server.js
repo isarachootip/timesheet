@@ -722,6 +722,31 @@ app.get('/api/auth/line/callback', async (req, res) => {
   }
 });
 
+// Chatbot API Endpoint
+app.post('/api/chat', async (req, res) => {
+  const { message } = req.body;
+  if (!message) {
+    return res.status(400).json({ error: 'Message is required' });
+  }
+
+  // Basic Rule-based mock response
+  let reply = 'ขออภัยครับ ตอนนี้ผมเป็นเพียงบอททดสอบ ยังไม่สามารถตอบคำถามซับซ้อนได้ครับ (หากต้องการให้ฉลาดขึ้น สามารถแจ้งทีมงานให้เชื่อมต่อกับ OpenAI ได้ครับ)';
+  const msgLower = message.toLowerCase();
+  
+  if (msgLower.includes('สวัสดี') || msgLower.includes('hello') || msgLower.includes('หวัดดี')) {
+    reply = 'สวัสดีครับ! ยินดีต้อนรับสู่ระบบ NexTime มีอะไรให้ผมช่วยเหลือไหมครับ?';
+  } else if (msgLower.includes('ราคา') || msgLower.includes('แพ็กเกจ') || msgLower.includes('จ่าย')) {
+    reply = 'สำหรับข้อมูลราคาและแพ็กเกจการใช้งาน รบกวนติดต่อทีมฝ่ายขายได้เลยครับ ยินดีให้คำปรึกษาครับ';
+  } else if (msgLower.includes('ปัญหา') || msgLower.includes('เข้าไม่ได้') || msgLower.includes('พัง')) {
+    reply = 'หากพบปัญหาการใช้งาน สามารถแจ้งเรื่องให้ทีม Support ทราบได้เลยครับ เราจะรีบแก้ไขให้เร็วที่สุด';
+  }
+
+  // Simulate AI thinking delay
+  setTimeout(() => {
+    res.json({ reply });
+  }, 1000);
+});
+
 // Password Authentication Endpoint
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
