@@ -1405,6 +1405,60 @@ app.post('/api/projects', async (req, res) => {
   }
 });
 
+// Delete Project (cascade)
+app.delete('/api/projects/:id', async (req, res) => {
+  const { id } = req.params;
+  const userId = req.headers['x-user-id'];
+  try {
+    // Permission check: only Admin or Manager can delete projects
+    if (userId) {
+      const userRes = await pool.query('SELECT global_role FROM users WHERE id = $1', [userId]);
+      if (userRes.rows.length > 0) {
+        const role = userRes.rows[0].global_role;
+        if (role !== 'Admin' && role !== 'Manager') {
+          return res.status(403).json({ error: 'Only Admin or Manager can delete projects' });
+        }
+      }
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // 1. Delete task_snapshots via project_baselines
+      await client.query(
+        `DELETE FROM task_snapshots WHERE baseline_id IN (SELECT id FROM project_baselines WHERE project_id = $1)`,
+        [id]
+      );
+      // 2. Delete project_baselines
+      await client.query('DELETE FROM project_baselines WHERE project_id = $1', [id]);
+      // 3. Delete timesheets linked to this project
+      await client.query('DELETE FROM timesheets WHERE project_id = $1', [id]);
+      // 4. Delete tasks
+      await client.query('DELETE FROM tasks WHERE project_id = $1', [id]);
+      // 5. Delete sprints
+      await client.query('DELETE FROM sprints WHERE project_id = $1', [id]);
+      // 6. Delete releases
+      await client.query('DELETE FROM releases WHERE project_id = $1', [id]);
+      // 7. Delete project_workflows
+      await client.query('DELETE FROM project_workflows WHERE project_id = $1', [id]);
+      // 8. Delete the project itself
+      await client.query('DELETE FROM projects WHERE id = $1', [id]);
+
+      await client.query('COMMIT');
+      res.json({ success: true });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error('Error deleting project:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // --- Permission and Workflow Validation Helpers ---
 async function checkPermission(userId, projectId, permissionKey, taskObject = null) {
   if (!userId) return true; // Bypass validation if header X-User-Id is missing (local scripts, fallback compatibility)
@@ -2198,7 +2252,56 @@ app.get('/api/db-status', async (req, res) => {
   }
 });
 
-// Fallback: serve React index.html for all non-API routes (SPA routing)
+// ==========================================
+// Clean / Reset Tasks Data API (Admin Only)
+// Deletes: tasks, sprints, releases, timesheets, milestones, baselines, task_snapshots, task_commits
+// Keeps: projects, users, settings, workflows, permission_schemes, cost_rates, task_templates
+// ==========================================
+app.post('/api/clean-tasks', async (req, res) => {
+  try {
+    const userId = req.headers['x-user-id'];
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Check if user is Admin
+    const userRes = await pool.query('SELECT global_role FROM users WHERE id = $1', [userId]);
+    if (!userRes.rows[0] || userRes.rows[0].global_role !== 'Admin') {
+      return res.status(403).json({ error: 'Only Admin can perform this action' });
+    }
+
+    // Count existing records before deletion (for summary)
+    const counts = {};
+    const tables = ['tasks', 'sprints', 'releases', 'timesheets', 'project_baselines', 'task_snapshots', 'task_commits'];
+    for (const table of tables) {
+      const result = await pool.query(`SELECT COUNT(*) FROM ${table}`);
+      counts[table] = parseInt(result.rows[0].count);
+    }
+
+    // Delete in correct order (respecting potential FK relationships)
+    await pool.query('DELETE FROM task_snapshots');
+    await pool.query('DELETE FROM project_baselines');
+    await pool.query('DELETE FROM task_commits');
+    await pool.query('DELETE FROM timesheets');
+    await pool.query('DELETE FROM tasks');
+    await pool.query('DELETE FROM sprints');
+    await pool.query('DELETE FROM releases');
+
+    console.log('🧹 Clean-tasks executed by user:', userId);
+    console.log('   Deleted:', counts);
+
+    res.json({
+      success: true,
+      message: 'All task-related data has been cleaned successfully',
+      deleted: counts
+    });
+  } catch (err) {
+    console.error('Error cleaning tasks:', err);
+    res.status(500).json({ error: 'Failed to clean tasks', details: err.message });
+  }
+});
+
+
 // Using app.use instead of app.get('/(.*)', ...) to avoid path-to-regexp v6 incompatibility
 app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));

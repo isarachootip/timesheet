@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import type { TaskTemplate, TaskPriority, PermissionScheme, User, CostRate } from '../types';
-import { Plus, Trash2, Edit, X, Save, Shield, ShieldCheck, Coins } from 'lucide-react';
+import { Plus, Trash2, Edit, X, Save, Shield, ShieldCheck, Coins, AlertTriangle, RefreshCw } from 'lucide-react';
 
 interface SettingsProps {
   taskTemplates: TaskTemplate[];
@@ -10,6 +10,7 @@ interface SettingsProps {
   currentUser: User | null;
   costRates: CostRate[];
   setCostRates: React.Dispatch<React.SetStateAction<CostRate[]>>;
+  fetchInitialData?: () => void;
 }
 
 export const Settings = ({ 
@@ -19,11 +20,15 @@ export const Settings = ({
   setPermissionSchemes, 
   currentUser,
   costRates,
-  setCostRates
+  setCostRates,
+  fetchInitialData
 }: SettingsProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<TaskTemplate | null>(null);
-  const [activeTab, setActiveTab] = useState<'templates' | 'integrations' | 'permission_schemes' | 'cost_rates'>('templates');
+  const [activeTab, setActiveTab] = useState<'templates' | 'integrations' | 'permission_schemes' | 'cost_rates' | 'data_management'>('templates');
+  const [showCleanConfirm, setShowCleanConfirm] = useState(false);
+  const [cleanResult, setCleanResult] = useState<{ deleted: Record<string, number> } | null>(null);
+  const [isCleaning, setIsCleaning] = useState(false);
 
   // Form states
   const [title, setTitle] = useState('');
@@ -420,6 +425,22 @@ export const Settings = ({
             }}
           >
             Labor Rates (ค่าแรง)
+          </button>
+        )}
+        {isGlobalAdmin && (
+          <button 
+            onClick={() => setActiveTab('data_management')}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: activeTab === 'data_management' ? 'var(--accent-danger)' : 'var(--text-secondary)',
+              borderBottom: activeTab === 'data_management' ? '2px solid var(--accent-danger)' : '2px solid transparent',
+              padding: '0.5rem 1rem',
+              cursor: 'pointer',
+              fontWeight: activeTab === 'data_management' ? 600 : 400
+            }}
+          >
+            🧹 Data Management
           </button>
         )}
       </div>
@@ -1132,6 +1153,180 @@ export const Settings = ({
                 </button>
               )}
             </form>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'data_management' && isGlobalAdmin && (
+        <div className="glass-panel" style={{ padding: '2rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+            <AlertTriangle size={24} color="var(--accent-danger)" />
+            <h3 style={{ margin: 0, fontSize: '1.25rem' }}>Data Management</h3>
+          </div>
+
+          <div style={{ 
+            background: 'rgba(239, 68, 68, 0.1)', 
+            border: '1px solid rgba(239, 68, 68, 0.3)', 
+            borderRadius: 'var(--radius-md)', 
+            padding: '1.25rem',
+            marginBottom: '1.5rem'
+          }}>
+            <h4 style={{ color: 'var(--accent-danger)', margin: '0 0 0.75rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Trash2 size={18} /> Clean All Tasks & Plans
+            </h4>
+            <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem 0', fontSize: '0.9rem', lineHeight: 1.6 }}>
+              ล้างข้อมูลทั้งหมดเพื่อเริ่มต้น Setup ใหม่ สำหรับโครงการที่ต้องการเคลียร์งานเดิมทิ้ง
+            </p>
+            
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: '1fr 1fr', 
+              gap: '1rem',
+              marginBottom: '1.25rem'
+            }}>
+              <div>
+                <h5 style={{ color: 'var(--accent-danger)', margin: '0 0 0.5rem 0', fontSize: '0.85rem' }}>🗑️ จะถูกลบ:</h5>
+                <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+                  <li>Tasks ทั้งหมด (Kanban Board)</li>
+                  <li>Sprints ทั้งหมด</li>
+                  <li>Releases ทั้งหมด</li>
+                  <li>Timesheets (บันทึกชั่วโมง)</li>
+                  <li>Project Baselines & Snapshots</li>
+                  <li>Git Commits (ที่เชื่อมกับ Task)</li>
+                </ul>
+              </div>
+              <div>
+                <h5 style={{ color: 'var(--accent-secondary)', margin: '0 0 0.5rem 0', fontSize: '0.85rem' }}>✅ จะถูกเก็บไว้:</h5>
+                <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+                  <li>Projects (โครงการ + สมาชิก)</li>
+                  <li>Users / Staff (พนักงานทุกคน)</li>
+                  <li>Milestone Templates</li>
+                  <li>Permission Schemes</li>
+                  <li>Cost Rates (อัตราค่าแรง)</li>
+                  <li>Git Webhooks</li>
+                </ul>
+              </div>
+            </div>
+
+            {!showCleanConfirm ? (
+              <button
+                onClick={() => { setShowCleanConfirm(true); setCleanResult(null); }}
+                style={{
+                  background: 'rgba(239, 68, 68, 0.2)',
+                  color: 'var(--accent-danger)',
+                  border: '1px solid var(--accent-danger)',
+                  padding: '0.75rem 1.5rem',
+                  borderRadius: 'var(--radius-md)',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+                className="hover-lift"
+              >
+                <Trash2 size={18} /> Clean All Tasks & Plans
+              </button>
+            ) : (
+              <div style={{ 
+                background: 'rgba(239, 68, 68, 0.15)', 
+                border: '2px solid var(--accent-danger)', 
+                borderRadius: 'var(--radius-md)', 
+                padding: '1.25rem' 
+              }}>
+                <p style={{ color: 'var(--accent-danger)', fontWeight: 700, margin: '0 0 1rem 0', fontSize: '1rem' }}>
+                  ⚠️ ยืนยันการลบข้อมูล?
+                </p>
+                <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem 0', fontSize: '0.85rem' }}>
+                  การดำเนินการนี้จะลบ Tasks, Sprints, Releases, Timesheets, Baselines, Git Commits ทั้งหมดออกจากฐานข้อมูล <strong>ไม่สามารถกู้คืนได้!</strong>
+                </p>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <button
+                    onClick={async () => {
+                      setIsCleaning(true);
+                      try {
+                        const res = await fetch('/api/clean-tasks', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json', 'X-User-Id': currentUser?.id || '' }
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                          setCleanResult(data);
+                          setShowCleanConfirm(false);
+                          // Refresh all data
+                          if (fetchInitialData) fetchInitialData();
+                        } else {
+                          alert('Error: ' + (data.error || 'Unknown error'));
+                        }
+                      } catch (err) {
+                        alert('Failed to clean data: ' + (err as Error).message);
+                      } finally {
+                        setIsCleaning(false);
+                      }
+                    }}
+                    disabled={isCleaning}
+                    style={{
+                      background: 'var(--accent-danger)',
+                      color: 'white',
+                      border: 'none',
+                      padding: '0.75rem 1.5rem',
+                      borderRadius: 'var(--radius-md)',
+                      cursor: isCleaning ? 'wait' : 'pointer',
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      opacity: isCleaning ? 0.7 : 1
+                    }}
+                  >
+                    {isCleaning ? <RefreshCw size={18} className="spin" /> : <Trash2 size={18} />}
+                    {isCleaning ? 'กำลังลบ...' : 'ยืนยัน ลบทั้งหมด'}
+                  </button>
+                  <button
+                    onClick={() => setShowCleanConfirm(false)}
+                    disabled={isCleaning}
+                    style={{
+                      background: 'var(--bg-tertiary)',
+                      color: 'var(--text-secondary)',
+                      border: '1px solid var(--border-color)',
+                      padding: '0.75rem 1.5rem',
+                      borderRadius: 'var(--radius-md)',
+                      cursor: 'pointer',
+                      fontWeight: 500
+                    }}
+                  >
+                    ยกเลิก
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {cleanResult && (
+              <div style={{ 
+                marginTop: '1.25rem',
+                background: 'rgba(16, 185, 129, 0.1)', 
+                border: '1px solid rgba(16, 185, 129, 0.3)', 
+                borderRadius: 'var(--radius-md)', 
+                padding: '1.25rem' 
+              }}>
+                <h5 style={{ color: 'var(--accent-secondary)', margin: '0 0 0.75rem 0' }}>✅ ล้างข้อมูลสำเร็จ!</h5>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.5rem' }}>
+                  {Object.entries(cleanResult.deleted).map(([table, count]) => (
+                    <div key={table} style={{ 
+                      background: 'var(--bg-tertiary)', 
+                      padding: '0.5rem 0.75rem', 
+                      borderRadius: 'var(--radius-sm)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontSize: '0.85rem'
+                    }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>{table.replace(/_/g, ' ')}</span>
+                      <span style={{ color: 'var(--accent-danger)', fontWeight: 600 }}>-{count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

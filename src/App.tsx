@@ -342,6 +342,23 @@ function App() {
     setProjects(prev => {
       const nextProjects = typeof value === 'function' ? value(prev) : value;
       const headers = { 'Content-Type': 'application/json', 'X-User-Id': currentUser?.id || '' };
+
+      // Detect deleted projects
+      if (nextProjects.length < prev.length) {
+        const deletedProject = prev.find(pProj => !nextProjects.some(nProj => nProj.id === pProj.id));
+        if (deletedProject) {
+          fetch(`/api/projects/${deletedProject.id}`, { method: 'DELETE', headers })
+            .then(async res => {
+              if (!res.ok) {
+                const err = await res.json();
+                alert(err.error || 'Failed to delete project');
+                fetchInitialData();
+              }
+            });
+        }
+      }
+
+      // Detect changed/new projects
       nextProjects.forEach(nProj => {
         const prevProj = prev.find(pProj => pProj.id === nProj.id);
         if (JSON.stringify(prevProj) !== JSON.stringify(nProj)) {
@@ -694,9 +711,9 @@ function App() {
           <Route path="/project-plan" element={<ProjectPlan projects={projects} tasks={tasks} setTasks={handleSetTasks} users={users} taskTemplates={taskTemplates} permissionSchemes={permissionSchemes} currentUser={currentUser} fetchInitialData={fetchInitialData} />} />
           <Route path="/tasks" element={<Tasks tasks={tasks} setTasks={handleSetTasks} projects={projects} users={users} sprints={sprints} setSprints={handleSetSprints} releases={releases} setReleases={handleSetReleases} projectWorkflows={projectWorkflows} setProjectWorkflows={handleSetProjectWorkflows} permissionSchemes={permissionSchemes} currentUser={currentUser} />} />
           <Route path="/timesheet" element={<Timesheet timesheets={timesheets} setTimesheets={handleSetTimesheets} projects={projects} tasks={tasks} currentUser={currentUser} />} />
-          <Route path="/team" element={<TeamApprovals users={users} setUsers={handleSetUsers} timesheets={timesheets} setTimesheets={handleSetTimesheets} projects={projects} setProjects={handleSetProjects} tasks={tasks} />} />
+          <Route path="/team" element={<TeamApprovals users={users} setUsers={handleSetUsers} timesheets={timesheets} setTimesheets={handleSetTimesheets} projects={projects} setProjects={handleSetProjects} tasks={tasks} currentUser={currentUser} />} />
           <Route path="/reports" element={<Reports timesheets={timesheets} projects={projects} users={users} currentUser={currentUser} tasks={tasks} costRates={costRates} />} />
-          <Route path="/settings" element={<Settings taskTemplates={taskTemplates} setTaskTemplates={handleSetTaskTemplates} permissionSchemes={permissionSchemes} setPermissionSchemes={handleSetPermissionSchemes} currentUser={currentUser} costRates={costRates} setCostRates={handleSetCostRates} />} />
+          <Route path="/settings" element={<Settings taskTemplates={taskTemplates} setTaskTemplates={handleSetTaskTemplates} permissionSchemes={permissionSchemes} setPermissionSchemes={handleSetPermissionSchemes} currentUser={currentUser} costRates={costRates} setCostRates={handleSetCostRates} fetchInitialData={fetchInitialData} />} />
         </Routes>
       </AppLayout>
     </Router>

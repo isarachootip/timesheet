@@ -10,9 +10,10 @@ interface TeamApprovalsProps {
   projects: Project[];
   setProjects: React.Dispatch<React.SetStateAction<Project[]>>;
   tasks: any[];
+  currentUser: User;
 }
 
-export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, projects, setProjects, tasks }: TeamApprovalsProps) => {
+export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, projects, setProjects, tasks, currentUser }: TeamApprovalsProps) => {
   const [activeTab, setActiveTab] = useState<'team' | 'approvals'>('team');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -219,12 +220,16 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
   const getUserName = (id: string) => users.find(u => u.id === id)?.name || 'Unknown User';
   const getUserAvatar = (id: string) => users.find(u => u.id === id)?.avatar || '';
 
+  // Check if current user has approval rights (Admin or PM of any project)
+  const isPMorAdmin = currentUser.globalRole === 'Admin' || currentUser.globalRole === 'Manager' ||
+    projects.some(p => p.members?.some(m => m.userId === currentUser.id && m.role === 'PM'));
+
   const handleApprove = (id: string) => {
-    setTimesheets(prev => prev.map(ts => ts.id === id ? { ...ts, status: 'Approved', approvedBy: 'u1', approvedAt: new Date().toISOString() } : ts));
+    setTimesheets(prev => prev.map(ts => ts.id === id ? { ...ts, status: 'Approved', approvedBy: currentUser.id, approvedAt: new Date().toISOString() } : ts));
   };
 
   const handleReject = (id: string) => {
-    setTimesheets(prev => prev.map(ts => ts.id === id ? { ...ts, status: 'Rejected' } : ts));
+    setTimesheets(prev => prev.map(ts => ts.id === id ? { ...ts, status: 'Rejected', approvedBy: currentUser.id, approvedAt: new Date().toISOString() } : ts));
   };
 
   const openAddModal = () => {
@@ -444,6 +449,7 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
             <Users size={18} /> Team Directory
           </div>
         </button>
+        {isPMorAdmin && (
         <button 
           onClick={() => setActiveTab('approvals')}
           style={{
@@ -467,6 +473,7 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
             )}
           </div>
         </button>
+        )}
       </div>
 
       {/* Tab Content */}
