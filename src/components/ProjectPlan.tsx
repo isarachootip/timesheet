@@ -842,12 +842,13 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
                             {compTask?.compare ? (
                               <div style={{
                                 position: 'absolute', left: `${compGeom.left}%`, width: `${compGeom.width}%`, height: '20px', top: '2px',
-                                background: 'rgba(56, 189, 248, 0.15)', border: '2px solid #38bdf8',
+                                background: progress === 100 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(56, 189, 248, 0.15)',
+                                border: `2px solid ${progress === 100 ? '#10b981' : '#38bdf8'}`,
                                 borderRadius: '5px', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 6px',
                                 zIndex: 2
                               }} title={`Comparison: ${compGeom.start ? new Date(compGeom.start).toLocaleDateString() : 'TBD'} → ${compGeom.end ? new Date(compGeom.end).toLocaleDateString() : 'TBD'}`}>
-                                <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${progress}%`, background: '#38bdf8', opacity: 0.2 }} />
-                                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#38bdf8', zIndex: 1 }}>{progress}% (Comp)</span>
+                                <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${progress}%`, background: progress === 100 ? '#10b981' : '#38bdf8', opacity: 0.2 }} />
+                                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: progress === 100 ? '#10b981' : '#38bdf8', zIndex: 1 }}>{progress}% (Comp)</span>
                               </div>
                             ) : (
                               <div style={{ position: 'absolute', left: 0, top: '2px', height: '20px', fontSize: '0.7rem', color: '#4b5563', fontStyle: 'italic' }}>
