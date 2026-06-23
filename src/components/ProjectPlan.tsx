@@ -848,7 +848,14 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
                                 zIndex: 2
                               }} title={`Comparison: ${compGeom.start ? new Date(compGeom.start).toLocaleDateString() : 'TBD'} → ${compGeom.end ? new Date(compGeom.end).toLocaleDateString() : 'TBD'}`}>
                                 <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${progress}%`, background: progress === 100 ? '#10b981' : '#38bdf8', opacity: 0.2 }} />
-                                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: progress === 100 ? '#10b981' : '#38bdf8', zIndex: 1 }}>{progress}% (Comp)</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', zIndex: 1 }}>
+                                  {progress === 100 && (
+                                    <CheckCircle2 size={12} color="#10b981" style={{ filter: 'drop-shadow(0 0 4px rgba(16,185,129,0.8))' }} />
+                                  )}
+                                  <span style={{ fontSize: '0.65rem', fontWeight: 700, color: progress === 100 ? '#10b981' : '#38bdf8', textShadow: progress === 100 ? '0 0 4px rgba(16,185,129,0.4)' : 'none' }}>
+                                    {progress}% (Comp)
+                                  </span>
+                                </div>
                               </div>
                             ) : (
                               <div style={{ position: 'absolute', left: 0, top: '2px', height: '20px', fontSize: '0.7rem', color: '#4b5563', fontStyle: 'italic' }}>
