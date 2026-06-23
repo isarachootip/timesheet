@@ -254,7 +254,12 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
 
   const calculateMilestoneProgress = (milestoneId: string, milestoneStatus: string) => {
     const subtasks = tasks.filter(t => t.parentId === milestoneId);
-    if (subtasks.length === 0) return milestoneStatus === 'Done' ? 100 : 0;
+    if (subtasks.length === 0) {
+      if (milestoneStatus === 'Done') return 100;
+      if (milestoneStatus === 'Review') return 90;
+      if (milestoneStatus === 'In Progress') return 50;
+      return 0;
+    }
     const completed = subtasks.filter(t => t.status === 'Done').length;
     return Math.round((completed / subtasks.length) * 100);
   };
