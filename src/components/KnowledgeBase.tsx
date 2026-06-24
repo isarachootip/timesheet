@@ -1,0 +1,163 @@
+import React, { useState } from 'react';
+import { HelpCircle, ChevronDown, ChevronRight, BookOpen, Database, BarChart3, Clock } from 'lucide-react';
+
+interface FaqItem {
+  id: string;
+  question: string;
+  answer: React.ReactNode;
+  icon: React.FC<any>;
+}
+
+const faqs: FaqItem[] = [
+  {
+    id: 'q1',
+    question: 'How is the Milestone Progress calculated?',
+    icon: BarChart3,
+    answer: (
+      <div>
+        <p style={{ marginBottom: '0.5rem' }}>The progress calculation depends on whether a task has subtasks:</p>
+        <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+          <li style={{ marginBottom: '0.25rem' }}><strong>Tasks WITHOUT Subtasks:</strong> Progress is strictly 0% or 100%. If the task is in "In Progress", it becomes 50%. If in "Review", it is 90%. It only reaches 100% when moved to "Done".</li>
+          <li><strong>Tasks WITH Subtasks:</strong> Progress is calculated purely by the percentage of its subtasks that are in "Done" status (e.g., 2 out of 4 subtasks done = 50%), regardless of which column the main task is in.</li>
+        </ul>
+      </div>
+    )
+  },
+  {
+    id: 'q2',
+    question: 'How do I delete Timesheets, Tasks, or Subtasks?',
+    icon: Clock,
+    answer: (
+      <div>
+        <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+          <li style={{ marginBottom: '0.25rem' }}><strong>Timesheets:</strong> Go to the "Timesheet" menu. In your logged time history list, look for the red trash bin icon at the end of the row and click it to delete.</li>
+          <li style={{ marginBottom: '0.25rem' }}><strong>Tasks (Board View):</strong> On the "Tasks" board, hover over the task card and click the small red trash bin icon in the top right corner.</li>
+          <li><strong>Tasks (Bulk Delete):</strong> Go to the "Backlog" or "Summary" view under Tasks, check the boxes next to multiple items, and click the red "Delete Selected" button at the top.</li>
+        </ul>
+      </div>
+    )
+  },
+  {
+    id: 'q3',
+    question: 'How do I move Tasks between Sprints?',
+    icon: BookOpen,
+    answer: (
+      <div>
+        <p style={{ marginBottom: '0.5rem' }}>You can move tasks to different sprints easily:</p>
+        <ol style={{ listStyleType: 'decimal', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+          <li style={{ marginBottom: '0.25rem' }}>Go to the <strong>Backlog</strong> tab under Tasks.</li>
+          <li style={{ marginBottom: '0.25rem' }}>Find the task you want to move. On the right side of the row, there is a dropdown menu displaying its current Sprint.</li>
+          <li>Click the dropdown and select the desired Sprint, or select "Backlog" to remove it from all sprints. You can also select multiple tasks using the checkboxes on the left and use the Bulk Action button at the top to reassign them simultaneously.</li>
+        </ol>
+      </div>
+    )
+  },
+  {
+    id: 'q4',
+    question: 'Where is my application data stored?',
+    icon: Database,
+    answer: (
+      <div>
+        <p style={{ marginBottom: '0.5rem' }}>All system data and user configurations are stored safely on your VPS server:</p>
+        <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem' }}>
+          <li style={{ marginBottom: '0.25rem' }}><strong>Application Data:</strong> Tasks, Projects, Timesheets, and Sprints are permanently stored in a <strong>PostgreSQL Database</strong> on your Coolify server.</li>
+          <li><strong>Agent Memory:</strong> Any special rules or knowledge taught to the AI Agent (e.g., via the <code>/learn</code> command) are stored as customized rules in a local <code>.agents</code> folder on your device.</li>
+        </ul>
+      </div>
+    )
+  }
+];
+
+const KnowledgeBase: React.FC = () => {
+  const [expandedId, setExpandedId] = useState<string | null>('q1');
+
+  return (
+    <div style={{ padding: '2rem', maxWidth: '1000px', margin: '0 auto', color: 'var(--text-primary)' }}>
+      <header style={{ marginBottom: '2.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <HelpCircle size={24} color="white" />
+        </div>
+        <div>
+          <h1 style={{ fontSize: '2rem', fontWeight: 700, margin: 0 }} className="text-gradient">Help & FAQ</h1>
+          <p style={{ color: 'var(--text-secondary)', marginTop: '0.25rem' }}>System documentation and frequently asked questions.</p>
+        </div>
+      </header>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {faqs.map(faq => {
+          const Icon = faq.icon;
+          const isExpanded = expandedId === faq.id;
+          
+          return (
+            <div 
+              key={faq.id} 
+              style={{ 
+                background: 'var(--bg-secondary)', 
+                border: '1px solid var(--border-color)', 
+                borderRadius: '12px', 
+                overflow: 'hidden',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <button
+                onClick={() => setExpandedId(isExpanded ? null : faq.id)}
+                style={{
+                  width: '100%',
+                  padding: '1.25rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  color: 'var(--text-primary)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
+                  <div style={{ 
+                    width: '36px', height: '36px', borderRadius: '8px', 
+                    background: isExpanded ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.05)', 
+                    display: 'flex', alignItems: 'center', justifyContent: 'center' 
+                  }}>
+                    <Icon size={18} color={isExpanded ? '#818cf8' : 'var(--text-secondary)'} />
+                  </div>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 600, margin: 0, color: isExpanded ? 'white' : 'var(--text-primary)' }}>
+                    {faq.question}
+                  </h3>
+                </div>
+                <div style={{ color: 'var(--text-secondary)' }}>
+                  {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+                </div>
+              </button>
+              
+              {isExpanded && (
+                <div style={{ 
+                  padding: '0 1.25rem 1.5rem 1.25rem',
+                  marginLeft: '44px', // Aligns with the text, bypassing the icon
+                  color: 'var(--text-secondary)',
+                  lineHeight: '1.6',
+                  fontSize: '0.95rem'
+                }}>
+                  <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '0 0 1rem 0' }} />
+                  {faq.answer}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      
+      <div style={{ marginTop: '3rem', padding: '1.5rem', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '12px', display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+        <HelpCircle size={24} color="#818cf8" style={{ marginTop: '0.2rem', flexShrink: 0 }} />
+        <div>
+          <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#e0e7ff', margin: '0 0 0.5rem 0' }}>Need more help?</h4>
+          <p style={{ color: '#c7d2fe', fontSize: '0.9rem', margin: 0, lineHeight: 1.5 }}>
+            If you have additional questions or need technical support, you can access the Chat Widget in the bottom right corner of your screen to communicate with the AI assistant.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default KnowledgeBase;
