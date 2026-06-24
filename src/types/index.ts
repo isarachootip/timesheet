@@ -21,6 +21,7 @@ export interface User {
 export interface ProjectMember {
   userId: string;
   role: ProjectRole;
+  manDayRate?: number;
 }
 
 export interface Project {

@@ -54,7 +54,7 @@ export const Projects = ({
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [budget, setBudget] = useState('');
-  const [members, setMembers] = useState<{ userId: string; role: ProjectRole }[]>([]);
+  const [members, setMembers] = useState<{ userId: string; role: ProjectRole; manDayRate?: number }[]>([]);
   const [customColumnsText, setCustomColumnsText] = useState('To Do, In Progress, Review, Done');
   const [permissionSchemeId, setPermissionSchemeId] = useState('scheme_default');
 
@@ -62,6 +62,7 @@ export const Projects = ({
   const [tempUserId, setTempUserId] = useState('');
   const [tempRole, setTempRole] = useState<ProjectRole>('Frontend dev');
   const [customRole, setCustomRole] = useState('');
+  const [tempManDayRate, setTempManDayRate] = useState('');
 
   const formatNumberWithCommas = (value: string) => {
     const cleanValue = value.replace(/[^0-9.]/g, '');
@@ -272,9 +273,14 @@ export const Projects = ({
     if (members.some(m => m.userId === tempUserId)) return alert('Member already added');
     const roleToAdd = tempRole === 'Custom' ? customRole : tempRole;
     if (!roleToAdd) return alert('Please enter or select a role');
-    setMembers(prev => [...prev, { userId: tempUserId, role: roleToAdd }]);
+    setMembers(prev => [...prev, { 
+      userId: tempUserId, 
+      role: roleToAdd,
+      manDayRate: Number(tempManDayRate) || 0
+    }]);
     setTempUserId('');
     setCustomRole('');
+    setTempManDayRate('');
   };
 
   const removeMember = (userId: string) => {
@@ -594,6 +600,14 @@ export const Projects = ({
                     />
                   )}
 
+                  <input 
+                    type="number" 
+                    placeholder="Rate/MD (THB)"
+                    value={tempManDayRate}
+                    onChange={e => setTempManDayRate(e.target.value)}
+                    style={{ width: '130px', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
+                  />
+
                   <button type="button" onClick={addMember} style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                     <Plus size={18} />
                   </button>
@@ -602,7 +616,7 @@ export const Projects = ({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '120px', overflowY: 'auto' }}>
                   {members.map(m => (
                     <div key={m.userId} className="flex-between" style={{ background: 'var(--bg-tertiary)', padding: '0.5rem 1rem', borderRadius: 'var(--radius-sm)' }}>
-                      <span style={{ fontSize: '0.85rem' }}>{getUserName(m.userId)} - <span style={{ color: 'var(--text-muted)' }}>{m.role}</span></span>
+                      <span style={{ fontSize: '0.85rem' }}>{getUserName(m.userId)} - <span style={{ color: 'var(--text-muted)' }}>{m.role} {m.manDayRate ? `(${m.manDayRate.toLocaleString()} THB/MD)` : ''}</span></span>
                       <button type="button" onClick={() => removeMember(m.userId)} style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer' }}>
                         <X size={14} />
                       </button>
