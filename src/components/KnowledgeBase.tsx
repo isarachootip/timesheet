@@ -79,7 +79,7 @@ const KnowledgeBase: React.FC = () => {
             <div>
               <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
                 <li style={{ marginBottom: '0.25rem' }}><strong>Monthly Summary:</strong> This shows the total hours you have logged during the <strong>current month</strong> (not week). The "Target: 160h" represents a standard full-time working month (e.g., 40 hours/week &times; 4 weeks).</li>
-                <li><strong>Approval Status:</strong> This breaks down your logged hours for the current month into "Approved" (accepted by PM) and "Pending" (awaiting PM approval).</li>
+                <li><strong>Approval Status:</strong> This breaks down your logged hours for the current month into "Approved" (accepted) and "Pending" (awaiting approval). <br/><br/><em>* Note: Timesheets can be approved by anyone with an <strong>Admin</strong>, <strong>Manager</strong>, or <strong>Project Manager (PM)</strong> role.</em></li>
               </ul>
             </div>
           )
@@ -157,7 +157,7 @@ const KnowledgeBase: React.FC = () => {
             <div>
               <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
                 <li style={{ marginBottom: '0.25rem' }}><strong>Monthly Summary (สรุปรายเดือน):</strong> แสดงจำนวนชั่วโมงทั้งหมดที่คุณลงเวลาไว้ใน <strong>เดือนนี้</strong> (ไม่ใช่รายสัปดาห์ครับ) โดยตัวเลข Target: 160h คือเป้าหมายเวลาทำงานมาตรฐานต่อเดือน (เช่น สัปดาห์ละ 40 ชม. &times; 4 สัปดาห์)</li>
-                <li><strong>Approval Status (สถานะอนุมัติ):</strong> แสดงยอดรวมชั่วโมงในเดือนนี้ที่ "ผ่านการอนุมัติแล้ว" (Approved) เทียบกับชั่วโมงที่ "กำลังรอ PM อนุมัติ" (Pending) ครับ</li>
+                <li><strong>Approval Status (สถานะอนุมัติ):</strong> แสดงยอดรวมชั่วโมงในเดือนนี้ที่ "ผ่านการอนุมัติแล้ว" (Approved) เทียบกับชั่วโมงที่ "กำลังรอการอนุมัติ" (Pending) ครับ <br/><br/><em>* หมายเหตุ: ผู้ที่มีสิทธิ์กดอนุมัติ Timesheet ได้คือคนที่มีตำแหน่ง <strong>Admin</strong>, <strong>Manager</strong> หรือ <strong>Project Manager (PM)</strong> ครับ</em></li>
               </ul>
             </div>
           )
