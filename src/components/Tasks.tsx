@@ -316,7 +316,7 @@ function TaskCardContent({
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <Clock size={12} /> {task.estimatedHours ? task.estimatedHours / 8 : 0} MD
+            <Clock size={12} /> {task.estimatedHours || 0}h (= {task.estimatedHours ? task.estimatedHours / 8 : 0} MD)
           </span>
           {task.storyPoints !== undefined && task.storyPoints > 0 && (
             <span
@@ -1480,7 +1480,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
     setDescription(task.description);
     setStatus(task.status);
     setPriority(task.priority);
-    setEstimatedHours(task.estimatedHours ? String(task.estimatedHours / 8) : '');
+    setEstimatedHours(String(task.estimatedHours || ''));
     setAssigneeId(task.assigneeId || '');
     setProjectId(task.projectId);
     setTaskCategory(task.parentId ? 'Sub' : 'Main');
@@ -1523,7 +1523,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
       }
     }
 
-    const est = estimatedHours ? Number(estimatedHours) * 8 : 0;
+    const est = estimatedHours ? Number(estimatedHours) : 0;
     const spVal = storyPoints ? Number(storyPoints) : 0;
     const parentVal = taskCategory === 'Sub' ? parentId : undefined;
 
@@ -3366,7 +3366,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                     <th style={{ padding: '1rem', width: '160px' }}>Assignee</th>
                     <th style={{ padding: '1rem', width: '120px' }}>Priority</th>
                     <th style={{ padding: '1rem', width: '90px' }}>Story Points</th>
-                    <th style={{ padding: '1rem', width: '90px' }}>Man-Days (MD)</th>
+                    <th style={{ padding: '1rem', width: '130px' }}>Est. Hours (MD)</th>
                     <th style={{ padding: '1rem', width: '80px', textAlign: 'center' }}>Actions</th>
                   </tr>
                 </thead>
@@ -3495,8 +3495,8 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                           <td style={{ padding: '0.75rem 1rem' }}>
                             <input
                               type="number"
-                              value={task.estimatedHours ? task.estimatedHours / 8 : 0}
-                              onChange={(e) => updateTaskField(task.id, 'estimatedHours', Number(e.target.value) * 8)}
+                              value={task.estimatedHours || 0}
+                              onChange={(e) => updateTaskField(task.id, 'estimatedHours', Number(e.target.value))}
                               style={{ background: 'transparent', border: 'none', width: '60px', color: 'var(--text-primary)', outline: 'none', fontSize: '0.85rem' }}
                               min="0"
                             />
@@ -3590,7 +3590,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                         const tpl = taskTemplates[idx];
                         setTitle(tpl.title);
                         setDescription(tpl.description);
-                        setEstimatedHours(String(Number(tpl.estimatedHours) / 8));
+                        setEstimatedHours(String(tpl.estimatedHours || ''));
                         setPriority(tpl.priority as TaskPriority);
                       }
                     }}
@@ -3607,7 +3607,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                     <option value="">-- Select a Template --</option>
                     {taskTemplates.map((t, idx) => (
                       <option key={idx} value={idx}>
-                        {t.title} ({t.estimatedHours ? Number(t.estimatedHours) / 8 : 0} MD)
+                        {t.title} ({t.estimatedHours}h = {t.estimatedHours ? Number(t.estimatedHours) / 8 : 0} MD)
                       </option>
                     ))}
                   </select>
@@ -3781,7 +3781,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                       )
                       .map((mt) => (
                         <option key={mt.id} value={mt.id}>
-                          {mt.title} ({mt.estimatedHours ? mt.estimatedHours / 8 : 0} MD)
+                          {mt.title} ({mt.estimatedHours}h = {mt.estimatedHours ? mt.estimatedHours / 8 : 0} MD)
                         </option>
                       ))}
                   </select>
@@ -3917,7 +3917,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                   <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                    Man-Days (MD)
+                    Est. Hours {estimatedHours ? `(= ${Number(estimatedHours) / 8} MD)` : ''}
                   </label>
                   <input
                     type="number"
