@@ -9,9 +9,10 @@ interface TimesheetProps {
   projects: Project[];
   tasks: Task[];
   currentUser: User;
+  users?: User[];
 }
 
-export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentUser }: TimesheetProps) => {
+export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentUser, users }: TimesheetProps) => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -53,6 +54,21 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
   const monthlyHours = thisMonthEntries.reduce((sum, entry) => sum + entry.hours, 0);
   const approvedHours = thisMonthEntries.filter(ts => ts.status === 'Approved').reduce((sum, entry) => sum + entry.hours, 0);
   const pendingHours = thisMonthEntries.filter(ts => ts.status === 'Pending').reduce((sum, entry) => sum + entry.hours, 0);
+
+  // Get unique PMs for pending timesheets
+  const pendingProjects = [...new Set(thisMonthEntries.filter(ts => ts.status === 'Pending').map(ts => ts.projectId))];
+  const approvers = new Set<string>();
+  pendingProjects.forEach(pid => {
+    const proj = projects.find(p => p.id === pid);
+    if (proj) {
+      proj.members.filter(m => m.role === 'PM').forEach(pm => {
+        const user = users?.find(u => u.id === pm.userId);
+        if (user) approvers.add(user.name.split(' ')[0]); // Use first name for brevity
+      });
+    }
+  });
+  
+  const approverNames = Array.from(approvers).join(', ') || 'PM';
 
   // Check if a date has entries (for dot indicator)
   const dateHasEntries = (d: Date) => userEntries.some(ts => isSameDay(new Date(ts.date), d));
@@ -351,7 +367,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                 </div>
                 <div>
                   <div style={{ fontWeight: 500, fontSize: '0.875rem' }}>{pendingHours}h Pending</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Awaiting PM approval</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Awaiting {approverNames} approval</div>
                 </div>
               </div>
             </div>
