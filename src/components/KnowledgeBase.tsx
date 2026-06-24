@@ -113,6 +113,21 @@ const KnowledgeBase: React.FC = () => {
               </ul>
             </div>
           )
+        },
+        {
+          id: 'q8',
+          question: 'What do Timeline, Releases/Versions, and Backlog Grooming mean in the Tasks page?',
+          icon: BookOpen,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>These are different views and tools for planning your project:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Timeline:</strong> A visual roadmap (Gantt chart) showing when tasks start and end. It helps you see the overall schedule and how tasks overlap.</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Releases / Versions:</strong> A way to group tasks that will be launched or delivered together. For example, all features needed for "Version 1.0".</li>
+                <li><strong>Backlog Grooming:</strong> A dedicated view to review, estimate (SP), and prioritize unassigned tasks so they are ready for upcoming sprints.</li>
+              </ul>
+            </div>
+          )
         }
       ]
     },
@@ -218,6 +233,21 @@ const KnowledgeBase: React.FC = () => {
                 <li style={{ marginBottom: '0.25rem' }}>ตัวเลขจะเรียงตามลำดับฟีโบนัชชี (1, 2, 3, 5, 8, 13...) เพราะงานยิ่งใหญ่ความไม่แน่นอนยิ่งสูง จึงไม่กะเกณฑ์เป็นตัวเลขเรียงกันตรงๆ</li>
                 <li style={{ marginBottom: '0.25rem' }}><strong>1 SP</strong> มักจะถูกใช้ตั้งเป็นเกณฑ์มาตรฐานของ "งานที่เล็กและง่ายที่สุด" (เช่น แก้ไขคำผิดบนหน้าเว็บ)</li>
                 <li>เวลาประเมินงานชิ้นใหม่ ทีมจะเปรียบเทียบกับงาน 1 SP เช่น "งานนี้ดูยากและใช้แรงมากกว่างาน 1 SP ประมาณ 3 เท่า" ก็จะตีค่าประเมินงานนั้นเป็น "3 SP" ครับ</li>
+              </ul>
+            </div>
+          )
+        },
+        {
+          id: 'q8',
+          question: 'เมนู Timeline, Releases/Versions และ Backlog Grooming ในหน้า Tasks คืออะไร?',
+          icon: BookOpen,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>ทั้ง 3 เมนูนี้เป็นเครื่องมือที่ช่วยในการวางแผนโปรเจกต์ครับ:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Timeline:</strong> คือหน้าจอที่แสดงแผนงานในรูปแบบของปฏิทินยาว (Gantt Chart) ทำให้เห็นภาพรวมว่าแต่ละงานเริ่มและจบเมื่อไหร่ หรืองานไหนทับซ้อนกันอยู่บ้างครับ</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Releases / Versions:</strong> คือการจัดกลุ่ม Task หลายๆ อันรวมกัน เพื่อกำหนดว่าจะปล่อยอัปเดตระบบพร้อมกันในเวอร์ชันไหน (เช่น ฟีเจอร์ทั้งหมดนี้คือของอัปเดต Version 1.0)</li>
+                <li><strong>Backlog Grooming:</strong> เป็นหน้าจอสำหรับใช้เคลียร์งานที่ยังค้างอยู่ (Backlog) โดยเฉพาะ เพื่อนำมาจัดลำดับความสำคัญ ประเมินคะแนนความยาก (SP) และเตรียมความพร้อมก่อนที่จะดึงเข้า Sprint ถัดไปครับ</li>
               </ul>
             </div>
           )
