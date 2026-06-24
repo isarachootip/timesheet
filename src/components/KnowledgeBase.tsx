@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HelpCircle, ChevronDown, ChevronRight, BookOpen, Database, BarChart3, Clock, Languages } from 'lucide-react';
+import { HelpCircle, ChevronDown, ChevronRight, BookOpen, Database, BarChart3, Clock, Languages, CalendarRange } from 'lucide-react';
 
 type Lang = 'en' | 'th';
 
@@ -128,6 +128,21 @@ const KnowledgeBase: React.FC = () => {
               </ul>
             </div>
           )
+        },
+        {
+          id: 'q9',
+          question: 'What is the Timeline tab in Tasks used for?',
+          icon: CalendarRange,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>The Timeline tab is a <strong>Gantt Chart</strong> view used for long-term scheduling and visual planning:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>All Sprints visible:</strong> It displays tasks from <strong>all sprints</strong> simultaneously, as long as they have a Start Date and End Date assigned.</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Interactive adjustments:</strong> You can quickly change schedules by dragging the task bars left or right, or stretching their edges to adjust the duration, without opening the task form.</li>
+                <li><strong>Identify bottlenecks:</strong> It helps Project Managers easily spot overlapping work and potential scheduling conflicts.</li>
+              </ul>
+            </div>
+          )
         }
       ]
     },
@@ -248,6 +263,21 @@ const KnowledgeBase: React.FC = () => {
                 <li style={{ marginBottom: '0.25rem' }}><strong>Timeline:</strong> คือหน้าจอที่แสดงแผนงานในรูปแบบของปฏิทินยาว (Gantt Chart) ทำให้เห็นภาพรวมว่าแต่ละงานเริ่มและจบเมื่อไหร่ หรืองานไหนทับซ้อนกันอยู่บ้างครับ</li>
                 <li style={{ marginBottom: '0.25rem' }}><strong>Releases / Versions:</strong> คือการจัดกลุ่ม Task หลายๆ อันรวมกัน เพื่อกำหนดว่าจะปล่อยอัปเดตระบบพร้อมกันในเวอร์ชันไหน (เช่น ฟีเจอร์ทั้งหมดนี้คือของอัปเดต Version 1.0)</li>
                 <li><strong>Backlog Grooming:</strong> เป็นหน้าจอสำหรับใช้เคลียร์งานที่ยังค้างอยู่ (Backlog) โดยเฉพาะ เพื่อนำมาจัดลำดับความสำคัญ ประเมินคะแนนความยาก (SP) และเตรียมความพร้อมก่อนที่จะดึงเข้า Sprint ถัดไปครับ</li>
+              </ul>
+            </div>
+          )
+        },
+        {
+          id: 'q9',
+          question: 'แท็บ Timeline ในหน้า Tasks มีไว้ทำอะไร?',
+          icon: CalendarRange,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>แท็บ Timeline คือหน้าจอ <strong>Gantt Chart</strong> ที่เอาไว้วางแผนและดูภาพรวมเรื่อง "เวลา" ของโปรเจกต์ครับ:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>แสดงทุก Sprint:</strong> ระบบจะดึง Task จากทุกๆ Sprint มาแสดงผลให้เห็นพร้อมกัน (โดย Task นั้นจะต้องมีการระบุวันเริ่มต้นและสิ้นสุดเอาไว้)</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>ปรับเวลาได้ทันที:</strong> สามารถเอาเมาส์คลิกลาก (Drag & Drop) ที่ตัวแท่งสีๆ เพื่อเลื่อนวัน หรือดึงขอบซ้าย/ขวาเพื่อยืด-หดระยะเวลาทำงานได้ทันที โดยไม่ต้องกดเข้าไปแก้ในฟอร์มครับ</li>
+                <li><strong>ดูคอขวดของงาน:</strong> ช่วยให้มองเห็นแผนงานระยะยาว ว่ามีงานไหนดำเนินการทับซ้อนกันอยู่บ้าง ช่วยป้องกันคอขวดและจัดตารางงานได้ง่ายขึ้นครับ</li>
               </ul>
             </div>
           )
