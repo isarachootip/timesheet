@@ -83,6 +83,21 @@ const KnowledgeBase: React.FC = () => {
               </ul>
             </div>
           )
+        },
+        {
+          id: 'q6',
+          question: 'What do the Issue Types (Task, Story, Bug) mean?',
+          icon: BookOpen,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>These are standard Agile categories used to organize work:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Story (Green):</strong> Stands for "User Story". It represents a new feature or requirement that delivers direct value to the user (e.g., "Login Page", "Export Report").</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Task (Blue):</strong> Represents technical work, chores, or background tasks that need to be done but aren't necessarily user-facing features (e.g., "Setup Database", "Configure Server").</li>
+                <li><strong>Bug (Red):</strong> Represents a defect or error in the system that needs to be fixed (e.g., "App crashes on login").</li>
+              </ul>
+            </div>
+          )
         }
       ]
     },
@@ -158,6 +173,21 @@ const KnowledgeBase: React.FC = () => {
               <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
                 <li style={{ marginBottom: '0.25rem' }}><strong>Monthly Summary (สรุปรายเดือน):</strong> แสดงจำนวนชั่วโมงทั้งหมดที่คุณลงเวลาไว้ใน <strong>เดือนนี้</strong> (ไม่ใช่รายสัปดาห์ครับ) โดยตัวเลข Target: 160h คือเป้าหมายเวลาทำงานมาตรฐานต่อเดือน (เช่น สัปดาห์ละ 40 ชม. &times; 4 สัปดาห์)</li>
                 <li><strong>Approval Status (สถานะอนุมัติ):</strong> แสดงยอดรวมชั่วโมงในเดือนนี้ที่ "ผ่านการอนุมัติแล้ว" (Approved) เทียบกับชั่วโมงที่ "กำลังรอการอนุมัติ" (Pending) ครับ <br/><br/><em>* หมายเหตุ: ผู้ที่มีสิทธิ์กดอนุมัติ Timesheet ได้คือคนที่มีตำแหน่ง <strong>Admin</strong>, <strong>Manager</strong> หรือ <strong>Project Manager (PM)</strong> ครับ</em></li>
+              </ul>
+            </div>
+          )
+        },
+        {
+          id: 'q6',
+          question: 'ประเภทของงาน (Issue Type) อย่าง Task, Story, Bug หมายความว่าอย่างไร?',
+          icon: BookOpen,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>เป็นหมวดหมู่งานตามหลักการทำงานแบบ Agile ครับ:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Story (สีเขียว):</strong> ย่อมาจาก "User Story" หมายถึงฟีเจอร์ใหม่หรือความต้องการจากมุมมองของผู้ใช้งาน (เช่น "สร้างหน้า Login", "ระบบออกรายงาน") ซึ่งมักจะเป็นงานที่ส่งมอบ Value ให้ลูกค้าโดยตรง</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Task (สีฟ้า):</strong> หมายถึงงานด้านเทคนิค, งานเตรียมการ, หรืองานย่อยๆ ที่ไม่ได้เป็นฟีเจอร์โดยตรง แต่จำเป็นต้องทำเพื่อให้ระบบสมบูรณ์ (เช่น "ติดตั้ง Database", "คอนฟิกเซิร์ฟเวอร์")</li>
+                <li><strong>Bug (สีแดง):</strong> หมายถึงข้อผิดพลาดหรือจุดบกพร่องของระบบที่ต้องได้รับการแก้ไข (เช่น "กดปุ่มแล้วแอปค้าง", "ตัวเลขคำนวณผิด")</li>
               </ul>
             </div>
           )
