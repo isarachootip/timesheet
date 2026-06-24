@@ -98,6 +98,21 @@ const KnowledgeBase: React.FC = () => {
               </ul>
             </div>
           )
+        },
+        {
+          id: 'q7',
+          question: 'What does "1 SP" or "Story Points" mean?',
+          icon: BarChart3,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}><strong>SP (Story Points)</strong> is a unit of measure used in Agile to estimate the overall effort, complexity, and risk of a task.</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}>It uses the Fibonacci sequence (1, 2, 3, 5, 8, 13...) because estimating exact hours for complex tasks is often inaccurate.</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>1 SP</strong> represents the smallest, simplest baseline task (e.g., changing a text label).</li>
+                <li>If a new task feels about twice as complex or takes twice as much effort as your baseline "1 SP" task, you would estimate it as "2 SP". If it's much harder, maybe "5 SP", and so on.</li>
+              </ul>
+            </div>
+          )
         }
       ]
     },
@@ -188,6 +203,21 @@ const KnowledgeBase: React.FC = () => {
                 <li style={{ marginBottom: '0.25rem' }}><strong>Story (สีเขียว):</strong> ย่อมาจาก "User Story" หมายถึงฟีเจอร์ใหม่หรือความต้องการจากมุมมองของผู้ใช้งาน (เช่น "สร้างหน้า Login", "ระบบออกรายงาน") ซึ่งมักจะเป็นงานที่ส่งมอบ Value ให้ลูกค้าโดยตรง</li>
                 <li style={{ marginBottom: '0.25rem' }}><strong>Task (สีฟ้า):</strong> หมายถึงงานด้านเทคนิค, งานเตรียมการ, หรืองานย่อยๆ ที่ไม่ได้เป็นฟีเจอร์โดยตรง แต่จำเป็นต้องทำเพื่อให้ระบบสมบูรณ์ (เช่น "ติดตั้ง Database", "คอนฟิกเซิร์ฟเวอร์")</li>
                 <li><strong>Bug (สีแดง):</strong> หมายถึงข้อผิดพลาดหรือจุดบกพร่องของระบบที่ต้องได้รับการแก้ไข (เช่น "กดปุ่มแล้วแอปค้าง", "ตัวเลขคำนวณผิด")</li>
+              </ul>
+            </div>
+          )
+        },
+        {
+          id: 'q7',
+          question: '1 SP (Story Points) คืออะไร?',
+          icon: BarChart3,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}><strong>SP (Story Points)</strong> คือหน่วยวัดในระบบ Agile ที่ใช้ประเมิน "ขนาดความยาก-ง่าย ความซับซ้อน และแรงงาน" ที่ต้องใช้ในการทำงานชิ้นนั้นๆ ครับ</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}>ตัวเลขจะเรียงตามลำดับฟีโบนัชชี (1, 2, 3, 5, 8, 13...) เพราะงานยิ่งใหญ่ความไม่แน่นอนยิ่งสูง จึงไม่กะเกณฑ์เป็นตัวเลขเรียงกันตรงๆ</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>1 SP</strong> มักจะถูกใช้ตั้งเป็นเกณฑ์มาตรฐานของ "งานที่เล็กและง่ายที่สุด" (เช่น แก้ไขคำผิดบนหน้าเว็บ)</li>
+                <li>เวลาประเมินงานชิ้นใหม่ ทีมจะเปรียบเทียบกับงาน 1 SP เช่น "งานนี้ดูยากและใช้แรงมากกว่างาน 1 SP ประมาณ 3 เท่า" ก็จะตีค่าประเมินงานนั้นเป็น "3 SP" ครับ</li>
               </ul>
             </div>
           )
