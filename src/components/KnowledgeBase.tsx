@@ -70,6 +70,19 @@ const KnowledgeBase: React.FC = () => {
               </ul>
             </div>
           )
+        },
+        {
+          id: 'q5',
+          question: 'What do Monthly Summary and Approval Status mean on the Timesheet page?',
+          icon: Clock,
+          answer: (
+            <div>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Monthly Summary:</strong> This shows the total hours you have logged during the <strong>current month</strong> (not week). The "Target: 160h" represents a standard full-time working month (e.g., 40 hours/week &times; 4 weeks).</li>
+                <li><strong>Approval Status:</strong> This breaks down your logged hours for the current month into "Approved" (accepted by PM) and "Pending" (awaiting PM approval).</li>
+              </ul>
+            </div>
+          )
         }
       ]
     },
@@ -132,6 +145,19 @@ const KnowledgeBase: React.FC = () => {
               <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem' }}>
                 <li style={{ marginBottom: '0.25rem' }}><strong>ข้อมูลแอปพลิเคชัน:</strong> พวก Task, Timesheet, Project จะถูกบันทึกไว้อย่างถาวรใน <strong>PostgreSQL Database</strong> บนเซิร์ฟเวอร์ Coolify ของคุณครับ</li>
                 <li><strong>ความจำของ AI:</strong> กฎระเบียบและวิธีคิดที่ AI เรียนรู้ (เช่น ผ่านคำสั่ง <code>/learn</code>) จะถูกเก็บไว้เป็นไฟล์ระบบในโฟลเดอร์ <code>.agents</code> บนคอมพิวเตอร์ของคุณเองครับ</li>
+              </ul>
+            </div>
+          )
+        },
+        {
+          id: 'q5',
+          question: 'ช่อง Monthly Summary และ Approval Status ในหน้า Timesheet คืออะไร?',
+          icon: Clock,
+          answer: (
+            <div>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Monthly Summary (สรุปรายเดือน):</strong> แสดงจำนวนชั่วโมงทั้งหมดที่คุณลงเวลาไว้ใน <strong>เดือนนี้</strong> (ไม่ใช่รายสัปดาห์ครับ) โดยตัวเลข Target: 160h คือเป้าหมายเวลาทำงานมาตรฐานต่อเดือน (เช่น สัปดาห์ละ 40 ชม. &times; 4 สัปดาห์)</li>
+                <li><strong>Approval Status (สถานะอนุมัติ):</strong> แสดงยอดรวมชั่วโมงในเดือนนี้ที่ "ผ่านการอนุมัติแล้ว" (Approved) เทียบกับชั่วโมงที่ "กำลังรอ PM อนุมัติ" (Pending) ครับ</li>
               </ul>
             </div>
           )
