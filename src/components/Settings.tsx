@@ -1388,7 +1388,7 @@ export const Settings = ({
                 type="password"
                 value={geminiApiKey}
                 onChange={(e) => setGeminiApiKey(e.target.value)}
-                placeholder="AIza..."
+                placeholder="Paste your Gemini API Key here..."
                 style={{
                   padding: '0.75rem 1rem',
                   borderRadius: 'var(--radius-md)',
