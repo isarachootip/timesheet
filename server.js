@@ -258,6 +258,14 @@ const initDB = async () => {
       );
     `);
 
+    // Create System Settings Table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS system_settings (
+        setting_key VARCHAR(100) PRIMARY KEY,
+        setting_value TEXT NOT NULL
+      );
+    `);
+
     // Seed default cost rates if table is empty
     const costRatesCount = await client.query('SELECT COUNT(*) FROM cost_rates');
     if (parseInt(costRatesCount.rows[0].count) === 0) {
@@ -729,22 +737,55 @@ app.post('/api/chat', async (req, res) => {
     return res.status(400).json({ error: 'Message is required' });
   }
 
-  // Basic Rule-based mock response
-  let reply = 'ขออภัยครับ ตอนนี้ผมเป็นเพียงบอททดสอบ ยังไม่สามารถตอบคำถามซับซ้อนได้ครับ (หากต้องการให้ฉลาดขึ้น สามารถแจ้งทีมงานให้เชื่อมต่อกับ OpenAI ได้ครับ)';
-  const msgLower = message.toLowerCase();
-  
-  if (msgLower.includes('สวัสดี') || msgLower.includes('hello') || msgLower.includes('หวัดดี')) {
-    reply = 'สวัสดีครับ! ยินดีต้อนรับสู่ระบบ NexTime มีอะไรให้ผมช่วยเหลือไหมครับ?';
-  } else if (msgLower.includes('ราคา') || msgLower.includes('แพ็กเกจ') || msgLower.includes('จ่าย')) {
-    reply = 'สำหรับข้อมูลราคาและแพ็กเกจการใช้งาน รบกวนติดต่อทีมฝ่ายขายได้เลยครับ ยินดีให้คำปรึกษาครับ';
-  } else if (msgLower.includes('ปัญหา') || msgLower.includes('เข้าไม่ได้') || msgLower.includes('พัง')) {
-    reply = 'หากพบปัญหาการใช้งาน สามารถแจ้งเรื่องให้ทีม Support ทราบได้เลยครับ เราจะรีบแก้ไขให้เร็วที่สุด';
-  }
+  try {
+    const keyRes = await pool.query("SELECT setting_value FROM system_settings WHERE setting_key = 'openai_api_key'");
+    const apiKey = keyRes.rows[0]?.setting_value;
 
-  // Simulate AI thinking delay
-  setTimeout(() => {
-    res.json({ reply });
-  }, 1000);
+    if (apiKey) {
+      // Use OpenAI
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo',
+          messages: [{ role: 'user', content: message }]
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const reply = data.choices[0]?.message?.content || 'ไม่มีคำตอบจาก AI';
+        return res.json({ reply });
+      } else {
+        const errData = await response.json();
+        console.error('OpenAI Error:', errData);
+        // Fallback to rule-based if API fails
+      }
+    }
+
+    // Basic Rule-based mock response
+    let reply = 'ขออภัยครับ ตอนนี้ผมเป็นเพียงบอททดสอบ ยังไม่สามารถตอบคำถามซับซ้อนได้ครับ (ตั้งค่า API Key เพื่อใช้งาน AI)';
+    const msgLower = message.toLowerCase();
+    
+    if (msgLower.includes('สวัสดี') || msgLower.includes('hello') || msgLower.includes('หวัดดี')) {
+      reply = 'สวัสดีครับ! ยินดีต้อนรับสู่ระบบ NexTime มีอะไรให้ผมช่วยเหลือไหมครับ?';
+    } else if (msgLower.includes('ราคา') || msgLower.includes('แพ็กเกจ') || msgLower.includes('จ่าย')) {
+      reply = 'สำหรับข้อมูลราคาและแพ็กเกจการใช้งาน รบกวนติดต่อทีมฝ่ายขายได้เลยครับ ยินดีให้คำปรึกษาครับ';
+    } else if (msgLower.includes('ปัญหา') || msgLower.includes('เข้าไม่ได้') || msgLower.includes('พัง')) {
+      reply = 'หากพบปัญหาการใช้งาน สามารถแจ้งเรื่องให้ทีม Support ทราบได้เลยครับ เราจะรีบแก้ไขให้เร็วที่สุด';
+    }
+
+    // Simulate AI thinking delay
+    setTimeout(() => {
+      res.json({ reply });
+    }, 1000);
+  } catch (err) {
+    console.error('Chat Error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // Password Authentication Endpoint
@@ -2226,6 +2267,40 @@ app.delete('/api/cost-rates/:id', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('Error deleting cost rate:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- System Settings API ---
+app.get('/api/system-settings', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT setting_key, setting_value FROM system_settings');
+    const settings = {};
+    result.rows.forEach(row => {
+      settings[row.setting_key] = row.setting_value;
+    });
+    res.json(settings);
+  } catch (err) {
+    console.error('Error fetching system settings:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/system-settings', async (req, res) => {
+  const settings = req.body; // e.g. { openai_api_key: 'sk-...' }
+  try {
+    // We can iterate and upsert each key
+    for (const [key, value] of Object.entries(settings)) {
+      await pool.query(`
+        INSERT INTO system_settings (setting_key, setting_value)
+        VALUES ($1, $2)
+        ON CONFLICT (setting_key) DO UPDATE
+        SET setting_value = EXCLUDED.setting_value
+      `, [key, value]);
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error saving system settings:', err);
     res.status(500).json({ error: err.message });
   }
 });

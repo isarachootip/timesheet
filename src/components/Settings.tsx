@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { TaskTemplate, TaskPriority, PermissionScheme, User, CostRate } from '../types';
 import { Plus, Trash2, Edit, X, Save, Shield, ShieldCheck, Coins, AlertTriangle, RefreshCw } from 'lucide-react';
 
@@ -25,10 +25,54 @@ export const Settings = ({
 }: SettingsProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<TaskTemplate | null>(null);
-  const [activeTab, setActiveTab] = useState<'templates' | 'integrations' | 'permission_schemes' | 'cost_rates' | 'data_management'>('templates');
+  const [activeTab, setActiveTab] = useState<'templates' | 'integrations' | 'permission_schemes' | 'cost_rates' | 'data_management' | 'ai_config'>('templates');
   const [showCleanConfirm, setShowCleanConfirm] = useState(false);
   const [cleanResult, setCleanResult] = useState<{ deleted: Record<string, number> } | null>(null);
   const [isCleaning, setIsCleaning] = useState(false);
+
+  const [openaiApiKey, setOpenaiApiKey] = useState('');
+  const [isSavingAiConfig, setIsSavingAiConfig] = useState(false);
+  const [aiConfigMessage, setAiConfigMessage] = useState('');
+
+  // Fetch AI Config on tab open
+  useEffect(() => {
+    if (activeTab === 'ai_config' && currentUser?.globalRole === 'Admin') {
+      fetch('/api/system-settings', {
+        headers: { 'X-User-Id': currentUser?.id || '' }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.openai_api_key) {
+          setOpenaiApiKey(data.openai_api_key);
+        }
+      })
+      .catch(err => console.error('Failed to load system settings', err));
+    }
+  }, [activeTab, currentUser]);
+
+  const handleSaveAiConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingAiConfig(true);
+    setAiConfigMessage('');
+    try {
+      const res = await fetch('/api/system-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-User-Id': currentUser?.id || '' },
+        body: JSON.stringify({ openai_api_key: openaiApiKey })
+      });
+      if (res.ok) {
+        setAiConfigMessage('Settings saved successfully!');
+        setTimeout(() => setAiConfigMessage(''), 3000);
+      } else {
+        const errorData = await res.json();
+        setAiConfigMessage('Error saving settings: ' + errorData.error);
+      }
+    } catch (err) {
+      setAiConfigMessage('Error saving settings: ' + (err as Error).message);
+    } finally {
+      setIsSavingAiConfig(false);
+    }
+  };
 
   // Form states
   const [title, setTitle] = useState('');
@@ -1328,6 +1372,63 @@ export const Settings = ({
               </div>
             )}
           </div>
+        </div>
+      )}
+      {activeTab === 'ai_config' && isGlobalAdmin && (
+        <div className="glass-panel" style={{ padding: '2rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+            <ShieldCheck size={24} color="var(--accent-primary)" />
+            <h3 style={{ margin: 0, fontSize: '1.25rem' }}>AI Configuration (Super Admin Only)</h3>
+          </div>
+
+          <form onSubmit={handleSaveAiConfig} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '600px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>OpenAI API Key</label>
+              <input
+                type="password"
+                value={openaiApiKey}
+                onChange={(e) => setOpenaiApiKey(e.target.value)}
+                placeholder="sk-..."
+                style={{
+                  padding: '0.75rem 1rem',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-tertiary)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.95rem',
+                  outline: 'none'
+                }}
+              />
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
+                This key is used by the system's chatbot to answer user queries. Keep it secure.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <button
+                type="submit"
+                disabled={isSavingAiConfig}
+                style={{
+                  background: 'var(--accent-primary)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '0.75rem 1.5rem',
+                  borderRadius: 'var(--radius-md)',
+                  cursor: isSavingAiConfig ? 'wait' : 'pointer',
+                  fontWeight: 600,
+                  opacity: isSavingAiConfig ? 0.7 : 1
+                }}
+                className="hover-lift"
+              >
+                {isSavingAiConfig ? 'Saving...' : 'Save Settings'}
+              </button>
+              {aiConfigMessage && (
+                <span style={{ fontSize: '0.85rem', color: aiConfigMessage.includes('Error') ? 'var(--accent-danger)' : 'var(--accent-secondary)' }}>
+                  {aiConfigMessage}
+                </span>
+              )}
+            </div>
+          </form>
         </div>
       )}
     </div>
