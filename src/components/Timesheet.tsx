@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Clock, Plus, CheckCircle2, Calendar as CalendarIcon, X, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Clock, Plus, CheckCircle2, Calendar as CalendarIcon, X, Trash2, ChevronLeft, ChevronRight, XCircle } from 'lucide-react';
 import { format, isSameDay, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, isSameMonth } from 'date-fns';
 import type { TimesheetEntry, Project, Task, User, TimesheetStatus } from '../types';
 
@@ -16,6 +16,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'personal' | 'team'>('personal');
 
   // Form states
   const [projectId, setProjectId] = useState('');
@@ -41,15 +42,32 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
     day = addDays(day, 1);
   }
 
+  const isAdmin = currentUser.globalRole === 'Admin';
+  const allUsers = users || [];
+  const teamMembersCount = allUsers.length || 1;
+
   // Filter entries
   const userEntries = timesheets.filter(ts => ts.userId === currentUser.id);
   const todaysEntries = userEntries.filter(ts => isSameDay(new Date(ts.date), selectedDate));
   const totalHoursToday = todaysEntries.reduce((sum, entry) => sum + entry.hours, 0);
 
-  // Monthly stats (instead of weekly)
-  const thisMonthEntries = userEntries.filter(ts => {
+  // Team entries for selected date
+  const teamTodaysEntries = timesheets.filter(ts => isSameDay(new Date(ts.date), selectedDate));
+  const teamTotalHoursToday = teamTodaysEntries.reduce((sum, entry) => sum + entry.hours, 0);
+  
+  const teamActiveUsersCount = allUsers.filter(u => 
+    timesheets.some(ts => ts.userId === u.id && isSameDay(new Date(ts.date), selectedDate))
+  ).length;
+
+  const teamPendingCountToday = teamTodaysEntries.filter(ts => ts.status === 'Pending').length;
+
+  // Monthly stats based on view mode (team vs personal)
+  const thisMonthEntries = timesheets.filter(ts => {
     const entryDate = new Date(ts.date);
-    return isSameMonth(entryDate, currentMonth);
+    const inMonth = isSameMonth(entryDate, currentMonth);
+    if (!inMonth) return false;
+    if (isAdmin && viewMode === 'team') return true;
+    return ts.userId === currentUser.id;
   });
   const monthlyHours = thisMonthEntries.reduce((sum, entry) => sum + entry.hours, 0);
   const approvedHours = thisMonthEntries.filter(ts => ts.status === 'Approved').reduce((sum, entry) => sum + entry.hours, 0);
@@ -71,7 +89,32 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
   const approverNames = Array.from(approvers).join(', ') || 'PM';
 
   // Check if a date has entries (for dot indicator)
-  const dateHasEntries = (d: Date) => userEntries.some(ts => isSameDay(new Date(ts.date), d));
+  const dateHasEntries = (d: Date) => {
+    if (isAdmin && viewMode === 'team') {
+      return timesheets.some(ts => isSameDay(new Date(ts.date), d));
+    }
+    return userEntries.some(ts => isSameDay(new Date(ts.date), d));
+  };
+
+  const handleApprove = (entryId: string) => {
+    setTimesheets(prev => prev.map(ts => {
+      if (ts.id === entryId) {
+        return { ...ts, status: 'Approved', approvedBy: currentUser.id, approvedAt: new Date().toISOString() };
+      }
+      return ts;
+    }));
+  };
+
+  const handleReject = (entryId: string) => {
+    if (confirm('Are you sure you want to reject this time entry?')) {
+      setTimesheets(prev => prev.map(ts => {
+        if (ts.id === entryId) {
+          return { ...ts, status: 'Rejected' };
+        }
+        return ts;
+      }));
+    }
+  };
 
   const getProjectName = (id: string) => projects.find(p => p.id === id)?.name || 'Unknown Project';
   const getTaskName = (id?: string) => id ? (tasks.find(t => t.id === id)?.title || 'Unknown Task') : 'General';
@@ -243,89 +286,307 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
           </div>
 
           {/* Daily Entries */}
-          <div className="glass-panel" style={{ padding: '1.5rem', minHeight: '400px' }}>
-            <div className="flex-between" style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
-              <h3 style={{ fontSize: '1.125rem' }}>Entries for {format(selectedDate, 'MMMM d, yyyy')}</h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>{totalHoursToday} Hours Total</div>
-                <button onClick={openLogModal} style={{ 
-                  background: 'var(--accent-primary)', 
-                  color: 'white', 
-                  border: 'none', 
-                  padding: '0.5rem 1rem', 
-                  borderRadius: 'var(--radius-md)', 
-                  fontWeight: 500, 
+          {isAdmin && (
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+              <button 
+                onClick={() => setViewMode('personal')}
+                style={{
+                  padding: '0.5rem 1.25rem',
+                  borderRadius: 'var(--radius-md)',
+                  background: viewMode === 'personal' ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
+                  color: viewMode === 'personal' ? '#000' : 'var(--text-secondary)',
+                  border: 'none',
                   cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  fontSize: '0.85rem'
-                }} className="hover-lift">
-                  <Plus size={16} /> Log Time
-                </button>
-              </div>
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  transition: 'all var(--transition-fast)'
+                }}
+                className="hover-lift"
+              >
+                My Timesheet
+              </button>
+              <button 
+                onClick={() => setViewMode('team')}
+                style={{
+                  padding: '0.5rem 1.25rem',
+                  borderRadius: 'var(--radius-md)',
+                  background: viewMode === 'team' ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
+                  color: viewMode === 'team' ? '#000' : 'var(--text-secondary)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  transition: 'all var(--transition-fast)'
+                }}
+                className="hover-lift"
+              >
+                👥 Team Daily Report
+              </button>
             </div>
+          )}
 
-            {todaysEntries.length === 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', color: 'var(--text-muted)', height: '200px' }}>
-                <Clock size={48} opacity={0.3} />
-                <p>No time logged for this date.</p>
+          {viewMode === 'team' && isAdmin ? (
+            <div className="glass-panel" style={{ padding: '1.5rem', minHeight: '400px' }}>
+              <div className="flex-between" style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.125rem' }}>Team Daily Report</h3>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.1rem' }}>
+                    Activity log for {format(selectedDate, 'MMMM d, yyyy')}
+                  </p>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>{teamTotalHoursToday}h Total Logged</div>
+                </div>
               </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {todaysEntries.map(entry => (
-                  <div key={entry.id} style={{ 
-                    padding: '1.25rem', 
-                    background: 'var(--bg-tertiary)', 
-                    borderRadius: 'var(--radius-md)',
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    justifyContent: 'space-between',
-                    borderLeft: '4px solid var(--accent-primary)'
-                  }}>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{getProjectName(entry.projectId)}</span>
-                        <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-sm)', color: 'var(--text-secondary)' }}>
-                          {getTaskName(entry.taskId)}
-                        </span>
+
+              {/* Team Statistics Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div style={{ padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Logged Hours</span>
+                  <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent-primary)' }}>{teamTotalHoursToday}h</span>
+                </div>
+                <div style={{ padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Active Members</span>
+                  <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent-secondary)' }}>
+                    {teamActiveUsersCount} / {allUsers.length}
+                  </span>
+                </div>
+                <div style={{ padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Pending Approvals</span>
+                  <span style={{ fontSize: '1.5rem', fontWeight: 700, color: teamPendingCountToday > 0 ? 'var(--accent-warning)' : 'var(--text-muted)' }}>
+                    {teamPendingCountToday}
+                  </span>
+                </div>
+              </div>
+
+              {/* Employee Log Cards */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                {allUsers.map(user => {
+                  const uEntries = timesheets.filter(ts => ts.userId === user.id && isSameDay(new Date(ts.date), selectedDate));
+                  const userTotalHours = uEntries.reduce((sum, e) => sum + e.hours, 0);
+
+                  return (
+                    <div key={user.id} style={{ 
+                      padding: '1.25rem', 
+                      background: 'var(--bg-tertiary)', 
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--border-color)'
+                    }}>
+                      <div className="flex-between" style={{ marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.75rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <img src={user.avatar} alt={user.name} style={{ width: '40px', height: '40px', borderRadius: '50%' }} />
+                          <div>
+                            <div style={{ fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              {user.name}
+                              {user.id === currentUser.id && (
+                                <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', background: 'rgba(0, 206, 209, 0.15)', borderRadius: 'var(--radius-sm)', color: 'var(--accent-primary)' }}>You</span>
+                              )}
+                              <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-secondary)' }}>({user.department})</span>
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{user.email}</div>
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: '1.25rem', fontWeight: 700, color: userTotalHours > 0 ? 'var(--accent-secondary)' : 'var(--text-muted)' }}>
+                            {userTotalHours}h
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Logged Today</div>
+                        </div>
                       </div>
-                      <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{entry.description}</p>
-                      {entry.startTime && entry.endTime && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.4rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          <Clock size={12} />
-                          <span>{entry.startTime} → {entry.endTime}</span>
+
+                      {uEntries.length === 0 ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.85rem', padding: '0.5rem 0.75rem', background: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-sm)', border: '1px dashed var(--border-color)' }}>
+                          <span>No hours logged for this date.</span>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                          {uEntries.map(entry => (
+                            <div key={entry.id} style={{ 
+                              padding: '1rem', 
+                              background: 'var(--bg-secondary)', 
+                              borderRadius: 'var(--radius-sm)',
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              justifyContent: 'space-between',
+                              borderLeft: `4px solid ${entry.status === 'Approved' ? 'var(--accent-secondary)' : entry.status === 'Pending' ? 'var(--accent-warning)' : entry.status === 'Rejected' ? 'var(--accent-danger)' : 'var(--text-muted)'}`
+                            }}>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.35rem' }}>
+                                  <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9rem' }}>{getProjectName(entry.projectId)}</span>
+                                  <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-sm)', color: 'var(--text-secondary)' }}>
+                                    {getTaskName(entry.taskId)}
+                                  </span>
+                                </div>
+                                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>{entry.description}</p>
+                                {entry.startTime && entry.endTime && (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.35rem', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                                    <Clock size={10} />
+                                    <span>{entry.startTime} → {entry.endTime}</span>
+                                  </div>
+                                )}
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.35rem' }}>
+                                  <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>{entry.hours}h</div>
+                                  {entry.status === 'Approved' ? (
+                                    <span style={{ color: 'var(--accent-secondary)', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                                      <CheckCircle2 size={12} /> Approved
+                                    </span>
+                                  ) : entry.status === 'Pending' ? (
+                                    <span style={{ color: 'var(--accent-warning)', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                                      <Clock size={12} /> Pending
+                                    </span>
+                                  ) : entry.status === 'Rejected' ? (
+                                    <span style={{ color: 'var(--accent-danger)', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                                      <XCircle size={12} /> Rejected
+                                    </span>
+                                  ) : (
+                                    <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>Draft</span>
+                                  )}
+                                </div>
+                                
+                                {/* Quick Admin Approval Actions */}
+                                {entry.status === 'Pending' && (
+                                  <div style={{ display: 'flex', gap: '0.25rem', marginLeft: '0.5rem' }}>
+                                    <button 
+                                      onClick={() => handleApprove(entry.id)} 
+                                      title="Approve time entry"
+                                      style={{
+                                        background: 'rgba(217, 70, 239, 0.1)',
+                                        border: '1px solid rgba(217, 70, 239, 0.2)',
+                                        color: 'var(--accent-secondary)',
+                                        padding: '0.35rem',
+                                        borderRadius: 'var(--radius-sm)',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        transition: 'all var(--transition-fast)'
+                                      }}
+                                      className="hover-lift"
+                                    >
+                                      <CheckCircle2 size={14} />
+                                    </button>
+                                    <button 
+                                      onClick={() => handleReject(entry.id)} 
+                                      title="Reject time entry"
+                                      style={{
+                                        background: 'rgba(239, 68, 68, 0.1)',
+                                        border: '1px solid rgba(239, 68, 68, 0.2)',
+                                        color: 'var(--accent-danger)',
+                                        padding: '0.35rem',
+                                        borderRadius: 'var(--radius-sm)',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        transition: 'all var(--transition-fast)'
+                                      }}
+                                      className="hover-lift"
+                                    >
+                                      <X size={14} />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
-                        <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>{entry.hours}h</div>
-                        {entry.status === 'Approved' ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--accent-secondary)', fontSize: '0.75rem' }}>
-                            <CheckCircle2 size={14} /> Approved
-                          </div>
-                        ) : entry.status === 'Pending' ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--accent-warning)', fontSize: '0.75rem' }}>
-                            <Clock size={14} /> Pending
-                          </div>
-                        ) : (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                            Draft
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="glass-panel" style={{ padding: '1.5rem', minHeight: '400px' }}>
+              <div className="flex-between" style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
+                <h3 style={{ fontSize: '1.125rem' }}>Entries for {format(selectedDate, 'MMMM d, yyyy')}</h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>{totalHoursToday} Hours Total</div>
+                  <button onClick={openLogModal} style={{ 
+                    background: 'var(--accent-primary)', 
+                    color: 'white', 
+                    border: 'none', 
+                    padding: '0.5rem 1rem', 
+                    borderRadius: 'var(--radius-md)', 
+                    fontWeight: 500, 
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    fontSize: '0.85rem'
+                  }} className="hover-lift">
+                    <Plus size={16} /> Log Time
+                  </button>
+                </div>
+              </div>
+
+              {todaysEntries.length === 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', color: 'var(--text-muted)', height: '200px' }}>
+                  <Clock size={48} opacity={0.3} />
+                  <p>No time logged for this date.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {todaysEntries.map(entry => (
+                    <div key={entry.id} style={{ 
+                      padding: '1.25rem', 
+                      background: 'var(--bg-tertiary)', 
+                      borderRadius: 'var(--radius-md)',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      justifyContent: 'space-between',
+                      borderLeft: '4px solid var(--accent-primary)'
+                    }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{getProjectName(entry.projectId)}</span>
+                          <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-sm)', color: 'var(--text-secondary)' }}>
+                            {getTaskName(entry.taskId)}
+                          </span>
+                        </div>
+                        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{entry.description}</p>
+                        {entry.startTime && entry.endTime && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.4rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            <Clock size={12} />
+                            <span>{entry.startTime} → {entry.endTime}</span>
                           </div>
                         )}
                       </div>
-                      {entry.status !== 'Approved' && (
-                        <button onClick={() => handleDelete(entry.id)} style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer', marginLeft: '0.5rem' }}>
-                          <Trash2 size={16} />
-                        </button>
-                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+                          <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>{entry.hours}h</div>
+                          {entry.status === 'Approved' ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--accent-secondary)', fontSize: '0.75rem' }}>
+                              <CheckCircle2 size={14} /> Approved
+                            </div>
+                          ) : entry.status === 'Pending' ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--accent-warning)', fontSize: '0.75rem' }}>
+                              <Clock size={14} /> Pending
+                            </div>
+                          ) : entry.status === 'Rejected' ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--accent-danger)', fontSize: '0.75rem' }}>
+                              <XCircle size={14} /> Rejected
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                              Draft
+                            </div>
+                          )}
+                        </div>
+                        {entry.status !== 'Approved' && (
+                          <button onClick={() => handleDelete(entry.id)} style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer', marginLeft: '0.5rem' }}>
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Right Column: Weekly Summary or Quick Log */}
@@ -336,15 +597,25 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <div className="flex-between">
-                <span style={{ color: 'var(--text-secondary)' }}>Total Logged</span>
+                <span style={{ color: 'var(--text-secondary)' }}>
+                  {isAdmin && viewMode === 'team' ? 'Team Logged' : 'Total Logged'}
+                </span>
                 <span style={{ fontWeight: 600 }}>{monthlyHours}h</span>
               </div>
               <div className="flex-between">
-                <span style={{ color: 'var(--text-secondary)' }}>Target</span>
-                <span style={{ fontWeight: 600 }}>160h</span>
+                <span style={{ color: 'var(--text-secondary)' }}>
+                  {isAdmin && viewMode === 'team' ? `Target (${teamMembersCount} Users)` : 'Target'}
+                </span>
+                <span style={{ fontWeight: 600 }}>
+                  {isAdmin && viewMode === 'team' ? 160 * teamMembersCount : 160}h
+                </span>
               </div>
               <div style={{ width: '100%', height: '6px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-full)', marginTop: '0.5rem', overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${Math.min(100, (monthlyHours / 160) * 100)}%`, background: 'var(--accent-secondary)' }} />
+                <div style={{ 
+                  height: '100%', 
+                  width: `${Math.min(100, (monthlyHours / (isAdmin && viewMode === 'team' ? 160 * teamMembersCount : 160)) * 100)}%`, 
+                  background: 'var(--accent-secondary)' 
+                }} />
               </div>
             </div>
           </div>
@@ -367,7 +638,9 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                 </div>
                 <div>
                   <div style={{ fontWeight: 500, fontSize: '0.875rem' }}>{pendingHours}h Pending</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Awaiting {approverNames} approval</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                    {isAdmin && viewMode === 'team' ? 'Awaiting review / PM review' : `Awaiting ${approverNames} approval`}
+                  </div>
                 </div>
               </div>
             </div>
