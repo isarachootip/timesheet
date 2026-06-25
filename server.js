@@ -738,30 +738,30 @@ app.post('/api/chat', async (req, res) => {
   }
 
   try {
-    const keyRes = await pool.query("SELECT setting_value FROM system_settings WHERE setting_key = 'openai_api_key'");
+    const keyRes = await pool.query("SELECT setting_value FROM system_settings WHERE setting_key = 'gemini_api_key'");
     const apiKey = keyRes.rows[0]?.setting_value;
 
     if (apiKey) {
-      // Use OpenAI
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      // Use Google Gemini API
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: [{ role: 'user', content: message }]
+          contents: [{
+            parts: [{ text: message }]
+          }]
         })
       });
 
       if (response.ok) {
         const data = await response.json();
-        const reply = data.choices[0]?.message?.content || 'ไม่มีคำตอบจาก AI';
+        const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'ไม่มีคำตอบจาก AI';
         return res.json({ reply });
       } else {
         const errData = await response.json();
-        console.error('OpenAI Error:', errData);
+        console.error('Gemini Error:', errData);
         // Fallback to rule-based if API fails
       }
     }

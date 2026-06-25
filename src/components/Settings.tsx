@@ -30,7 +30,7 @@ export const Settings = ({
   const [cleanResult, setCleanResult] = useState<{ deleted: Record<string, number> } | null>(null);
   const [isCleaning, setIsCleaning] = useState(false);
 
-  const [openaiApiKey, setOpenaiApiKey] = useState('');
+  const [geminiApiKey, setGeminiApiKey] = useState('');
   const [isSavingAiConfig, setIsSavingAiConfig] = useState(false);
   const [aiConfigMessage, setAiConfigMessage] = useState('');
 
@@ -42,8 +42,8 @@ export const Settings = ({
       })
       .then(res => res.json())
       .then(data => {
-        if (data.openai_api_key) {
-          setOpenaiApiKey(data.openai_api_key);
+        if (data.gemini_api_key) {
+          setGeminiApiKey(data.gemini_api_key);
         }
       })
       .catch(err => console.error('Failed to load system settings', err));
@@ -58,7 +58,7 @@ export const Settings = ({
       const res = await fetch('/api/system-settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-User-Id': currentUser?.id || '' },
-        body: JSON.stringify({ openai_api_key: openaiApiKey })
+        body: JSON.stringify({ gemini_api_key: geminiApiKey })
       });
       if (res.ok) {
         setAiConfigMessage('Settings saved successfully!');
@@ -1383,12 +1383,12 @@ export const Settings = ({
 
           <form onSubmit={handleSaveAiConfig} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '600px' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <label style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>OpenAI API Key</label>
+              <label style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Google Gemini API Key</label>
               <input
                 type="password"
-                value={openaiApiKey}
-                onChange={(e) => setOpenaiApiKey(e.target.value)}
-                placeholder="sk-..."
+                value={geminiApiKey}
+                onChange={(e) => setGeminiApiKey(e.target.value)}
+                placeholder="AIza..."
                 style={{
                   padding: '0.75rem 1rem',
                   borderRadius: 'var(--radius-md)',
