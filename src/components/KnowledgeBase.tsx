@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HelpCircle, ChevronDown, ChevronRight, BookOpen, Database, BarChart3, Clock, Languages, CalendarRange, Users } from 'lucide-react';
+import { HelpCircle, ChevronDown, ChevronRight, BookOpen, Database, BarChart3, Clock, Languages, CalendarRange, Users, Star } from 'lucide-react';
 
 type Lang = 'en' | 'th';
 
@@ -14,6 +14,24 @@ const KnowledgeBase: React.FC = () => {
       needHelpTitle: "Need more help?",
       needHelpDesc: "If you have additional questions or need technical support, you can access the Chat Widget in the bottom right corner of your screen to communicate with the AI assistant.",
       faqs: [
+        {
+          id: 'q0',
+          question: 'What are the main features of NexTime?',
+          icon: Star,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>NexTime is a comprehensive project and resource management system. Here are the core features:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Agile Task Management:</strong> Kanban boards, Backlog grooming, and Sprints for managing Stories, Tasks, and Bugs with Story Points (SP).</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Gantt Chart & Timeline:</strong> Visual project planning to see overlapping tasks and bottlenecks.</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Timesheet & Approvals:</strong> Employees can log daily work hours, which are sent to PMs or Admins for approval.</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Resource & Cost Tracking:</strong> Manage Project Roles, setup Labor Rates, and calculate Man-Days and budgets automatically.</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>AI Assistant:</strong> Built-in Chatbot powered by Google Gemini (or OpenAI) to help answer system questions.</li>
+                <li><strong>Role-Based Access Control (RBAC):</strong> Granular permission schemes for Admins, Managers, PMs, and Members.</li>
+              </ul>
+            </div>
+          )
+        },
         {
           id: 'q1',
           question: 'How is the Milestone Progress calculated?',
@@ -167,6 +185,24 @@ const KnowledgeBase: React.FC = () => {
       needHelpTitle: "ต้องการความช่วยเหลือเพิ่มเติม?",
       needHelpDesc: "หากคุณมีคำถามเพิ่มเติมหรือต้องการความช่วยเหลือด้านเทคนิค สามารถกดไอคอนแชทที่มุมขวาล่างเพื่อสอบถามผู้ช่วย AI ได้ตลอดเวลาครับ",
       faqs: [
+        {
+          id: 'q0',
+          question: 'ฟีเจอร์หลักของระบบ NexTime มีอะไรบ้าง?',
+          icon: Star,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>NexTime เป็นระบบบริหารจัดการโปรเจกต์และทรัพยากรบุคคลแบบครบวงจร โดยมีฟีเจอร์เด่นดังนี้ครับ:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Agile Task Management:</strong> จัดการงานด้วย Kanban Board, จัดลำดับ Backlog, และวางแผน Sprint พร้อมประเมินความยากด้วย Story Points (SP)</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Gantt Chart & Timeline:</strong> ดูแผนงานระยะยาวแบบปฏิทิน เพื่อป้องกันคอขวดและงานทับซ้อน</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Timesheet & Approvals:</strong> ระบบลงเวลาทำงานรายวัน และส่งให้ PM หรือ Admin กดอนุมัติ (Approve) ได้ง่ายๆ</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Resource & Cost Tracking:</strong> สรุปประวัติ Project Roles, ตั้งค่าฐานเงินเดือน (Labor Rates) และคำนวณต้นทุน Man-Days ของโปรเจกต์อัตโนมัติ</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>AI Assistant:</strong> แชทบอทอัจฉริยะที่เชื่อมต่อกับ Google Gemini (หรือ OpenAI) ช่วยตอบคำถามและให้คำแนะนำ</li>
+                <li><strong>Role-Based Access Control (RBAC):</strong> ระบบกำหนดสิทธิ์การเข้าถึงข้อมูลที่ละเอียด ตั้งแต่ระดับ Admin, Manager, PM จนถึง Member</li>
+              </ul>
+            </div>
+          )
+        },
         {
           id: 'q1',
           question: 'เปอร์เซ็นต์ความคืบหน้า (Progress) คำนวณอย่างไร?',
