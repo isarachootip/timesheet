@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HelpCircle, ChevronDown, ChevronRight, BookOpen, Database, BarChart3, Clock, Languages, CalendarRange } from 'lucide-react';
+import { HelpCircle, ChevronDown, ChevronRight, BookOpen, Database, BarChart3, Clock, Languages, CalendarRange, Users } from 'lucide-react';
 
 type Lang = 'en' | 'th';
 
@@ -143,6 +143,21 @@ const KnowledgeBase: React.FC = () => {
               </ul>
             </div>
           )
+        },
+        {
+          id: 'q10',
+          question: 'How do "Project Roles" work in the Team directory?',
+          icon: Users,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>The <strong>Project Roles</strong> section in a user's profile is a real-time summary of their current responsibilities across all projects:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Automatic Aggregation:</strong> The system automatically pulls this data from the "Manage Members" tab of every active project and displays it here, along with the project's timeframe (Start and End dates).</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>History / Resume View:</strong> This information remains on their profile even after the project's status changes to "Done", serving as a historical record of their contributions.</li>
+                <li><strong>Automatic Removal:</strong> If a member is removed from a project before it is completed, or if the project itself is deleted, the role will automatically disappear from their profile history.</li>
+              </ul>
+            </div>
+          )
         }
       ]
     },
@@ -278,6 +293,21 @@ const KnowledgeBase: React.FC = () => {
                 <li style={{ marginBottom: '0.25rem' }}><strong>แสดงทุก Sprint:</strong> ระบบจะดึง Task จากทุกๆ Sprint มาแสดงผลให้เห็นพร้อมกัน (โดย Task นั้นจะต้องมีการระบุวันเริ่มต้นและสิ้นสุดเอาไว้)</li>
                 <li style={{ marginBottom: '0.25rem' }}><strong>ปรับเวลาได้ทันที:</strong> สามารถเอาเมาส์คลิกลาก (Drag & Drop) ที่ตัวแท่งสีๆ เพื่อเลื่อนวัน หรือดึงขอบซ้าย/ขวาเพื่อยืด-หดระยะเวลาทำงานได้ทันที โดยไม่ต้องกดเข้าไปแก้ในฟอร์มครับ</li>
                 <li><strong>ดูคอขวดของงาน:</strong> ช่วยให้มองเห็นแผนงานระยะยาว ว่ามีงานไหนดำเนินการทับซ้อนกันอยู่บ้าง ช่วยป้องกันคอขวดและจัดตารางงานได้ง่ายขึ้นครับ</li>
+              </ul>
+            </div>
+          )
+        },
+        {
+          id: 'q10',
+          question: 'Project Roles ในหน้า Team ทำงานอย่างไร?',
+          icon: Users,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>ส่วน <strong>Project Roles</strong> ในหน้า Team คือสรุป "สถานะปัจจุบันและประวัติการทำงาน" ว่าพนักงานรับผิดชอบงานอะไร ในโปรเจกต์ไหนบ้างครับ:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>ดึงข้อมูลอัตโนมัติ:</strong> ระบบจะดึงข้อมูลมาจากหน้าจัดการโปรเจกต์ (Manage Members) ทั่วทั้งระบบมาสรุปให้ดูที่นี่ที่เดียว พร้อมแสดงช่วงเวลา (Timeframe) ของโปรเจกต์นั้นๆ</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>ทำหน้าที่เป็น Resume:</strong> ข้อมูลนี้จะยังคงอยู่แม้โปรเจกต์จะเสร็จสิ้น (Status: Done) ไปแล้ว เพื่อเก็บไว้ดูเป็นประวัติย้อนหลังได้ครับ</li>
+                <li><strong>ระบบลบอัตโนมัติ:</strong> หากพนักงานถูกเอาชื่อออกจากโปรเจกต์ก่อนที่โปรเจกต์จะเสร็จสิ้น หรือโปรเจกต์นั้นถูกลบทิ้งไป ระบบจะเคลียร์ประวัตินั้นออกจากหน้าโปรไฟล์ให้โดยอัตโนมัติครับ</li>
               </ul>
             </div>
           )
