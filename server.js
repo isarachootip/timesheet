@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { sendEmail } from './mailService.js';
 import crypto from 'crypto';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 dotenv.config();
 
@@ -756,47 +757,24 @@ app.post('/api/chat', async (req, res) => {
 10. Project Roles: ในหน้า Team คือประวัติ(Resume) ว่าใครทำโปรเจกต์อะไรบ้าง ดึงอัตโนมัติ และจะลบอัตโนมัติถ้าถูกเอาชื่อออก
 ตอบคำถามด้วยความสุภาพ เป็นกันเอง เสมือนเป็นเพื่อนร่วมงาน`;
 
-      // Use Google Gemini API
-      let response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': apiKey.trim()
-        },
-        body: JSON.stringify({
-          contents: [{
-            role: "user",
-            parts: [{ text: `[SYSTEM INSTRUCTION]\n${systemPrompt}\n\n[USER MESSAGE]\n${message}` }]
-          }]
-        })
-      });
-
-      // Fallback to gemini-pro if gemini-1.5-flash is not found or not supported
-      if (!response.ok && response.status === 404) {
-        response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': apiKey.trim()
-          },
-          body: JSON.stringify({
-            contents: [{
-              role: "user",
-              parts: [{ text: `[SYSTEM INSTRUCTION]\n${systemPrompt}\n\n[USER MESSAGE]\n${message}` }]
-            }]
-          })
+      try {
+        const genAI = new GoogleGenerativeAI(apiKey.trim());
+        const model = genAI.getGenerativeModel({ 
+          model: "gemini-1.5-flash",
+          systemInstruction: systemPrompt
         });
+
+        const result = await model.generateContent(message);
+        const responseText = result.response.text();
+
+        return res.json({ reply: responseText });
+      } catch (geminiErr) {
+        console.error('Gemini SDK Error:', geminiErr);
+        return res.json({ reply: `[Gemini API Error] ${geminiErr.message || 'Unknown SDK Error'}` });
       }
 
-      if (response.ok) {
-        const data = await response.json();
-        const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'ไม่มีคำตอบจาก AI';
-        return res.json({ reply });
-      } else {
-        const errData = await response.json();
-        console.error('Gemini Error:', errData);
-        // Return the actual error to the frontend for debugging
-        return res.json({ reply: `[Gemini API Error] ${errData?.error?.message || 'Unknown Error'}` });
+
+
       }
     }
 
