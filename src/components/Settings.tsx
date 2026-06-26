@@ -487,6 +487,22 @@ export const Settings = ({
             🧹 Data Management
           </button>
         )}
+        {isGlobalAdmin && (
+          <button 
+            onClick={() => setActiveTab('ai_config')}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: activeTab === 'ai_config' ? 'var(--text-primary)' : 'var(--text-secondary)',
+              borderBottom: activeTab === 'ai_config' ? '2px solid var(--accent-primary)' : '2px solid transparent',
+              padding: '0.5rem 1rem',
+              cursor: 'pointer',
+              fontWeight: activeTab === 'ai_config' ? 600 : 400
+            }}
+          >
+            🤖 AI Configuration
+          </button>
+        )}
       </div>
 
       {activeTab === 'templates' ? (
