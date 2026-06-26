@@ -753,7 +753,7 @@ export const Settings = ({
             ))}
           </div>
         </div>
-      ) : (
+      ) : activeTab === 'cost_rates' ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {(() => {
             const inlineInputStyle: React.CSSProperties = {
@@ -967,7 +967,7 @@ export const Settings = ({
             );
           })()}
         </div>
-      )}
+      ) : null}
 
       {/* CRUD Modal */}
       {isModalOpen && (
