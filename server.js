@@ -779,7 +779,8 @@ app.post('/api/chat', async (req, res) => {
       } else {
         const errData = await response.json();
         console.error('Gemini Error:', errData);
-        // Fallback to rule-based if API fails
+        // Return the actual error to the frontend for debugging
+        return res.json({ reply: `[Gemini API Error] ${errData?.error?.message || 'Unknown Error'}` });
       }
     }
 
