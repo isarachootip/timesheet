@@ -267,7 +267,7 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
       setSelectedProjectId(currentProj.id);
       const member = currentProj.members.find(m => m.userId === user.id);
       const role = member ? member.role : 'Frontend dev';
-      const defaultRoles = ['PM', 'SA', 'Team Lead', 'Frontend dev', 'Backend dev', 'DevOps', 'QC', 'Designer'];
+      const defaultRoles = ['PM', 'Frontend dev', 'Backend dev', 'QA', 'UX/UI', 'System Analyst'];
       if (defaultRoles.includes(role)) {
         setProjectRole(role);
         setCustomRole('');
@@ -759,6 +759,38 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                   ))}
                 </select>
               </div>
+
+              {selectedProjectId && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Project Role</label>
+                  <select 
+                    value={projectRole} 
+                    onChange={e => setProjectRole(e.target.value as ProjectRole)}
+                    style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
+                  >
+                    <option value="PM">PM (Project Manager)</option>
+                    <option value="Frontend dev">Frontend dev</option>
+                    <option value="Backend dev">Backend dev</option>
+                    <option value="QA">QA</option>
+                    <option value="UX/UI">UX/UI</option>
+                    <option value="System Analyst">System Analyst</option>
+                    <option value="Custom">Custom Role...</option>
+                  </select>
+                </div>
+              )}
+
+              {projectRole === 'Custom' && selectedProjectId && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Custom Project Role Name</label>
+                  <input 
+                    type="text" 
+                    value={customRole} 
+                    onChange={e => setCustomRole(e.target.value)} 
+                    placeholder="e.g. DevOps Engineer"
+                    style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none' }}
+                  />
+                </div>
+              )}
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
