@@ -763,11 +763,9 @@ app.post('/api/chat', async (req, res) => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          system_instruction: {
-            parts: [{ text: systemPrompt }]
-          },
           contents: [{
-            parts: [{ text: message }]
+            role: "user",
+            parts: [{ text: `[SYSTEM INSTRUCTION]\n${systemPrompt}\n\n[USER MESSAGE]\n${message}` }]
           }]
         })
       });
