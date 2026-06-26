@@ -757,7 +757,7 @@ app.post('/api/chat', async (req, res) => {
 ตอบคำถามด้วยความสุภาพ เป็นกันเอง เสมือนเป็นเพื่อนร่วมงาน`;
 
       // Use Google Gemini API
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      let response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -769,6 +769,22 @@ app.post('/api/chat', async (req, res) => {
           }]
         })
       });
+
+      // Fallback to gemini-pro if gemini-1.5-flash is not found or not supported
+      if (!response.ok && response.status === 404) {
+        response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey.trim()}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            contents: [{
+              role: "user",
+              parts: [{ text: `[SYSTEM INSTRUCTION]\n${systemPrompt}\n\n[USER MESSAGE]\n${message}` }]
+            }]
+          })
+        });
+      }
 
       if (response.ok) {
         const data = await response.json();
