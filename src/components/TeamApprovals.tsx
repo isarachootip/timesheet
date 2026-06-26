@@ -485,7 +485,12 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
               .filter(p => p.members && p.members.some((m: any) => m.userId === user.id))
               .map(p => {
                 const member = p.members.find((m: any) => m.userId === user.id);
-                return { projectName: p.name, role: member ? member.role : '' };
+                return { 
+                  projectName: p.name, 
+                  role: member ? member.role : '',
+                  startDate: p.startDate,
+                  endDate: p.endDate
+                };
               });
 
              return (
@@ -557,6 +562,7 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                           borderRadius: 'var(--radius-sm)' 
                         }}>
                           {pr.projectName} ({pr.role})
+                          {pr.startDate && <span style={{ marginLeft: '4px', opacity: 0.8 }}>• {pr.startDate} {pr.endDate ? `to ${pr.endDate}` : '(Present)'}</span>}
                         </span>
                       ))}
                     </div>
