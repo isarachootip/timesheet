@@ -776,7 +776,6 @@ app.post('/api/chat', async (req, res) => {
 
 
       }
-    }
 
     // Basic Rule-based mock response
     let reply = 'ขออภัยครับ ตอนนี้ผมเป็นเพียงบอททดสอบ ยังไม่สามารถตอบคำถามซับซ้อนได้ครับ (ตั้งค่า API Key เพื่อใช้งาน AI)';
