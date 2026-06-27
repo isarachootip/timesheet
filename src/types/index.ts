@@ -24,6 +24,14 @@ export interface ProjectMember {
   manDayRate?: number;
 }
 
+export interface ChatMessage {
+  id: string;
+  projectId: string;
+  userId: string;
+  text: string;
+  timestamp: string;
+}
+
 export interface Project {
   id: string;
   name: string;

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, CheckSquare, Clock, Users, Settings as SettingsIcon, LogOut, Briefcase, BarChart3, Menu, X, CalendarRange, Bell, AlertTriangle, AlertCircle, CalendarClock, HelpCircle } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, Clock, Users, Settings as SettingsIcon, LogOut, Briefcase, BarChart3, Menu, X, CalendarRange, Bell, AlertTriangle, AlertCircle, CalendarClock, HelpCircle, MessageSquare } from 'lucide-react';
 import { Dashboard } from './components/Dashboard';
 import { Projects } from './components/Projects';
 import { Timesheet } from './components/Timesheet';
@@ -10,6 +10,7 @@ import { Reports } from './components/Reports';
 import { Login } from './components/Login';
 import { Settings } from './components/Settings';
 import { ProjectPlan } from './components/ProjectPlan';
+import { ProjectChat } from './components/ProjectChat';
 import KnowledgeBase from './components/KnowledgeBase';
 import ChatWidget from './components/ChatWidget';
 import { mockUsers, mockProjects, mockTasks, mockTimesheets } from './data/mockData';
@@ -171,6 +172,7 @@ const AppLayout = ({ children, currentUser, tasks, onLogout }: { children: React
           <SidebarItem icon={CalendarRange} label="Project Plan" path="/project-plan" />
           <SidebarItem icon={CheckSquare} label="Tasks" path="/tasks" />
           <SidebarItem icon={Clock} label="Timesheet" path="/timesheet" />
+          <SidebarItem icon={MessageSquare} label="Team Chat" path="/chat" />
           <SidebarItem icon={Users} label="Team" path="/team" />
           <SidebarItem icon={BarChart3} label="Reports" path="/reports" />
           <SidebarItem icon={SettingsIcon} label="Settings" path="/settings" />
@@ -713,6 +715,7 @@ function App() {
           <Route path="/project-plan" element={<ProjectPlan projects={projects} tasks={tasks} setTasks={handleSetTasks} users={users} taskTemplates={taskTemplates} permissionSchemes={permissionSchemes} currentUser={currentUser} fetchInitialData={fetchInitialData} />} />
           <Route path="/tasks" element={<Tasks tasks={tasks} setTasks={handleSetTasks} projects={projects} users={users} sprints={sprints} setSprints={handleSetSprints} releases={releases} setReleases={handleSetReleases} projectWorkflows={projectWorkflows} setProjectWorkflows={handleSetProjectWorkflows} permissionSchemes={permissionSchemes} currentUser={currentUser} />} />
           <Route path="/timesheet" element={<Timesheet timesheets={timesheets} setTimesheets={handleSetTimesheets} projects={projects} tasks={tasks} currentUser={currentUser} users={users} />} />
+          <Route path="/chat" element={<ProjectChat projects={projects} users={users} currentUser={currentUser} />} />
           <Route path="/team" element={<TeamApprovals users={users} setUsers={handleSetUsers} timesheets={timesheets} setTimesheets={handleSetTimesheets} projects={projects} setProjects={handleSetProjects} tasks={tasks} currentUser={currentUser} />} />
           <Route path="/reports" element={<Reports timesheets={timesheets} projects={projects} users={users} currentUser={currentUser} tasks={tasks} costRates={costRates} />} />
           <Route path="/settings" element={<Settings taskTemplates={taskTemplates} setTaskTemplates={handleSetTaskTemplates} permissionSchemes={permissionSchemes} setPermissionSchemes={handleSetPermissionSchemes} currentUser={currentUser} costRates={costRates} setCostRates={handleSetCostRates} fetchInitialData={fetchInitialData} />} />

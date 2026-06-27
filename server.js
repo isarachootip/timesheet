@@ -171,6 +171,17 @@ const initDB = async () => {
       );
     `);
 
+    // Create Project Messages Table (for internal chat)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS project_messages (
+        id VARCHAR(50) PRIMARY KEY,
+        project_id VARCHAR(50) NOT NULL,
+        user_id VARCHAR(50) NOT NULL,
+        text TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+
     // Create Timesheets Table
     await client.query(`
       CREATE TABLE IF NOT EXISTS timesheets (
@@ -1975,6 +1986,56 @@ app.get('/api/tasks/:taskId/commits', async (req, res) => {
     res.json(commits);
   } catch (err) {
     console.error('Error fetching commits:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+// Project Messages API (Chat)
+app.get('/api/projects/:projectId/messages', async (req, res) => {
+  const { projectId } = req.params;
+  try {
+    const messagesRes = await pool.query('SELECT * FROM project_messages WHERE project_id = $1 ORDER BY created_at ASC', [projectId]);
+    const messages = messagesRes.rows.map(m => ({
+      id: m.id,
+      projectId: m.project_id,
+      userId: m.user_id,
+      text: m.text,
+      timestamp: m.created_at
+    }));
+    res.json(messages);
+  } catch (err) {
+    console.error('Error fetching project messages:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/projects/:projectId/messages', async (req, res) => {
+  const { projectId } = req.params;
+  const { userId, text } = req.body;
+  
+  if (!userId || !text) {
+    return res.status(400).json({ error: 'Missing userId or text' });
+  }
+
+  const id = 'msg_' + crypto.randomUUID();
+  try {
+    await pool.query(
+      'INSERT INTO project_messages (id, project_id, user_id, text) VALUES ($1, $2, $3, $4)',
+      [id, projectId, userId, text]
+    );
+    
+    // Fetch and return the inserted message to ensure timestamp is correct
+    const newMsgRes = await pool.query('SELECT * FROM project_messages WHERE id = $1', [id]);
+    const m = newMsgRes.rows[0];
+    
+    res.status(201).json({
+      id: m.id,
+      projectId: m.project_id,
+      userId: m.user_id,
+      text: m.text,
+      timestamp: m.created_at
+    });
+  } catch (err) {
+    console.error('Error creating project message:', err);
     res.status(500).json({ error: err.message });
   }
 });
