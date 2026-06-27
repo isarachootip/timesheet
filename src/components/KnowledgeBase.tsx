@@ -176,6 +176,20 @@ const KnowledgeBase: React.FC = () => {
               </ul>
             </div>
           )
+        },
+        {
+          id: 'q11',
+          question: 'Can I view the Project Cost report by daily, monthly, or yearly?',
+          icon: BarChart3,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>Yes, you can view the Project Cost report by different time periods:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}>Go to the <strong>Reports</strong> page and select the <strong>Project Cost</strong> tab.</li>
+                <li>Use the Date Filter buttons (Daily, Monthly, Yearly) to choose your preferred time period and select the corresponding date/month/year to see the cost breakdown for that period.</li>
+              </ul>
+            </div>
+          )
         }
       ]
     },
@@ -344,6 +358,20 @@ const KnowledgeBase: React.FC = () => {
                 <li style={{ marginBottom: '0.25rem' }}><strong>ดึงข้อมูลอัตโนมัติ:</strong> ระบบจะดึงข้อมูลมาจากหน้าจัดการโปรเจกต์ (Manage Members) ทั่วทั้งระบบมาสรุปให้ดูที่นี่ที่เดียว พร้อมแสดงช่วงเวลา (Timeframe) ของโปรเจกต์นั้นๆ</li>
                 <li style={{ marginBottom: '0.25rem' }}><strong>ทำหน้าที่เป็น Resume:</strong> ข้อมูลนี้จะยังคงอยู่แม้โปรเจกต์จะเสร็จสิ้น (Status: Done) ไปแล้ว เพื่อเก็บไว้ดูเป็นประวัติย้อนหลังได้ครับ</li>
                 <li><strong>ระบบลบอัตโนมัติ:</strong> หากพนักงานถูกเอาชื่อออกจากโปรเจกต์ก่อนที่โปรเจกต์จะเสร็จสิ้น หรือโปรเจกต์นั้นถูกลบทิ้งไป ระบบจะเคลียร์ประวัตินั้นออกจากหน้าโปรไฟล์ให้โดยอัตโนมัติครับ</li>
+              </ul>
+            </div>
+          )
+        },
+        {
+          id: 'q11',
+          question: 'สามารถดูรายงานสรุปค่าใช้จ่ายโปรเจกต์ (Project Cost) เป็นรายวัน หรือ รายปี ได้ไหม?',
+          icon: BarChart3,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>ได้ครับ คุณสามารถดูรายงานสรุปค่าใช้จ่ายโปรเจกต์แยกตามช่วงเวลาได้:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}>ไปที่เมนู <strong>Reports</strong> และเลือกแท็บ <strong>Project Cost</strong></li>
+                <li>ใช้ปุ่มตัวกรอง (Daily, Monthly, Yearly) เพื่อเลือกรูปแบบช่วงเวลา และระบุ วัน/เดือน/ปี ที่ต้องการ เพื่อดูสรุปค่าใช้จ่ายของช่วงเวลานั้นๆ ครับ</li>
               </ul>
             </div>
           )

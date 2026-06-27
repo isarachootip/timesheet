@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { BarChart3, TrendingUp, Download, Printer, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Briefcase, Clock, Activity } from 'lucide-react';
+import { BarChart3, TrendingUp, Download, Printer, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Briefcase, Clock, Activity, LineChart as LineChartIcon } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import type { User, Project, TimesheetEntry, Task, CostRate } from '../types';
 
 interface ReportsProps {
@@ -25,6 +26,13 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
   const [selectedMonth, setSelectedMonth] = useState<string>(() => {
     const today = new Date();
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  });
+
+  // Cost Report States
+  const [costReportType, setCostReportType] = useState<'daily' | 'monthly' | 'yearly'>('monthly');
+  const [costDate, setCostDate] = useState<string>(() => {
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   });
 
   const isAdmin = currentUser?.globalRole === 'Admin' || currentUser?.globalRole === 'Manager';
@@ -119,6 +127,54 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
     return { ...user, hours };
   }).filter(e => e.hours > 0);
 
+  // ── Task Movement Data Calculation ──
+  const getTaskMovementData = () => {
+    let startD = new Date();
+    startD.setDate(startD.getDate() - 14); // Default last 15 days
+    let endD = new Date();
+
+    if (startDate) startD = new Date(startDate);
+    if (endDate) endD = new Date(endDate);
+    
+    // Prevent too many data points (cap at 60 days)
+    const diffTime = Math.abs(endD.getTime() - startD.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays > 60) {
+      startD = new Date(endD);
+      startD.setDate(startD.getDate() - 60);
+    }
+
+    const data = [];
+    const curr = new Date(startD);
+    
+    const relevantTasks = tasks.filter(t => {
+      if (selectedProject !== 'all' && t.projectId !== selectedProject) return false;
+      return true;
+    });
+
+    while (curr <= endD) {
+      const dateStr = curr.toISOString().split('T')[0];
+      const upToDateTasks = relevantTasks.filter(t => {
+        const createdDate = t.createdAt ? t.createdAt.split('T')[0] : '2000-01-01';
+        return createdDate <= dateStr;
+      });
+      const total = upToDateTasks.length;
+      const resolved = upToDateTasks.filter(t => t.status.toLowerCase() === 'done' || t.status.toLowerCase() === 'completed').length;
+      const open = total - resolved;
+      
+      data.push({
+        date: dateStr,
+        displayDate: `${curr.getDate()} ${curr.toLocaleString('en-US', { month: 'short' })}`,
+        Total: total,
+        Open: open,
+        Resolved: resolved
+      });
+      curr.setDate(curr.getDate() + 1);
+    }
+    return data;
+  };
+  const taskMovementData = getTaskMovementData();
+
   // ── Calculations for PERSONAL Tab ──
   const activePersonalUser = selectedUser === 'all' ? (currentUser?.id || '') : selectedUser;
   const personalTimesheets = timesheets.filter(ts => {
@@ -204,7 +260,14 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
   const activeProjectId = selectedProject === 'all' ? (projects[0]?.id || '') : selectedProject;
   const activeProject = projects.find(p => p.id === activeProjectId);
   const projectTimesheets = timesheets.filter(ts => {
-    return ts.projectId === activeProjectId && ts.date.slice(0, 7) === selectedMonth;
+    if (ts.projectId !== activeProjectId) return false;
+    if (costReportType === 'daily') {
+      return ts.date === costDate;
+    } else if (costReportType === 'monthly') {
+      return ts.date.slice(0, 7) === costDate.slice(0, 7);
+    } else {
+      return ts.date.slice(0, 4) === costDate.slice(0, 4);
+    }
   });
 
   const projectTotalHours = projectTimesheets.reduce((sum, ts) => sum + ts.hours, 0);
@@ -559,6 +622,42 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                     ))}
                   </div>
                 )}
+              </div>
+            </div>
+
+            {/* Project Task Movement Chart */}
+            <div className="glass-panel" style={{ padding: '1.5rem' }}>
+              <h3 style={{ fontSize: '1.125rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <LineChartIcon size={18} color="var(--accent-primary)" /> Task Ticket Movement (Daily)
+              </h3>
+              <div style={{ width: '100%', height: '350px' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={taskMovementData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
+                    <XAxis 
+                      dataKey="displayDate" 
+                      stroke="var(--text-secondary)" 
+                      fontSize={12} 
+                      tickLine={false} 
+                      axisLine={false} 
+                    />
+                    <YAxis 
+                      stroke="var(--text-secondary)" 
+                      fontSize={12} 
+                      tickLine={false} 
+                      axisLine={false} 
+                      allowDecimals={false}
+                    />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '8px' }}
+                      itemStyle={{ fontWeight: 600 }}
+                    />
+                    <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} />
+                    <Line type="monotone" dataKey="Total" stroke="#8884d8" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                    <Line type="monotone" dataKey="Open" stroke="#ffc658" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                    <Line type="monotone" dataKey="Resolved" stroke="#82ca9d" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
             </div>
 
@@ -977,14 +1076,65 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                 </select>
               </div>
 
+              <div className="glass-panel" style={{ padding: '0.25rem', display: 'flex', gap: '0.25rem' }}>
+                {(['daily', 'monthly', 'yearly'] as const).map(type => (
+                  <button
+                    key={type}
+                    onClick={() => setCostReportType(type)}
+                    style={{
+                      background: costReportType === type ? 'var(--bg-tertiary)' : 'transparent',
+                      color: costReportType === type ? 'var(--text-primary)' : 'var(--text-secondary)',
+                      border: 'none',
+                      padding: '0.5rem 1rem',
+                      borderRadius: 'var(--radius-sm)',
+                      cursor: 'pointer',
+                      fontWeight: 500,
+                      textTransform: 'capitalize',
+                      transition: 'all var(--transition-fast)',
+                      fontSize: '0.85rem',
+                    }}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
+
               <div className="glass-panel" style={{ padding: '0.4rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Month:</span>
-                <input
-                  type="month"
-                  value={selectedMonth}
-                  onChange={e => setSelectedMonth(e.target.value)}
-                  style={inputStyle}
-                />
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  {costReportType === 'daily' ? 'Date:' : costReportType === 'monthly' ? 'Month:' : 'Year:'}
+                </span>
+                {costReportType === 'daily' && (
+                  <input
+                    type="date"
+                    value={costDate}
+                    onChange={e => setCostDate(e.target.value)}
+                    style={inputStyle}
+                  />
+                )}
+                {costReportType === 'monthly' && (
+                  <input
+                    type="month"
+                    value={costDate.slice(0, 7)}
+                    onChange={e => {
+                      const newDate = e.target.value;
+                      if (newDate) setCostDate(`${newDate}-01`);
+                    }}
+                    style={inputStyle}
+                  />
+                )}
+                {costReportType === 'yearly' && (
+                  <input
+                    type="number"
+                    min="2000"
+                    max="2100"
+                    value={costDate.slice(0, 4)}
+                    onChange={e => {
+                      const newYear = e.target.value;
+                      if (newYear && newYear.length === 4) setCostDate(`${newYear}-01-01`);
+                    }}
+                    style={{ ...inputStyle, width: '100px' }}
+                  />
+                )}
               </div>
             </div>
 
@@ -993,7 +1143,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
               <div className="glass-panel" style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 500 }}>Total Effort</span>
                 <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>{projectTotalHours} hrs</span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Logged in {selectedMonth}</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Logged in {costReportType === 'daily' ? costDate : costReportType === 'monthly' ? costDate.slice(0, 7) : costDate.slice(0, 4)}</span>
               </div>
               <div className="glass-panel" style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 500 }}>Total Actual Cost</span>
