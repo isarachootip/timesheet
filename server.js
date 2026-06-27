@@ -1223,6 +1223,11 @@ app.get('/api/initial-data', async (req, res) => {
     const permissionSchemesRes = await pool.query('SELECT * FROM permission_schemes');
     const projectWorkflowsRes = await pool.query('SELECT * FROM project_workflows');
     const costRatesRes = await pool.query('SELECT * FROM cost_rates');
+    const settingsRes = await pool.query('SELECT * FROM system_settings');
+    const systemSettings = {};
+    settingsRes.rows.forEach(row => {
+      systemSettings[row.setting_key] = row.setting_value;
+    });
 
     // Map DB column casing to JS camelCase
     const users = usersRes.rows.map(u => ({
@@ -1332,7 +1337,7 @@ app.get('/api/initial-data', async (req, res) => {
       currency: cr.currency || 'THB'
     }));
 
-    res.json({ users, projects, tasks, timesheets, taskTemplates, sprints, releases, permissionSchemes, projectWorkflows, costRates });
+    res.json({ users, projects, tasks, timesheets, taskTemplates, sprints, releases, permissionSchemes, projectWorkflows, costRates, systemSettings });
   } catch (err) {
     console.error('Error fetching initial data:', err);
     res.status(500).json({ error: err.message });

@@ -10,6 +10,8 @@ interface SettingsProps {
   currentUser: User | null;
   costRates: CostRate[];
   setCostRates: React.Dispatch<React.SetStateAction<CostRate[]>>;
+  systemSettings?: Record<string, any>;
+  setSystemSettings?: React.Dispatch<React.SetStateAction<Record<string, any>>>;
   fetchInitialData?: () => void;
 }
 
@@ -21,22 +23,25 @@ export const Settings = ({
   currentUser,
   costRates,
   setCostRates,
+  systemSettings,
+  setSystemSettings,
   fetchInitialData
 }: SettingsProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<TaskTemplate | null>(null);
-  const [activeTab, setActiveTab] = useState<'templates' | 'integrations' | 'permission_schemes' | 'cost_rates' | 'data_management' | 'ai_config'>('templates');
+  const [activeTab, setActiveTab] = useState<'templates' | 'integrations' | 'permission_schemes' | 'cost_rates' | 'data_management' | 'system_config'>('templates');
   const [showCleanConfirm, setShowCleanConfirm] = useState(false);
   const [cleanResult, setCleanResult] = useState<{ deleted: Record<string, number> } | null>(null);
   const [isCleaning, setIsCleaning] = useState(false);
 
   const [geminiApiKey, setGeminiApiKey] = useState('');
-  const [isSavingAiConfig, setIsSavingAiConfig] = useState(false);
-  const [aiConfigMessage, setAiConfigMessage] = useState('');
+  const [maxUploadMb, setMaxUploadMb] = useState('1');
+  const [isSavingSystemConfig, setIsSavingSystemConfig] = useState(false);
+  const [systemConfigMessage, setSystemConfigMessage] = useState('');
 
-  // Fetch AI Config on tab open
+  // Fetch System Config on tab open
   useEffect(() => {
-    if (activeTab === 'ai_config' && currentUser?.globalRole === 'Admin') {
+    if (activeTab === 'system_config' && currentUser?.globalRole === 'Admin') {
       fetch('/api/system-settings', {
         headers: { 'X-User-Id': currentUser?.id || '' }
       })
@@ -45,32 +50,38 @@ export const Settings = ({
         if (data.gemini_api_key) {
           setGeminiApiKey(data.gemini_api_key);
         }
+        if (data.max_upload_mb) {
+          setMaxUploadMb(data.max_upload_mb);
+        }
       })
       .catch(err => console.error('Failed to load system settings', err));
     }
   }, [activeTab, currentUser]);
 
-  const handleSaveAiConfig = async (e: React.FormEvent) => {
+  const handleSaveSystemConfig = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSavingAiConfig(true);
-    setAiConfigMessage('');
+    setIsSavingSystemConfig(true);
+    setSystemConfigMessage('');
     try {
       const res = await fetch('/api/system-settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-User-Id': currentUser?.id || '' },
-        body: JSON.stringify({ gemini_api_key: geminiApiKey })
+        body: JSON.stringify({ gemini_api_key: geminiApiKey, max_upload_mb: maxUploadMb })
       });
       if (res.ok) {
-        setAiConfigMessage('Settings saved successfully!');
-        setTimeout(() => setAiConfigMessage(''), 3000);
+        setSystemConfigMessage('Settings saved successfully!');
+        if (setSystemSettings) {
+          setSystemSettings(prev => ({ ...prev, gemini_api_key: geminiApiKey, max_upload_mb: maxUploadMb }));
+        }
+        setTimeout(() => setSystemConfigMessage(''), 3000);
       } else {
         const errorData = await res.json();
-        setAiConfigMessage('Error saving settings: ' + errorData.error);
+        setSystemConfigMessage('Error saving settings: ' + errorData.error);
       }
     } catch (err) {
-      setAiConfigMessage('Error saving settings: ' + (err as Error).message);
+      setSystemConfigMessage('Error saving settings: ' + (err as Error).message);
     } finally {
-      setIsSavingAiConfig(false);
+      setIsSavingSystemConfig(false);
     }
   };
 
@@ -489,18 +500,18 @@ export const Settings = ({
         )}
         {isGlobalAdmin && (
           <button 
-            onClick={() => setActiveTab('ai_config')}
+            onClick={() => setActiveTab('system_config')}
             style={{
               background: 'transparent',
               border: 'none',
-              color: activeTab === 'ai_config' ? 'var(--text-primary)' : 'var(--text-secondary)',
-              borderBottom: activeTab === 'ai_config' ? '2px solid var(--accent-primary)' : '2px solid transparent',
+              color: activeTab === 'system_config' ? 'var(--text-primary)' : 'var(--text-secondary)',
+              borderBottom: activeTab === 'system_config' ? '2px solid var(--accent-primary)' : '2px solid transparent',
               padding: '0.5rem 1rem',
               cursor: 'pointer',
-              fontWeight: activeTab === 'ai_config' ? 600 : 400
+              fontWeight: activeTab === 'system_config' ? 600 : 400
             }}
           >
-            🤖 AI Configuration
+            ⚙️ System Config
           </button>
         )}
       </div>
@@ -1390,14 +1401,14 @@ export const Settings = ({
           </div>
         </div>
       )}
-      {activeTab === 'ai_config' && isGlobalAdmin && (
+      {activeTab === 'system_config' && isGlobalAdmin && (
         <div className="glass-panel" style={{ padding: '2rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
             <ShieldCheck size={24} color="var(--accent-primary)" />
-            <h3 style={{ margin: 0, fontSize: '1.25rem' }}>AI Configuration (Super Admin Only)</h3>
+            <h3 style={{ margin: 0, fontSize: '1.25rem' }}>System Configuration (Super Admin Only)</h3>
           </div>
 
-          <form onSubmit={handleSaveAiConfig} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '600px' }}>
+          <form onSubmit={handleSaveSystemConfig} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '600px' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <label style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Google Gemini API Key</label>
               <input
@@ -1420,27 +1431,51 @@ export const Settings = ({
               </p>
             </div>
 
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Max Upload Size (MB)</label>
+              <input
+                type="number"
+                min="1"
+                max="50"
+                value={maxUploadMb}
+                onChange={(e) => setMaxUploadMb(e.target.value)}
+                placeholder="e.g. 1"
+                style={{
+                  padding: '0.75rem 1rem',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-tertiary)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.95rem',
+                  outline: 'none'
+                }}
+              />
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
+                Limit the maximum file size users can attach in the project chat. Recommended max: 50MB.
+              </p>
+            </div>
+
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <button
                 type="submit"
-                disabled={isSavingAiConfig}
+                disabled={isSavingSystemConfig}
                 style={{
                   background: 'var(--accent-primary)',
                   color: 'white',
                   border: 'none',
                   padding: '0.75rem 1.5rem',
                   borderRadius: 'var(--radius-md)',
-                  cursor: isSavingAiConfig ? 'wait' : 'pointer',
+                  cursor: isSavingSystemConfig ? 'wait' : 'pointer',
                   fontWeight: 600,
-                  opacity: isSavingAiConfig ? 0.7 : 1
+                  opacity: isSavingSystemConfig ? 0.7 : 1
                 }}
                 className="hover-lift"
               >
-                {isSavingAiConfig ? 'Saving...' : 'Save Settings'}
+                {isSavingSystemConfig ? 'Saving...' : 'Save Settings'}
               </button>
-              {aiConfigMessage && (
-                <span style={{ fontSize: '0.85rem', color: aiConfigMessage.includes('Error') ? 'var(--accent-danger)' : 'var(--accent-secondary)' }}>
-                  {aiConfigMessage}
+              {systemConfigMessage && (
+                <span style={{ fontSize: '0.85rem', color: systemConfigMessage.includes('Error') ? 'var(--accent-danger)' : 'var(--accent-secondary)' }}>
+                  {systemConfigMessage}
                 </span>
               )}
             </div>

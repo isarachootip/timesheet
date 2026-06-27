@@ -6,9 +6,10 @@ interface ProjectChatProps {
   projects: Project[];
   users: User[];
   currentUser: User;
+  systemSettings?: Record<string, any>;
 }
 
-export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, currentUser }) => {
+export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, currentUser, systemSettings }) => {
   const myProjects = projects.filter(p => 
     currentUser.globalRole === 'Admin' || p.members.some(m => m.userId === currentUser.id)
   );
@@ -345,8 +346,9 @@ export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, curre
                     onChange={(e) => {
                       if (e.target.files && e.target.files[0]) {
                         const file = e.target.files[0];
-                        if (file.size > 1024 * 1024) {
-                          alert('File size cannot exceed 1MB');
+                        const maxMb = parseFloat(systemSettings?.max_upload_mb || '1');
+                        if (file.size > maxMb * 1024 * 1024) {
+                          alert(`File size cannot exceed ${maxMb}MB`);
                           e.target.value = '';
                           return;
                         }
