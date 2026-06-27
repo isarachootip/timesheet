@@ -344,7 +344,13 @@ export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, curre
                     style={{ display: 'none' }}
                     onChange={(e) => {
                       if (e.target.files && e.target.files[0]) {
-                        setSelectedFile(e.target.files[0]);
+                        const file = e.target.files[0];
+                        if (file.size > 1024 * 1024) {
+                          alert('File size cannot exceed 1MB');
+                          e.target.value = '';
+                          return;
+                        }
+                        setSelectedFile(file);
                       }
                     }}
                   />
