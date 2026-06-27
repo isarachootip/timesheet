@@ -16,7 +16,8 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'personal' | 'team'>('personal');
+  const [viewMode, setViewMode] = useState<'personal' | 'team' | 'project'>('personal');
+  const [selectedReportProject, setSelectedReportProject] = useState<string>('all');
 
   // Form states
   const [projectId, setProjectId] = useState('');
@@ -51,7 +52,6 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
   const todaysEntries = userEntries.filter(ts => isSameDay(new Date(ts.date), selectedDate));
   const totalHoursToday = todaysEntries.reduce((sum, entry) => sum + entry.hours, 0);
 
-  // Team entries for selected date
   const teamTodaysEntries = timesheets.filter(ts => isSameDay(new Date(ts.date), selectedDate));
   const teamTotalHoursToday = teamTodaysEntries.reduce((sum, entry) => sum + entry.hours, 0);
   
@@ -61,12 +61,21 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
 
   const teamPendingCountToday = teamTodaysEntries.filter(ts => ts.status === 'Pending').length;
 
-  // Monthly stats based on view mode (team vs personal)
+  // Project entries for selected date
+  const projectTodaysEntries = teamTodaysEntries.filter(ts => selectedReportProject === 'all' || ts.projectId === selectedReportProject);
+  const projectTotalHoursToday = projectTodaysEntries.reduce((sum, entry) => sum + entry.hours, 0);
+  const projectActiveUsersCount = allUsers.filter(u => 
+    projectTodaysEntries.some(ts => ts.userId === u.id)
+  ).length;
+  const projectPendingCountToday = projectTodaysEntries.filter(ts => ts.status === 'Pending').length;
+
+  // Monthly stats based on view mode
   const thisMonthEntries = timesheets.filter(ts => {
     const entryDate = new Date(ts.date);
     const inMonth = isSameMonth(entryDate, currentMonth);
     if (!inMonth) return false;
     if (isAdmin && viewMode === 'team') return true;
+    if (isAdmin && viewMode === 'project') return (selectedReportProject === 'all' || ts.projectId === selectedReportProject);
     return ts.userId === currentUser.id;
   });
   const monthlyHours = thisMonthEntries.reduce((sum, entry) => sum + entry.hours, 0);
@@ -90,7 +99,10 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
 
   // Check if a date has entries (for dot indicator)
   const dateHasEntries = (d: Date) => {
-    if (isAdmin && viewMode === 'team') {
+    if (isAdmin && (viewMode === 'team' || viewMode === 'project')) {
+      if (viewMode === 'project' && selectedReportProject !== 'all') {
+        return timesheets.some(ts => ts.projectId === selectedReportProject && isSameDay(new Date(ts.date), d));
+      }
       return timesheets.some(ts => isSameDay(new Date(ts.date), d));
     }
     return userEntries.some(ts => isSameDay(new Date(ts.date), d));
@@ -322,10 +334,219 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
               >
                 👥 Team Daily Report
               </button>
+              <button 
+                onClick={() => setViewMode('project')}
+                style={{
+                  padding: '0.5rem 1.25rem',
+                  borderRadius: 'var(--radius-md)',
+                  background: viewMode === 'project' ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
+                  color: viewMode === 'project' ? '#000' : 'var(--text-secondary)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  transition: 'all var(--transition-fast)'
+                }}
+                className="hover-lift"
+              >
+                📁 Project Daily Report
+              </button>
             </div>
           )}
 
-          {viewMode === 'team' && isAdmin ? (
+          {viewMode === 'project' && isAdmin ? (
+            <div className="glass-panel" style={{ padding: '1.5rem', minHeight: '400px' }}>
+              <div className="flex-between" style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.125rem' }}>Project Daily Report</h3>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.1rem' }}>
+                    Activity log for {format(selectedDate, 'MMMM d, yyyy')}
+                  </p>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <select 
+                    value={selectedReportProject} 
+                    onChange={e => setSelectedReportProject(e.target.value)}
+                    style={{ 
+                      background: 'rgba(255,255,255,0.05)', 
+                      border: '1px solid var(--border-color)', 
+                      color: 'var(--text-primary)', 
+                      padding: '0.4rem 0.75rem', 
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: '0.85rem',
+                      outline: 'none'
+                    }}
+                  >
+                    <option value="all" style={{ background: 'var(--bg-secondary)' }}>All Projects</option>
+                    {projects.map(p => (
+                      <option key={p.id} value={p.id} style={{ background: 'var(--bg-secondary)' }}>{p.name}</option>
+                    ))}
+                  </select>
+                  <div style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>{projectTotalHoursToday}h Total Logged</div>
+                </div>
+              </div>
+
+              {/* Project Statistics Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div style={{ padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Logged Hours</span>
+                  <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent-primary)' }}>{projectTotalHoursToday}h</span>
+                </div>
+                <div style={{ padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Active Members</span>
+                  <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent-secondary)' }}>
+                    {projectActiveUsersCount} / {allUsers.length}
+                  </span>
+                </div>
+                <div style={{ padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Pending Approvals</span>
+                  <span style={{ fontSize: '1.5rem', fontWeight: 700, color: projectPendingCountToday > 0 ? 'var(--accent-warning)' : 'var(--text-muted)' }}>
+                    {projectPendingCountToday}
+                  </span>
+                </div>
+              </div>
+
+              {/* Employee Log Cards */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                {allUsers.map(user => {
+                  const uEntries = projectTodaysEntries.filter(ts => ts.userId === user.id);
+                  if (selectedReportProject !== 'all' && uEntries.length === 0) return null; // Hide users with no entries for this project
+                  const userTotalHours = uEntries.reduce((sum, e) => sum + e.hours, 0);
+
+                  return (
+                    <div key={user.id} style={{ 
+                      padding: '1.25rem', 
+                      background: 'var(--bg-tertiary)', 
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--border-color)'
+                    }}>
+                      <div className="flex-between" style={{ marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.75rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <img src={user.avatar} alt={user.name} style={{ width: '40px', height: '40px', borderRadius: '50%' }} />
+                          <div>
+                            <div style={{ fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              {user.name}
+                              {user.id === currentUser.id && (
+                                <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', background: 'rgba(0, 206, 209, 0.15)', borderRadius: 'var(--radius-sm)', color: 'var(--accent-primary)' }}>You</span>
+                              )}
+                              <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-secondary)' }}>({user.department})</span>
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{user.email}</div>
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: '1.25rem', fontWeight: 700, color: userTotalHours > 0 ? 'var(--accent-secondary)' : 'var(--text-muted)' }}>
+                            {userTotalHours}h
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Logged Today</div>
+                        </div>
+                      </div>
+
+                      {uEntries.length === 0 ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.85rem', padding: '0.5rem 0.75rem', background: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-sm)', border: '1px dashed var(--border-color)' }}>
+                          <span>No hours logged for this date.</span>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                          {uEntries.map(entry => (
+                            <div key={entry.id} style={{ 
+                              padding: '1rem', 
+                              background: 'var(--bg-secondary)', 
+                              borderRadius: 'var(--radius-sm)',
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              justifyContent: 'space-between',
+                              borderLeft: `4px solid ${entry.status === 'Approved' ? 'var(--accent-secondary)' : entry.status === 'Pending' ? 'var(--accent-warning)' : entry.status === 'Rejected' ? 'var(--accent-danger)' : 'var(--text-muted)'}`
+                            }}>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.35rem' }}>
+                                  <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9rem' }}>{getProjectName(entry.projectId)}</span>
+                                  <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-sm)', color: 'var(--text-secondary)' }}>
+                                    {getTaskName(entry.taskId)}
+                                  </span>
+                                </div>
+                                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>{entry.description}</p>
+                                {entry.startTime && entry.endTime && (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.35rem', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                                    <Clock size={10} />
+                                    <span>{entry.startTime} → {entry.endTime}</span>
+                                  </div>
+                                )}
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.35rem' }}>
+                                  <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>{entry.hours}h</div>
+                                  {entry.status === 'Approved' ? (
+                                    <span style={{ color: 'var(--accent-secondary)', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                                      <CheckCircle2 size={12} /> Approved
+                                    </span>
+                                  ) : entry.status === 'Pending' ? (
+                                    <span style={{ color: 'var(--accent-warning)', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                                      <Clock size={12} /> Pending
+                                    </span>
+                                  ) : entry.status === 'Rejected' ? (
+                                    <span style={{ color: 'var(--accent-danger)', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                                      <XCircle size={12} /> Rejected
+                                    </span>
+                                  ) : (
+                                    <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>Draft</span>
+                                  )}
+                                </div>
+                                
+                                {/* Quick Admin Approval Actions */}
+                                {entry.status === 'Pending' && (
+                                  <div style={{ display: 'flex', gap: '0.25rem', marginLeft: '0.5rem' }}>
+                                    <button 
+                                      onClick={() => handleApprove(entry.id)} 
+                                      title="Approve time entry"
+                                      style={{
+                                        background: 'rgba(217, 70, 239, 0.1)',
+                                        border: '1px solid rgba(217, 70, 239, 0.2)',
+                                        color: 'var(--accent-secondary)',
+                                        padding: '0.35rem',
+                                        borderRadius: 'var(--radius-sm)',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        transition: 'all var(--transition-fast)'
+                                      }}
+                                      className="hover-lift"
+                                    >
+                                      <CheckCircle2 size={14} />
+                                    </button>
+                                    <button 
+                                      onClick={() => handleReject(entry.id)} 
+                                      title="Reject time entry"
+                                      style={{
+                                        background: 'rgba(239, 68, 68, 0.1)',
+                                        border: '1px solid rgba(239, 68, 68, 0.2)',
+                                        color: 'var(--accent-danger)',
+                                        padding: '0.35rem',
+                                        borderRadius: 'var(--radius-sm)',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        transition: 'all var(--transition-fast)'
+                                      }}
+                                      className="hover-lift"
+                                    >
+                                      <X size={14} />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : viewMode === 'team' && isAdmin ? (
             <div className="glass-panel" style={{ padding: '1.5rem', minHeight: '400px' }}>
               <div className="flex-between" style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
                 <div>
