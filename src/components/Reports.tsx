@@ -108,6 +108,15 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
 
   const utilizationPct = totalHours > 0 ? Math.round((approvedHours / totalHours) * 100) : 0;
 
+  // ── Cost & Budget Calculations ──
+  const totalCost = filteredTimesheets.reduce((sum, ts) => sum + getEntryCost(ts), 0);
+  const relevantProjects = selectedProject === 'all' 
+    ? projects 
+    : projects.filter(p => p.id === selectedProject);
+  const totalBudget = relevantProjects.reduce((sum, p) => sum + (p.budget || 0), 0);
+  const budgetUsedPct = totalBudget > 0 ? Math.round((totalCost / totalBudget) * 100) : 0;
+  const isOverBudget = totalCost > totalBudget && totalBudget > 0;
+
   const totalAllHours = visibleTimesheets.reduce((s, t) => s + t.hours, 0);
   const projectStats = projects.map(project => {
     const hours = filteredTimesheets
@@ -127,8 +136,8 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
     return { ...user, hours };
   }).filter(e => e.hours > 0);
 
-  // ── Task Movement Data Calculation ──
-  const getTaskMovementData = () => {
+  // ── Cost Movement Data Calculation ──
+  const getCostMovementData = () => {
     let startD = new Date();
     startD.setDate(startD.getDate() - 14); // Default last 15 days
     let endD = new Date();
@@ -146,34 +155,25 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
 
     const data = [];
     const curr = new Date(startD);
-    
-    const relevantTasks = tasks.filter(t => {
-      if (selectedProject !== 'all' && t.projectId !== selectedProject) return false;
-      return true;
-    });
 
     while (curr <= endD) {
       const dateStr = curr.toISOString().split('T')[0];
-      const upToDateTasks = relevantTasks.filter(t => {
-        const createdDate = t.createdAt ? t.createdAt.split('T')[0] : '2000-01-01';
-        return createdDate <= dateStr;
-      });
-      const total = upToDateTasks.length;
-      const resolved = upToDateTasks.filter(t => t.status.toLowerCase() === 'done' || t.status.toLowerCase() === 'completed').length;
-      const open = total - resolved;
+      const dayTimesheets = filteredTimesheets.filter(ts => ts.date === dateStr);
+      
+      const dayHours = dayTimesheets.reduce((sum, ts) => sum + ts.hours, 0);
+      const dayCost = dayTimesheets.reduce((sum, ts) => sum + getEntryCost(ts), 0);
       
       data.push({
         date: dateStr,
         displayDate: `${curr.getDate()} ${curr.toLocaleString('en-US', { month: 'short' })}`,
-        Total: total,
-        Open: open,
-        Resolved: resolved
+        LoggedHours: Number(dayHours.toFixed(2)),
+        Cost: Number(dayCost.toFixed(2))
       });
       curr.setDate(curr.getDate() + 1);
     }
     return data;
   };
-  const taskMovementData = getTaskMovementData();
+  const costMovementData = getCostMovementData();
 
   // ── Calculations for PERSONAL Tab ──
   const activePersonalUser = selectedUser === 'all' ? (currentUser?.id || '') : selectedUser;
@@ -565,13 +565,22 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                 </div>
               </div>
               <div className="glass-panel" style={{ padding: '0.75rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 500 }}>Approval Rate</span>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 500 }}>Total Cost vs Budget</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%' }}>
-                  <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>{utilizationPct}%</span>
-                  <div style={{ flex: 1, height: '4px', background: 'var(--bg-tertiary)', borderRadius: '999px', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${utilizationPct}%`, background: 'var(--accent-primary)', borderRadius: '999px', transition: 'width 0.4s' }} />
-                  </div>
+                  <span style={{ fontSize: '1.5rem', fontWeight: 700, color: isOverBudget ? 'var(--status-error)' : 'var(--text-primary)' }}>
+                    ฿{totalCost.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                  </span>
+                  {totalBudget > 0 && (
+                    <span style={{ fontSize: '0.8rem', color: isOverBudget ? 'var(--status-error)' : 'var(--text-muted)' }}>
+                      / ฿{totalBudget.toLocaleString()}
+                    </span>
+                  )}
                 </div>
+                {totalBudget > 0 && (
+                  <div style={{ width: '100%', height: '4px', background: 'var(--bg-tertiary)', borderRadius: '999px', overflow: 'hidden', marginTop: '4px' }}>
+                    <div style={{ height: '100%', width: `${Math.min(budgetUsedPct, 100)}%`, background: isOverBudget ? 'var(--status-error)' : 'var(--accent-primary)', borderRadius: '999px', transition: 'width 0.4s' }} />
+                  </div>
+                )}
               </div>
             </div>
 
@@ -625,14 +634,14 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
               </div>
             </div>
 
-            {/* Project Task Movement Chart */}
+            {/* Logged Hours and Cost Movement Chart */}
             <div className="glass-panel" style={{ padding: '1.5rem' }}>
               <h3 style={{ fontSize: '1.125rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <LineChartIcon size={18} color="var(--accent-primary)" /> Task Ticket Movement (Daily)
+                <LineChartIcon size={18} color="var(--accent-primary)" /> Logged Hours & Cost Movement (Daily)
               </h3>
               <div style={{ width: '100%', height: '350px' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={taskMovementData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
+                  <LineChart data={costMovementData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
                     <XAxis 
                       dataKey="displayDate" 
@@ -642,20 +651,29 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                       axisLine={false} 
                     />
                     <YAxis 
+                      yAxisId="left"
                       stroke="var(--text-secondary)" 
                       fontSize={12} 
                       tickLine={false} 
                       axisLine={false} 
                       allowDecimals={false}
                     />
+                    <YAxis 
+                      yAxisId="right"
+                      orientation="right"
+                      stroke="var(--text-secondary)" 
+                      fontSize={12} 
+                      tickLine={false} 
+                      axisLine={false} 
+                      tickFormatter={(val) => `฿${val.toLocaleString()}`}
+                    />
                     <Tooltip 
                       contentStyle={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '8px' }}
                       itemStyle={{ fontWeight: 600 }}
                     />
                     <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} />
-                    <Line type="monotone" dataKey="Total" stroke="#8884d8" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                    <Line type="monotone" dataKey="Open" stroke="#ffc658" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                    <Line type="monotone" dataKey="Resolved" stroke="#82ca9d" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                    <Line yAxisId="left" type="monotone" name="Logged Hours" dataKey="LoggedHours" stroke="#8884d8" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                    <Line yAxisId="right" type="monotone" name="Cost (THB)" dataKey="Cost" stroke="#ffc658" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
