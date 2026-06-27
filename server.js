@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import { sendEmail } from './mailService.js';
 import crypto from 'crypto';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import fs from 'fs';
 
 dotenv.config();
 
@@ -17,10 +18,12 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json({ limit: '10mb' })); // Support base64 image uploads
+app.use(express.json({ limit: '50mb' })); // Support base64 image uploads
 
 // Serve React build static assets
 app.use(express.static(path.join(__dirname, 'dist')));
+// Serve Uploads
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Database Connection
 const connectionString = process.env.DATABASE_URL;
@@ -180,6 +183,9 @@ const initDB = async () => {
         text TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT NOW()
       );
+    `);
+    await client.query(`
+      ALTER TABLE project_messages ADD COLUMN IF NOT EXISTS attachments JSONB DEFAULT '[]'::jsonb;
     `);
 
     // Create Timesheets Table
@@ -1999,7 +2005,8 @@ app.get('/api/projects/:projectId/messages', async (req, res) => {
       projectId: m.project_id,
       userId: m.user_id,
       text: m.text,
-      timestamp: m.created_at
+      timestamp: m.created_at,
+      attachments: m.attachments || []
     }));
     res.json(messages);
   } catch (err) {
@@ -2010,17 +2017,19 @@ app.get('/api/projects/:projectId/messages', async (req, res) => {
 
 app.post('/api/projects/:projectId/messages', async (req, res) => {
   const { projectId } = req.params;
-  const { userId, text } = req.body;
+  const { userId, text, attachments } = req.body;
   
   if (!userId || !text) {
     return res.status(400).json({ error: 'Missing userId or text' });
   }
 
   const id = 'msg_' + crypto.randomUUID();
+  const safeAttachments = attachments || [];
+  
   try {
     await pool.query(
-      'INSERT INTO project_messages (id, project_id, user_id, text) VALUES ($1, $2, $3, $4)',
-      [id, projectId, userId, text]
+      'INSERT INTO project_messages (id, project_id, user_id, text, attachments) VALUES ($1, $2, $3, $4, $5)',
+      [id, projectId, userId, text, JSON.stringify(safeAttachments)]
     );
     
     // Fetch and return the inserted message to ensure timestamp is correct
@@ -2032,10 +2041,48 @@ app.post('/api/projects/:projectId/messages', async (req, res) => {
       projectId: m.project_id,
       userId: m.user_id,
       text: m.text,
-      timestamp: m.created_at
+      timestamp: m.created_at,
+      attachments: m.attachments || []
     });
   } catch (err) {
     console.error('Error creating project message:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// File Upload API
+app.post('/api/upload', async (req, res) => {
+  try {
+    const { file, fileName, type } = req.body; // file is a base64 string
+    if (!file || !fileName) {
+      return res.status(400).json({ error: 'Missing file data' });
+    }
+
+    // Decode base64
+    const matches = file.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    if (!matches || matches.length !== 3) {
+      return res.status(400).json({ error: 'Invalid base64 format' });
+    }
+
+    const buffer = Buffer.from(matches[2], 'base64');
+    
+    // Create unique filename to avoid collision
+    const ext = path.extname(fileName) || '';
+    const nameWithoutExt = path.basename(fileName, ext);
+    const uniqueFileName = `${nameWithoutExt}-${Date.now()}${ext}`;
+    
+    const uploadsDir = path.join(__dirname, 'uploads');
+    if (!fs.existsSync(uploadsDir)){
+        fs.mkdirSync(uploadsDir);
+    }
+
+    const filePath = path.join(uploadsDir, uniqueFileName);
+    fs.writeFileSync(filePath, buffer);
+
+    const publicUrl = `/uploads/${uniqueFileName}`;
+    res.json({ url: publicUrl, name: fileName, type });
+  } catch (err) {
+    console.error('Error uploading file:', err);
     res.status(500).json({ error: err.message });
   }
 });

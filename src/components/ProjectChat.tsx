@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Hash, MessageSquare, Clock, User as UserIcon } from 'lucide-react';
+import { Send, Hash, MessageSquare, Clock, User as UserIcon, Paperclip, FileText, Download, X as XIcon } from 'lucide-react';
 import type { Project, User, ChatMessage } from '../types';
 
 interface ProjectChatProps {
@@ -17,6 +17,9 @@ export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, curre
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const selectedProject = projects.find(p => p.id === selectedProjectId);
@@ -52,7 +55,46 @@ export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, curre
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!inputValue.trim() || !selectedProjectId) return;
+    if ((!inputValue.trim() && !selectedFile) || !selectedProjectId) return;
+
+    let attachmentData = null;
+    
+    // Upload file first if exists
+    if (selectedFile) {
+      setUploading(true);
+      try {
+        const reader = new FileReader();
+        const base64Promise = new Promise<string>((resolve) => {
+          reader.onload = (e) => resolve(e.target?.result as string);
+          reader.readAsDataURL(selectedFile);
+        });
+        const base64File = await base64Promise;
+        
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            file: base64File,
+            fileName: selectedFile.name,
+            type: selectedFile.type || 'application/octet-stream'
+          })
+        });
+        
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          attachmentData = {
+            name: uploadData.name,
+            url: uploadData.url,
+            type: uploadData.type
+          };
+        }
+      } catch (err) {
+        console.error('File upload failed', err);
+        setUploading(false);
+        return; // Stop if file upload fails
+      }
+      setUploading(false);
+    }
 
     const tempId = 'temp_' + Date.now();
     const newMsg: ChatMessage = {
@@ -60,11 +102,14 @@ export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, curre
       projectId: selectedProjectId,
       userId: currentUser.id,
       text: inputValue,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      attachments: attachmentData ? [attachmentData] : []
     };
 
     setMessages(prev => [...prev, newMsg]);
     setInputValue('');
+    setSelectedFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
 
     try {
       const res = await fetch(`/api/projects/${selectedProjectId}/messages`, {
@@ -72,7 +117,8 @@ export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, curre
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: currentUser.id,
-          text: newMsg.text
+          text: newMsg.text || ' ', // Backend requires text, so if only file, send a space
+          attachments: newMsg.attachments
         })
       });
       if (res.ok) {
@@ -245,7 +291,33 @@ export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, curre
                                 boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
                                 whiteSpace: 'pre-wrap'
                               }}>
-                                {msg.text}
+                                {msg.text.trim() ? msg.text : ''}
+                                {msg.attachments && msg.attachments.length > 0 && (
+                                  <div style={{ marginTop: msg.text.trim() ? '0.75rem' : '0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                    {msg.attachments.map((att, i) => {
+                                      const isImage = att.type.startsWith('image/');
+                                      if (isImage) {
+                                        return (
+                                          <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>
+                                            <img src={att.url} alt={att.name} style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '0.5rem' }} />
+                                          </a>
+                                        );
+                                      } else {
+                                        return (
+                                          <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" style={{
+                                            display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                            padding: '0.5rem', background: 'rgba(0,0,0,0.1)', borderRadius: '0.5rem',
+                                            color: 'inherit', textDecoration: 'none'
+                                          }}>
+                                            <FileText size={20} />
+                                            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att.name}</span>
+                                            <Download size={16} />
+                                          </a>
+                                        );
+                                      }
+                                    })}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -258,7 +330,41 @@ export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, curre
               </div>
 
               <div style={{ padding: '1.25rem', borderTop: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.02)' }}>
-                <form onSubmit={handleSendMessage} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
+                {selectedFile && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', padding: '0.5rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-sm)', display: 'inline-flex' }}>
+                    <FileText size={16} />
+                    <span style={{ fontSize: '0.85rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedFile.name}</span>
+                    <button onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }} style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--text-muted)' }}><XIcon size={16} /></button>
+                  </div>
+                )}
+                <form onSubmit={handleSendMessage} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    style={{ display: 'none' }}
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setSelectedFile(e.target.files[0]);
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{
+                      background: 'transparent',
+                      color: 'var(--text-secondary)',
+                      border: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      padding: '0.5rem'
+                    }}
+                    className="hover-lift"
+                  >
+                    <Paperclip size={20} />
+                  </button>
                   <div style={{ flex: 1, background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', padding: '0.5rem 1rem', transition: 'all 0.2s' }} className="focus-within-ring">
                     <input
                       type="text"
@@ -278,10 +384,10 @@ export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, curre
                   </div>
                   <button
                     type="submit"
-                    disabled={!inputValue.trim()}
+                    disabled={(!inputValue.trim() && !selectedFile) || uploading}
                     style={{
-                      background: inputValue.trim() ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
-                      color: inputValue.trim() ? 'white' : 'var(--text-muted)',
+                      background: (inputValue.trim() || selectedFile) ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
+                      color: (inputValue.trim() || selectedFile) ? 'white' : 'var(--text-muted)',
                       border: 'none',
                       borderRadius: 'var(--radius-md)',
                       width: '46px',
@@ -289,12 +395,13 @@ export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, curre
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      cursor: inputValue.trim() ? 'pointer' : 'not-allowed',
-                      transition: 'all 0.2s'
+                      cursor: (inputValue.trim() || selectedFile) && !uploading ? 'pointer' : 'not-allowed',
+                      transition: 'all 0.2s',
+                      opacity: uploading ? 0.7 : 1
                     }}
-                    className={inputValue.trim() ? "hover-lift" : ""}
+                    className={(inputValue.trim() || selectedFile) && !uploading ? "hover-lift" : ""}
                   >
-                    <Send size={18} />
+                    {uploading ? <Clock size={18} className="spin" /> : <Send size={18} />}
                   </button>
                 </form>
               </div>

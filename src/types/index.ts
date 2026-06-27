@@ -30,6 +30,11 @@ export interface ChatMessage {
   userId: string;
   text: string;
   timestamp: string;
+  attachments?: {
+    name: string;
+    url: string;
+    type: string;
+  }[];
 }
 
 export interface Project {
