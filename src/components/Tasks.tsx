@@ -3402,9 +3402,9 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
             )}
 
             {/* Backlog List */}
-            <div className="glass-panel" style={{ padding: '0', overflowX: 'auto' }}>
+            <div className="glass-panel" style={{ padding: '0', overflowX: 'auto', maxHeight: '550px', overflowY: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '900px' }}>
-                <thead>
+                <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg-tertiary)' }}>
                   <tr style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-tertiary)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                     <th style={{ padding: '1rem', width: '40px', textAlign: 'center' }}>
                       <input
