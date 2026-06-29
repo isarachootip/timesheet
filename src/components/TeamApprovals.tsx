@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import type { TimesheetEntry, User, GlobalRole, Project, ProjectRole } from '../types';
-import { Check, X, Shield, Clock, Award, Users, Plus, Edit, Trash2 } from 'lucide-react';
+import { Check, X, Clock, Award, Users, Plus, Edit, Trash2 } from 'lucide-react';
 
 interface TeamApprovalsProps {
   users: User[];
@@ -499,9 +499,32 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                   <img src={user.avatar} alt={user.name} style={{ width: '56px', height: '56px', borderRadius: '50%' }} />
                   <div className="member-info" style={{ flex: 1, minWidth: 0 }}>
                     <h3 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>{user.name}</h3>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                      <Shield size={12} color="var(--accent-primary)" />
-                      <span>{user.globalRole} • {user.department}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+                      <span style={{ 
+                        fontSize: '0.7rem', 
+                        padding: '0.15rem 0.5rem', 
+                        borderRadius: 'var(--radius-sm)', 
+                        fontWeight: 600,
+                        background: user.globalRole === 'Admin' ? 'rgba(239, 68, 68, 0.1)' : 
+                                    user.globalRole === 'Manager' ? 'rgba(59, 130, 246, 0.1)' : 
+                                    user.globalRole === 'Employee' ? 'rgba(16, 185, 129, 0.1)' : 
+                                    'rgba(245, 158, 11, 0.1)',
+                        color: user.globalRole === 'Admin' ? '#EF4444' : 
+                               user.globalRole === 'Manager' ? '#3B82F6' : 
+                               user.globalRole === 'Employee' ? '#10B981' : 
+                               '#F59E0B',
+                        border: user.globalRole === 'Admin' ? '1px solid rgba(239, 68, 68, 0.2)' : 
+                                user.globalRole === 'Manager' ? '1px solid rgba(59, 130, 246, 0.2)' : 
+                                user.globalRole === 'Employee' ? '1px solid rgba(16, 185, 129, 0.2)' : 
+                                '1px solid rgba(245, 158, 11, 0.2)',
+                      }}>
+                        {user.globalRole === 'User' ? 'User / บุคคลภายนอก' : user.globalRole}
+                      </span>
+                      {user.department && (
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                          • {user.department}
+                        </span>
+                      )}
                     </div>
                     
                     {(user.gender || user.birthday) && (
@@ -743,6 +766,7 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                   <option value="Employee">Employee</option>
                   <option value="Manager">Manager</option>
                   <option value="Admin">Admin</option>
+                  <option value="User">User</option>
                 </select>
               </div>
 

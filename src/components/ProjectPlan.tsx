@@ -307,10 +307,9 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
       return next;
     });
   };
-
   const hasProjectPermission = (projId: string, permissionKey: string, taskObj?: Task) => {
     if (!currentUser) return false;
-    if (currentUser.globalRole === 'Admin') return true;
+    if (currentUser.globalRole === 'Admin' || currentUser.globalRole === 'Manager') return true;
 
     const project = projects.find(p => p.id === projId);
     if (!project) return false;
@@ -319,10 +318,6 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
     const members = project.members || [];
     const member = members.find(m => m.userId === currentUser.id);
     if (member) projectRole = member.role;
-
-    if (currentUser.globalRole === 'Manager' && !projectRole) {
-      projectRole = 'PM';
-    }
 
     const schemeId = project.permissionSchemeId || 'scheme_default';
     const scheme = permissionSchemes.find(s => s.id === schemeId);
@@ -497,9 +492,15 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
               onChange={e => setSelectedProjectId(e.target.value)}
               style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', outline: 'none', cursor: 'pointer', fontSize: '0.95rem', fontWeight: 600 }}
             >
-              {projects.map(p => (
-                <option key={p.id} value={p.id} style={{ background: 'var(--bg-secondary)' }}>{p.name}</option>
-              ))}
+              {projects
+                .filter(p => 
+                  currentUser?.globalRole === 'Admin' || 
+                  currentUser?.globalRole === 'Manager' || 
+                  p.members?.some(m => m.userId === currentUser?.id)
+                )
+                .map(p => (
+                  <option key={p.id} value={p.id} style={{ background: 'var(--bg-secondary)' }}>{p.name}</option>
+                ))}
             </select>
           </div>
 

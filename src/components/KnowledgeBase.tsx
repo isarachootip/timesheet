@@ -1,11 +1,20 @@
 import React, { useState } from 'react';
-import { HelpCircle, ChevronDown, ChevronRight, BookOpen, Database, BarChart3, Clock, Languages, CalendarRange, Users, Star } from 'lucide-react';
+import { HelpCircle, ChevronDown, ChevronRight, BookOpen, Database, BarChart3, Clock, Languages, CalendarRange, Users, Star, Shield } from 'lucide-react';
+import type { User } from '../types';
 
 type Lang = 'en' | 'th';
 
-const KnowledgeBase: React.FC = () => {
+interface KnowledgeBaseProps {
+  currentUser?: User | null;
+}
+
+const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
   const [lang, setLang] = useState<Lang>('th');
   const [expandedId, setExpandedId] = useState<string | null>('q1');
+  const [expandedFeatureId, setExpandedFeatureId] = useState<string | null>('f1');
+  const [activeTab, setActiveTab] = useState<'faq' | 'features'>('faq');
+
+  const isAdmin = currentUser?.globalRole === 'Admin';
 
   const content = {
     en: {
@@ -53,7 +62,11 @@ const KnowledgeBase: React.FC = () => {
           answer: (
             <div>
               <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
-                <li style={{ marginBottom: '0.25rem' }}><strong>Timesheets:</strong> Go to the "Timesheet" menu. In your logged time history list, look for the red trash bin icon at the end of the row and click it to delete.</li>
+                <li style={{ marginBottom: '0.25rem' }}>
+                  <strong>Timesheets:</strong> Go to the "Timesheet" menu. In your logged time history list, look for the red trash bin icon at the end of the row.
+                  <br />
+                  <em>* Note: Employees can only delete logs in Draft, Pending, or Rejected status. Approved timesheets can only be deleted/corrected by an Admin or Manager.</em>
+                </li>
                 <li style={{ marginBottom: '0.25rem' }}><strong>Tasks (Board View):</strong> On the "Tasks" board, hover over the task card and click the small red trash bin icon in the top right corner.</li>
                 <li><strong>Tasks (Bulk Delete):</strong> Go to the "Backlog" or "Summary" view under Tasks, check the boxes next to multiple items, and click the red "Delete Selected" button at the top.</li>
               </ul>
@@ -190,6 +203,52 @@ const KnowledgeBase: React.FC = () => {
               </ul>
             </div>
           )
+        },
+        {
+          id: 'q12',
+          question: 'What are Subtasks and how do they work?',
+          icon: BookOpen,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>Subtasks are smaller, actionable items created under a Main Task (Milestone / Parent):</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>How to create:</strong> Click "Add Task" on the Tasks page, select "Subtask (To Do under Main Task)" in the level dropdown, and select the corresponding parent task under "Under Main Task".</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Progress Calculation:</strong> For Main Tasks with Subtasks, the parent task's progress is automatically calculated as the percentage of completed subtasks (e.g., 2 of 4 subtasks Done = 50% progress).</li>
+                <li><strong>Hour Budgeting:</strong> The combined estimated hours of all subtasks under a parent task cannot exceed the parent task's budgeted estimated hours.</li>
+              </ul>
+            </div>
+          )
+        },
+        {
+          id: 'q13',
+          question: "Why can't I see a specific project, its tasks, or its sprints?",
+          icon: Users,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>Project visibility in NexTime is restricted by user roles and membership:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Global Admins & Managers:</strong> Can view all projects, plans, tasks, and sprints automatically.</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Employees & Users:</strong> Can only see projects (including their tasks and sprints) where they are listed as members.</li>
+                <li><strong>How to fix:</strong> Ask a Global Admin or the Project Manager (PM) of that project to add you as a member. They can do this by going to the "Projects" page, clicking the edit icon on the project, and adding you under the "Manage Members" section.</li>
+              </ul>
+            </div>
+          )
+        },
+        {
+          id: 'q14',
+          question: 'How many types of system users are there and what are their permissions?',
+          icon: Shield,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>NexTime supports four user roles, which determine their system permissions:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Admin:</strong> Full system access, including editing system configurations, managing all projects, tasks, timesheets, and permissions.</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Manager:</strong> Administrative access to manage all projects, tasks, baselines, and approve/delete timesheets. Cannot edit core system settings.</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Employee (Internal Staff):</strong> Access to assigned projects. Can log hours, create tasks/subtasks, and transition task statuses. Cannot modify project baselines or delete approved timesheets.</li>
+                <li><strong>User (External / Client):</strong> Restricted visibility. Can only view projects they are assigned to as members and join project chats. Has no editing or administration rights over project plans.</li>
+              </ul>
+            </div>
+          )
         }
       ]
     },
@@ -238,7 +297,11 @@ const KnowledgeBase: React.FC = () => {
           answer: (
             <div>
               <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
-                <li style={{ marginBottom: '0.25rem' }}><strong>Timesheet:</strong> ไปที่เมนู "Timesheet" ด้านซ้ายมือ เลื่อนลงมาที่ตารางประวัติ จะมีไอคอนถังขยะสีแดงอยู่ขวาสุดของแต่ละรายการครับ</li>
+                <li style={{ marginBottom: '0.25rem' }}>
+                  <strong>Timesheet:</strong> ไปที่เมนู "Timesheet" ด้านซ้ายมือ เลื่อนลงมาที่ตารางประวัติ จะมีไอคอนถังขยะสีแดงอยู่ขวาสุดของแต่ละรายการครับ
+                  <br />
+                  <em>* หมายเหตุ: พนักงานทั่วไปสามารถลบรายการได้เฉพาะสถานะ Draft, Pending หรือ Rejected เท่านั้น หากรายการถูกอนุมัติ (Approved) แล้ว จะต้องให้ผู้ดูแลระบบ (Admin) หรือเมเนเจอร์ (Manager) เป็นผู้ดำเนินการลบเพื่อแก้ไขครับ</em>
+                </li>
                 <li style={{ marginBottom: '0.25rem' }}><strong>Task (หน้า Board):</strong> เอาเมาส์ไปชี้ที่การ์ดงาน จะมีไอคอนถังขยะสีแดงเล็กๆ โผล่ขึ้นมาที่มุมขวาบนของการ์ดครับ</li>
                 <li><strong>Task (ลบทีละหลายๆ อัน):</strong> ไปที่แท็บ "Backlog" หรือ "Summary" ติ๊กถูกที่ช่องสี่เหลี่ยมด้านหน้า Task ที่ต้องการลบ แล้วกดปุ่ม "Delete Selected" สีแดงที่ด้านบนครับ</li>
               </ul>
@@ -370,8 +433,54 @@ const KnowledgeBase: React.FC = () => {
             <div>
               <p style={{ marginBottom: '0.5rem' }}>ได้ครับ คุณสามารถดูรายงานสรุปค่าใช้จ่ายโปรเจกต์แยกตามช่วงเวลาได้:</p>
               <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
-                <li style={{ marginBottom: '0.25rem' }}>ไปที่เมนู <strong>Reports</strong> และเลือกแท็บ <strong>Project Cost</strong></li>
+                <li style={{ marginBottom: '0.25rem' }}>Go to the <strong>Reports</strong> page and select the <strong>Project Cost</strong> tab.</li>
                 <li>ใช้ปุ่มตัวกรอง (Daily, Monthly, Yearly) เพื่อเลือกรูปแบบช่วงเวลา และระบุ วัน/เดือน/ปี ที่ต้องการ เพื่อดูสรุปค่าใช้จ่ายของช่วงเวลานั้นๆ ครับ</li>
+              </ul>
+            </div>
+          )
+        },
+        {
+          id: 'q12',
+          question: 'Subtask (งานย่อย) คืออะไรและทำงานอย่างไร?',
+          icon: BookOpen,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>Subtask คือรายการงานขนาดเล็กที่อยู่ภายใต้งานหลัก (Main Task / Milestone) เพื่อช่วยแยกรายละเอียดและติดตามความคืบหน้าครับ:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>วิธีการสร้าง:</strong> กดปุ่ม "Add Task" ในเมนู Tasks จากนั้นเลือกประเภทระดับงานเป็น "Subtask (To Do under Main Task)" และเลือกงานหลักที่ต้องการเชื่อมโยงในดรอปดาวน์ "Under Main Task"</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>การคิดความคืบหน้า:</strong> งานหลักที่มีงานย่อยจะคิดเปอร์เซ็นต์ความคืบหน้า (% Progress) อิงตามสัดส่วนของจำนวนงานย่อยที่อยู่ในสถานะ Done (เช่น ทำเสร็จ 2 จาก 4 งานย่อย = 50% ความคืบหน้า)</li>
+                <li><strong>การควบคุมงบประมาณชั่วโมงงาน:</strong> ชั่วโมงประมาณการ (Estimated Hours) ของงานย่อยทั้งหมดรวมกันภายใต้งานหลัก จะต้องไม่เกินจำนวนชั่วโมงประมาณการที่กำหนดไว้ในงานหลัก (Main Task) ครับ</li>
+              </ul>
+            </div>
+          )
+        },
+        {
+          id: 'q13',
+          question: 'ทำไมฉันถึงมองไม่เห็นบางโครงการ (Projects) งาน (Tasks) หรือสปรินต์ (Sprints)?',
+          icon: Users,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>การเข้าถึงโครงการในระบบ NexTime ถูกควบคุมด้วยสิทธิ์และรายชื่อสมาชิกของโปรเจกต์นั้น ๆ ครับ:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Admin และ Manager:</strong> จะมองเห็นทุกโครงการ ทุกงาน และทุกสปรินต์ในระบบโดยอัตโนมัติ</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Employee และ User (พนักงานทั่วไป):</strong> จะมองเห็นเฉพาะโครงการ งาน และสปรินต์ที่ตนเองมีชื่อเป็นสมาชิกโปรเจกต์เท่านั้น</li>
+                <li><strong>วิธีแก้ไขเมื่อมองไม่เห็นโครงการ:</strong> ให้แจ้งผู้ดูแลระบบ (Admin) หรือผู้จัดการโครงการ (PM) ของโปรเจกต์นั้นเพิ่มชื่อคุณเข้าร่วมโครงการ โดยไปที่หน้า "Projects" &rarr; กดไอคอนดินสอ (แก้ไข) &rarr; แล้วเพิ่มรายชื่อคุณที่แท็บ "Manage Members" ครับ</li>
+              </ul>
+            </div>
+          )
+        },
+        {
+          id: 'q14',
+          question: 'ผู้ใช้งานในระบบมีกี่ประเภท และมีสิทธิ์แตกต่างกันอย่างไร?',
+          icon: Shield,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>ระบบ NexTime แบ่งผู้ใช้งานออกเป็น 4 ประเภท (Roles) เพื่อควบคุมสิทธิ์การเข้าถึงข้อมูลดังนี้ครับ:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Admin (ผู้ดูแลระบบสูงสุด):</strong> สามารถเข้าถึงและจัดการข้อมูลทุกอย่างในระบบ ตั้งค่าการทำงาน จัดการโครงการ งาน ใบลงเวลา และสิทธิ์สมาชิกได้ทั้งหมด</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Manager (ผู้จัดการระบบ):</strong> มีสิทธิ์จัดการโครงการ แผนงาน (Baselines) งาน และสปรินต์ รวมถึงอนุมัติหรือลบใบลงเวลาได้ทั้งหมด แต่ไม่สามารถแก้ไขส่วนตั้งค่าหลักของระบบ (System Config) ได้</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Employee (พนักงานปฏิบัติงาน):</strong> มองเห็นเฉพาะโครงการที่ตนมีชื่อเข้าร่วม สามารถบันทึกเวลาทำงาน (Timesheet) สร้างงานหรือเปลี่ยนสถานะงานได้ แต่ไม่มีสิทธิ์จัดการ Baseline หรือลบใบลงเวลาที่อนุมัติแล้ว</li>
+                <li><strong>User (ผู้ใช้ทั่วไป / บุคคลภายนอก):</strong> สิทธิ์การเข้าดูแบบจำกัดเป็นพิเศษ สามารถมองเห็นได้เฉพาะโปรเจกต์ที่ได้รับมอบหมาย และมีส่วนร่วมในแชทคุยของโปรเจกต์นั้นได้เท่านั้น ไม่มีสิทธิ์ในการแก้ไขงานหรือจัดการแผนงานใด ๆ ครับ</li>
               </ul>
             </div>
           )
@@ -382,6 +491,140 @@ const KnowledgeBase: React.FC = () => {
 
   const current = content[lang];
 
+  // Bilingual system features content
+  const featureContent = {
+    en: {
+      title: "System Features Guide (Admin)",
+      subtitle: "Detailed guides for administrators on baseline management and advanced concepts.",
+      features: [
+        {
+          id: 'f1',
+          question: 'What is the difference between Active Plan and Current Live Plan?',
+          icon: CalendarRange,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.75rem' }}>Here is the explanation of the two plans in the Project Plan & Timeline module:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.75rem' }}>
+                <li style={{ marginBottom: '0.5rem' }}>
+                  <strong>Active Plan (Baseline Version):</strong> This represents a saved snapshot or baseline plan of the project (e.g., "Initial Plan", "Phase 1 Baseline") that is currently active. Changing the Active Plan restores all workspace tasks to the state of this baseline version.
+                </li>
+                <li style={{ marginBottom: '0.5rem' }}>
+                  <strong>Current Live Plan:</strong> This represents the real-time status of the project tasks, including active work, task completion percentages, and timesheets logged up to the present moment.
+                </li>
+                <li>
+                  <strong>Comparison & Drift:</strong> By comparing the <strong>Active Plan</strong> against the <strong>Current Live Plan</strong>, the system calculates critical drift metrics:
+                  <ul style={{ listStyleType: 'circle', paddingLeft: '1.25rem', marginTop: '0.25rem' }}>
+                    <li><em>Schedule Slippage (Drift):</em> Days the timeline has shifted.</li>
+                    <li><em>Estimate Drift:</em> Variance in estimated vs actual hours.</li>
+                    <li><em>Story Points (SP) Drift:</em> Discrepancy in planned story points.</li>
+                    <li><em>Approved Actual Hours:</em> Total hours approved from timesheets.</li>
+                  </ul>
+                </li>
+              </ul>
+            </div>
+          )
+        },
+        {
+          id: 'f2',
+          question: 'How do I save project baselines and switch active plans?',
+          icon: Database,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>Administrators can save versions of project tasks to establish baseline plans:</p>
+              <ol style={{ listStyleType: 'decimal', paddingLeft: '1.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}>Go to the <strong>Project Plan</strong> page.</li>
+                <li style={{ marginBottom: '0.25rem' }}>Click the <strong>Save Version</strong> button to capture the current state of tasks and milestones.</li>
+                <li>To switch the active plan, select your saved baseline from the <strong>Active Plan</strong> dropdown. Note that this will swap the active workspace tasks to that version.</li>
+              </ol>
+            </div>
+          )
+        },
+        {
+          id: 'f3',
+          question: 'Who has permissions to edit and delete tasks / projects?',
+          icon: Users,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>Below are the task and project administration privileges by user role:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Global Admins & Managers:</strong> Have complete administration access. They can edit and delete tasks, milestones, and project baselines on any project in the system regardless of membership.</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Project Managers (PM):</strong> Have editing and deletion privileges on all tasks, sprints, and baselines within their assigned projects.</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Task Assignees:</strong> Can edit the details of tasks assigned to them (such as status, description, and subtasks) but cannot delete tasks.</li>
+                <li><strong>Regular Members:</strong> Can create tasks and transition statuses, but cannot delete tasks or configure sprints/releases.</li>
+              </ul>
+            </div>
+          )
+        }
+      ]
+    },
+    th: {
+      title: "คู่มือฟีเจอร์และการจัดการระบบ (Admin Only)",
+      subtitle: "คู่มือฟีเจอร์พิเศษสำหรับการวางแผนและตั้งค่าสำหรับผู้ดูแลระบบเท่านั้น",
+      features: [
+        {
+          id: 'f1',
+          question: 'Active Plan กับ Current Live Plan แตกต่างกันอย่างไร?',
+          icon: CalendarRange,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.75rem' }}>คำอธิบายการทำงานของทั้งสองแผนในเมนูวางแผนและปฏิทินงานโครงการ (Project Plan):</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.75rem' }}>
+                <li style={{ marginBottom: '0.5rem' }}>
+                  <strong>Active Plan (แผนงานหลัก/แผนอ้างอิงหลัก):</strong> คือแผนงานฐานข้อมูล (Baseline Plan) ที่บันทึกสแนปช็อตของโครงการในอดีต (เช่น แผนตั้งต้น Initial Plan หรือ แผนแต่ละเฟส) ซึ่งกำลังเปิดใช้งานเป็นมาตรฐานในระบบ หากสลับเปลี่ยน Active Plan จะเป็นการดึงข้อมูลงานในสแนปช็อตนั้นกลับมาเป็นหน้างานหลัก
+                </li>
+                <li style={{ marginBottom: '0.5rem' }}>
+                  <strong>Current Live Plan (แผนงานจริงในปัจจุบัน):</strong> คือข้อมูลโปรเจกต์และรายการงานที่กำลังดำเนินการอัปเดตแบบเรียลไทม์ในปัจจุบัน รวมถึงความคืบหน้าของ Task ล่าสุด และชั่วโมงการลงเวลางานล่าสุดของทีมงาน
+                </li>
+                <li>
+                  <strong>การวิเคราะห์ความแตกต่าง (Variance & Drift):</strong> เมื่อสลับเปรียบเทียบระหว่าง <strong>Active Plan</strong> และ <strong>Current Live Plan</strong> ระบบจะคำนวณหาส่วนต่าง:
+                  <ul style={{ listStyleType: 'circle', paddingLeft: '1.25rem', marginTop: '0.25rem' }}>
+                    <li><em>Schedule Slippage (Drift):</em> แผนงานล่าช้ากว่ากำหนดการจริงไปกี่วัน</li>
+                    <li><em>Estimate Drift:</em> ประมาณการชั่วโมงงานคลาดเคลื่อนไปจากแผนกี่ชั่วโมง</li>
+                    <li><em>Story Points Drift:</em> คะแนนความยากงานเบี่ยงเบนจากแผนเท่าไร</li>
+                    <li><em>Approved Actual Hours:</em> ยอดชั่วโมงทำงานจริงที่อนุมัติแล้ว</li>
+                  </ul>
+                </li>
+              </ul>
+            </div>
+          )
+        },
+        {
+          id: 'f2',
+          question: 'วิธีการบันทึกและสลับแผนงาน Baseline ทำอย่างไร?',
+          icon: Database,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>ผู้ดูแลระบบสามารถบันทึกเวอร์ชันและเปลี่ยนแผนงานหลักได้ดังนี้:</p>
+              <ol style={{ listStyleType: 'decimal', paddingLeft: '1.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}>ไปที่เมนู <strong>Project Plan</strong> ด้านซ้ายมือ</li>
+                <li style={{ marginBottom: '0.25rem' }}>กดปุ่ม <strong>Save Version</strong> เพื่อบันทึกเก็บสถานะของ Milestone และงานต่างๆ ไว้เป็น Baseline ใหม่</li>
+                <li>สามารถสลับหรือคืนค่าแผนงานโดยการเลือก Baseline ที่บันทึกไว้ในดรอปดาวน์ <strong>Active Plan</strong> (ระบบจะสลับเอา Task ของ baseline นั้นมาไว้ในหน้างานจริง)</li>
+              </ol>
+            </div>
+          )
+        },
+        {
+          id: 'f3',
+          question: 'ผู้ใช้งานตำแหน่งใดบ้างที่มีสิทธิ์แก้ไขและลบงาน (Tasks) หรือโปรเจกต์?',
+          icon: Users,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>สิทธิ์ในการสร้าง แก้ไข และลบงานโครงการถูกระบุตามบทบาทหน้าที่ดังนี้ครับ:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>ผู้ดูแลระบบ (Admin) & เมเนเจอร์ (Manager) ระดับระบบ:</strong> มีสิทธิ์เข้าจัดการแบบครอบคลุม สามารถสร้าง แก้ไข และลบงาน สปรินต์ หรือเวอร์ชันแผนงานฐานข้อมูล (Baseline) ได้ในทุกโปรเจกต์ของระบบโดยไม่มีข้อจำกัด</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>ผู้จัดการโครงการ (PM):</strong> มีสิทธิ์แก้ไข ลบ และจัดการงาน รวมถึงสปรินต์/เวอร์ชัน ทั้งหมดในโครงการที่ตนเองได้รับมอบหมายดูแล</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>ผู้รับผิดชอบงาน (Assignee):</strong> มีสิทธิ์แก้ไขรายละเอียดงาน หรือย้ายสถานะเฉพาะงานที่ได้รับมอบหมายเท่านั้น แต่ไม่มีสิทธิ์ลบงาน</li>
+                <li><strong>สมาชิกทั่วไป (Member/SA/Frontend dev/ฯลฯ):</strong> มีสิทธิ์สร้างและบันทึกงานใหม่ หรือปรับสถานะงานตามลำดับกระบวนการ (Workflow) แต่ไม่มีสิทธิ์ลบงาน</li>
+              </ul>
+            </div>
+          )
+        }
+      ]
+    }
+  };
+
+  const currentFeatures = featureContent[lang];
+
   return (
     <div style={{ padding: '2rem', maxWidth: '1000px', margin: '0 auto', color: 'var(--text-primary)' }}>
       <header style={{ marginBottom: '2.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
@@ -390,8 +633,12 @@ const KnowledgeBase: React.FC = () => {
             <HelpCircle size={24} color="white" />
           </div>
           <div>
-            <h1 style={{ fontSize: '2rem', fontWeight: 700, margin: 0 }} className="text-gradient">{current.title}</h1>
-            <p style={{ color: 'var(--text-secondary)', marginTop: '0.25rem' }}>{current.subtitle}</p>
+            <h1 style={{ fontSize: '2rem', fontWeight: 700, margin: 0 }} className="text-gradient">
+              {activeTab === 'faq' ? current.title : currentFeatures.title}
+            </h1>
+            <p style={{ color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+              {activeTab === 'faq' ? current.subtitle : currentFeatures.subtitle}
+            </p>
           </div>
         </div>
 
@@ -418,69 +665,177 @@ const KnowledgeBase: React.FC = () => {
         </button>
       </header>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {current.faqs.map(faq => {
-          const Icon = faq.icon;
-          const isExpanded = expandedId === faq.id;
-          
-          return (
-            <div 
-              key={faq.id} 
-              style={{ 
-                background: 'var(--bg-secondary)', 
-                border: '1px solid var(--border-color)', 
-                borderRadius: '12px', 
-                overflow: 'hidden',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              <button
-                onClick={() => setExpandedId(isExpanded ? null : faq.id)}
-                style={{
-                  width: '100%',
-                  padding: '1.25rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  color: 'var(--text-primary)'
+      {/* Tab Switcher - Only visible to Admins */}
+      {isAdmin && (
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
+          <button
+            onClick={() => setActiveTab('faq')}
+            style={{
+              background: activeTab === 'faq' ? 'rgba(56, 189, 248, 0.15)' : 'transparent',
+              color: activeTab === 'faq' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+              border: 'none',
+              padding: '0.6rem 1.25rem',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: '0.9rem',
+              transition: 'all 0.2s ease',
+              outline: 'none',
+              boxShadow: activeTab === 'faq' ? '0 0 12px rgba(56, 189, 248, 0.05)' : 'none'
+            }}
+          >
+            {lang === 'en' ? 'FAQ & Manual' : 'คู่มือ & คำถามที่พบบ่อย (FAQ)'}
+          </button>
+          <button
+            onClick={() => setActiveTab('features')}
+            style={{
+              background: activeTab === 'features' ? 'rgba(167, 139, 250, 0.15)' : 'transparent',
+              color: activeTab === 'features' ? '#a78bfa' : 'var(--text-secondary)',
+              border: 'none',
+              padding: '0.6rem 1.25rem',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: '0.9rem',
+              transition: 'all 0.2s ease',
+              outline: 'none',
+              boxShadow: activeTab === 'features' ? '0 0 12px rgba(167, 139, 250, 0.05)' : 'none'
+            }}
+          >
+            {lang === 'en' ? 'System Features' : 'คู่มือฟีเจอร์สำหรับ Admin'}
+          </button>
+        </div>
+      )}
+
+      {activeTab === 'faq' ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {current.faqs.map(faq => {
+            const Icon = faq.icon;
+            const isExpanded = expandedId === faq.id;
+            
+            return (
+              <div 
+                key={faq.id} 
+                style={{ 
+                  background: 'var(--bg-secondary)', 
+                  border: '1px solid var(--border-color)', 
+                  borderRadius: '12px', 
+                  overflow: 'hidden',
+                  transition: 'all 0.2s ease'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
-                  <div style={{ 
-                    width: '36px', height: '36px', borderRadius: '8px', 
-                    background: isExpanded ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.05)', 
-                    display: 'flex', alignItems: 'center', justifyContent: 'center' 
-                  }}>
-                    <Icon size={18} color={isExpanded ? '#818cf8' : 'var(--text-secondary)'} />
+                <button
+                  onClick={() => setExpandedId(isExpanded ? null : faq.id)}
+                  style={{
+                    width: '100%',
+                    padding: '1.25rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    color: 'var(--text-primary)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
+                    <div style={{ 
+                      width: '36px', height: '36px', borderRadius: '8px', 
+                      background: isExpanded ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.05)', 
+                      display: 'flex', alignItems: 'center', justifyContent: 'center' 
+                    }}>
+                      <Icon size={18} color={isExpanded ? '#818cf8' : 'var(--text-secondary)'} />
+                    </div>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 600, margin: 0, color: isExpanded ? 'white' : 'var(--text-primary)' }}>
+                      {faq.question}
+                    </h3>
                   </div>
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 600, margin: 0, color: isExpanded ? 'white' : 'var(--text-primary)' }}>
-                    {faq.question}
-                  </h3>
-                </div>
-                <div style={{ color: 'var(--text-secondary)' }}>
-                  {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
-                </div>
-              </button>
-              
-              {isExpanded && (
-                <div style={{ 
-                  padding: '0 1.25rem 1.5rem 1.25rem',
-                  marginLeft: '44px',
-                  color: 'var(--text-secondary)',
-                  lineHeight: '1.6',
-                  fontSize: '0.95rem'
-                }}>
-                  <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '0 0 1rem 0' }} />
-                  {faq.answer}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                  <div style={{ color: 'var(--text-secondary)' }}>
+                    {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+                  </div>
+                </button>
+                
+                {isExpanded && (
+                  <div style={{ 
+                    padding: '0 1.25rem 1.5rem 1.25rem',
+                    marginLeft: '44px',
+                    color: 'var(--text-secondary)',
+                    lineHeight: '1.6',
+                    fontSize: '0.95rem'
+                  }}>
+                    <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '0 0 1rem 0' }} />
+                    {faq.answer}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {currentFeatures.features.map(feat => {
+            const Icon = feat.icon;
+            const isExpanded = expandedFeatureId === feat.id;
+            
+            return (
+              <div 
+                key={feat.id} 
+                style={{ 
+                  background: 'var(--bg-secondary)', 
+                  border: '1px solid var(--border-color)', 
+                  borderRadius: '12px', 
+                  overflow: 'hidden',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <button
+                  onClick={() => setExpandedFeatureId(isExpanded ? null : feat.id)}
+                  style={{
+                    width: '100%',
+                    padding: '1.25rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    color: 'var(--text-primary)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
+                    <div style={{ 
+                      width: '36px', height: '36px', borderRadius: '8px', 
+                      background: isExpanded ? 'rgba(167, 139, 250, 0.15)' : 'rgba(255,255,255,0.05)', 
+                      display: 'flex', alignItems: 'center', justifyContent: 'center' 
+                    }}>
+                      <Icon size={18} color={isExpanded ? '#a78bfa' : 'var(--text-secondary)'} />
+                    </div>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 600, margin: 0, color: isExpanded ? 'white' : 'var(--text-primary)' }}>
+                      {feat.question}
+                    </h3>
+                  </div>
+                  <div style={{ color: 'var(--text-secondary)' }}>
+                    {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+                  </div>
+                </button>
+                
+                {isExpanded && (
+                  <div style={{ 
+                    padding: '0 1.25rem 1.5rem 1.25rem',
+                    marginLeft: '44px',
+                    color: 'var(--text-secondary)',
+                    lineHeight: '1.6',
+                    fontSize: '0.95rem'
+                  }}>
+                    <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '0 0 1rem 0' }} />
+                    {feat.answer}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
       
       <div style={{ marginTop: '3rem', padding: '1.5rem', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '12px', display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
         <HelpCircle size={24} color="#818cf8" style={{ marginTop: '0.2rem', flexShrink: 0 }} />

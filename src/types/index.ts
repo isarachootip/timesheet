@@ -1,4 +1,4 @@
-export type GlobalRole = 'Admin' | 'Manager' | 'Employee';
+export type GlobalRole = 'Admin' | 'Manager' | 'Employee' | 'User';
 export type ProjectRole = string;
 export type TaskStatus = string; // Made generic to support custom workflow columns
 export type TaskPriority = 'Low' | 'Medium' | 'High' | 'Urgent';

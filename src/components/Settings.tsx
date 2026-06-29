@@ -23,7 +23,7 @@ export const Settings = ({
   currentUser,
   costRates,
   setCostRates,
-  systemSettings,
+  systemSettings: _systemSettings,
   setSystemSettings,
   fetchInitialData
 }: SettingsProps) => {

@@ -11,10 +11,17 @@ interface ProjectChatProps {
 
 export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, currentUser, systemSettings }) => {
   const myProjects = projects.filter(p => 
-    currentUser.globalRole === 'Admin' || p.members.some(m => m.userId === currentUser.id)
+    currentUser.globalRole === 'Admin' || currentUser.globalRole === 'Manager' || p.members.some(m => m.userId === currentUser.id)
   );
 
-  const [selectedProjectId, setSelectedProjectId] = useState<string>(myProjects[0]?.id || '');
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const queryProjId = params.get('projectId');
+    if (queryProjId && myProjects.some(p => p.id === queryProjId)) {
+      return queryProjId;
+    }
+    return myProjects[0]?.id || '';
+  });
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
@@ -332,7 +339,7 @@ export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, curre
 
               <div style={{ padding: '1.25rem', borderTop: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.02)' }}>
                 {selectedFile && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', padding: '0.5rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-sm)', display: 'inline-flex' }}>
+                  <div style={{ alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', padding: '0.5rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-sm)', display: 'inline-flex' }}>
                     <FileText size={16} />
                     <span style={{ fontSize: '0.85rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedFile.name}</span>
                     <button onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }} style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--text-muted)' }}><XIcon size={16} /></button>

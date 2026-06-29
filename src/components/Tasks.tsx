@@ -1220,7 +1220,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
   // Permission & Workflow transition validation helpers
   const hasProjectPermission = (projId: string, permissionKey: string, taskObj?: Task) => {
     if (!currentUser) return false;
-    if (currentUser.globalRole === 'Admin') return true;
+    if (currentUser.globalRole === 'Admin' || currentUser.globalRole === 'Manager') return true;
 
     const project = projects.find(p => p.id === projId);
     if (!project) return false;
@@ -1230,9 +1230,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
     const member = members.find(m => m.userId === currentUser.id);
     if (member) projectRole = member.role;
 
-    if (currentUser.globalRole === 'Manager' && !projectRole) {
-      projectRole = 'PM';
-    }
+
 
     const schemeId = project.permissionSchemeId || 'scheme_default';
     const scheme = permissionSchemes.find(s => s.id === schemeId);
@@ -1422,10 +1420,16 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
     })
   );
 
+  const myProjectIds = new Set(
+    projects
+      .filter(p => currentUser?.globalRole === 'Admin' || currentUser?.globalRole === 'Manager' || p.members?.some(m => m.userId === currentUser?.id))
+      .map(p => p.id)
+  );
+
   const filteredTasks =
     selectedProject === 'all'
-      ? tasks
-      : tasks.filter((t) => t.projectId === selectedProject);
+      ? tasks.filter(t => myProjectIds.has(t.projectId))
+      : tasks.filter((t) => t.projectId === selectedProject && myProjectIds.has(t.projectId));
 
   const getProjectName = (id: string) =>
     projects.find((p) => p.id === id)?.name || 'Unknown Project';
@@ -1903,11 +1907,17 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
               <option value="all" style={{ background: 'var(--bg-secondary)' }}>
                 All Projects
               </option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id} style={{ background: 'var(--bg-secondary)' }}>
-                  {p.name}
-                </option>
-              ))}
+              {projects
+                .filter(p => 
+                  currentUser?.globalRole === 'Admin' || 
+                  currentUser?.globalRole === 'Manager' || 
+                  p.members?.some(m => m.userId === currentUser?.id)
+                )
+                .map((p) => (
+                  <option key={p.id} value={p.id} style={{ background: 'var(--bg-secondary)' }}>
+                    {p.name}
+                  </option>
+                ))}
             </select>
           </div>
           <button
@@ -2079,7 +2089,9 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
 
       {/* ── SUMMARY TAB ────────────────────────────────────────────────────────── */}
       {activeSubTab === 'summary' && (() => {
-        const summaryTasks = selectedProject === 'all' ? tasks : tasks.filter(t => t.projectId === selectedProject);
+        const summaryTasks = selectedProject === 'all'
+          ? tasks.filter(t => myProjectIds.has(t.projectId))
+          : tasks.filter(t => t.projectId === selectedProject && myProjectIds.has(t.projectId));
         const columns = activeColumns;
         const doneCol = columns[columns.length - 1] || 'Done';
         const todoCol = columns[0] || 'To Do';
@@ -2090,8 +2102,23 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
         const inProgressCount = summaryTasks.filter(t => t.status === inProgressCol).length;
         const reviewCount = summaryTasks.filter(t => t.status === reviewCol).length;
         const doneCount = summaryTasks.filter(t => t.status === doneCol).length;
-        const totalCount = summaryTasks.length;
-        const donePercent = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+
+
+
+        // Correct Sprint Progress calculations
+        const sprintTasks = activeSprint ? summaryTasks.filter(t => t.sprintId === activeSprint.id) : [];
+        const sprintTotalCount = sprintTasks.length;
+        const sprintDoneCount = sprintTasks.filter(t => t.status === doneCol).length;
+        const sprintDonePercent = sprintTotalCount > 0 ? Math.round((sprintDoneCount / sprintTotalCount) * 100) : 0;
+
+        // Subtask Overview calculations
+        const subtasks = summaryTasks.filter(t => t.parentId);
+        const subtaskTodoCount = subtasks.filter(t => t.status === todoCol).length;
+        const subtaskInProgressCount = subtasks.filter(t => t.status === inProgressCol).length;
+        const subtaskReviewCount = subtasks.filter(t => t.status === reviewCol).length;
+        const subtaskDoneCount = subtasks.filter(t => t.status === doneCol).length;
+        const totalSubtasksCount = subtasks.length;
+        const subtaskDonePercent = totalSubtasksCount > 0 ? Math.round((subtaskDoneCount / totalSubtasksCount) * 100) : 0;
 
         // Team workload
         const workloadMap: Record<string, number> = {};
@@ -2110,35 +2137,68 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
 
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            {/* Sprint Progress Card */}
-            <div className="glass-panel" style={{ padding: '1.5rem' }}>
-              <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                Sprint Progress
-              </h3>
-              {activeSprint ? (
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                    <div>
-                      <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '1rem' }}>{activeSprint.name}</span>
-                      <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginLeft: '0.75rem' }}>
-                        {activeSprint.startDate || '—'} → {activeSprint.endDate || '—'}
-                      </span>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+              {/* Sprint Progress Card */}
+              <div className="glass-panel" style={{ padding: '1.5rem' }}>
+                <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  Sprint Progress
+                </h3>
+                {activeSprint ? (
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                      <div>
+                        <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '1rem' }}>{activeSprint.name}</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginLeft: '0.75rem' }}>
+                          {activeSprint.startDate || '—'} → {activeSprint.endDate || '—'}
+                        </span>
+                      </div>
+                      <span style={{ fontWeight: 700, color: '#7C3AED', fontSize: '1.25rem' }}>{sprintDonePercent}%</span>
                     </div>
-                    <span style={{ fontWeight: 700, color: '#7C3AED', fontSize: '1.25rem' }}>{donePercent}%</span>
+                    <div style={{ background: 'var(--bg-tertiary)', borderRadius: '999px', height: '10px', overflow: 'hidden' }}>
+                      <div style={{ width: `${sprintDonePercent}%`, height: '100%', background: 'linear-gradient(90deg, #7C3AED, #A78BFA)', borderRadius: '999px', transition: 'width 0.4s ease' }} />
+                    </div>
+                    <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.75rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                      <span>{todoCol}: <strong>{summaryTasks.filter(t => t.sprintId === activeSprint.id && t.status === todoCol).length}</strong></span>
+                      <span>{inProgressCol}: <strong>{summaryTasks.filter(t => t.sprintId === activeSprint.id && t.status === inProgressCol).length}</strong></span>
+                      <span>{reviewCol}: <strong>{summaryTasks.filter(t => t.sprintId === activeSprint.id && t.status === reviewCol).length}</strong></span>
+                      <span>{doneCol}: <strong>{summaryTasks.filter(t => t.sprintId === activeSprint.id && t.status === doneCol).length}</strong></span>
+                    </div>
                   </div>
-                  <div style={{ background: 'var(--bg-tertiary)', borderRadius: '999px', height: '10px', overflow: 'hidden' }}>
-                    <div style={{ width: `${donePercent}%`, height: '100%', background: 'linear-gradient(90deg, #7C3AED, #A78BFA)', borderRadius: '999px', transition: 'width 0.4s ease' }} />
+                ) : (
+                  <p style={{ color: 'var(--text-muted)', margin: 0 }}>No active sprint. Start a sprint from the Backlog tab.</p>
+                )}
+              </div>
+
+              {/* Subtasks Overview Card */}
+              <div className="glass-panel" style={{ padding: '1.5rem' }}>
+                <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  Subtasks Overview
+                </h3>
+                {totalSubtasksCount > 0 ? (
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                      <div>
+                        <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '1rem' }}>Subtask Completion</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginLeft: '0.75rem' }}>
+                          {subtaskDoneCount} of {totalSubtasksCount} completed
+                        </span>
+                      </div>
+                      <span style={{ fontWeight: 700, color: '#10B981', fontSize: '1.25rem' }}>{subtaskDonePercent}%</span>
+                    </div>
+                    <div style={{ background: 'var(--bg-tertiary)', borderRadius: '999px', height: '10px', overflow: 'hidden' }}>
+                      <div style={{ width: `${subtaskDonePercent}%`, height: '100%', background: 'linear-gradient(90deg, #10B981, #34D399)', borderRadius: '999px', transition: 'width 0.4s ease' }} />
+                    </div>
+                    <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.75rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                      <span>{todoCol}: <strong>{subtaskTodoCount}</strong></span>
+                      <span>{inProgressCol}: <strong>{subtaskInProgressCount}</strong></span>
+                      <span>{reviewCol}: <strong>{subtaskReviewCount}</strong></span>
+                      <span>{doneCol}: <strong>{subtaskDoneCount}</strong></span>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.75rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                    <span>{todoCol}: <strong>{summaryTasks.filter(t => t.sprintId === activeSprint.id && t.status === todoCol).length}</strong></span>
-                    <span>{inProgressCol}: <strong>{summaryTasks.filter(t => t.sprintId === activeSprint.id && t.status === inProgressCol).length}</strong></span>
-                    <span>{reviewCol}: <strong>{summaryTasks.filter(t => t.sprintId === activeSprint.id && t.status === reviewCol).length}</strong></span>
-                    <span>{doneCol}: <strong>{summaryTasks.filter(t => t.sprintId === activeSprint.id && t.status === doneCol).length}</strong></span>
-                  </div>
-                </div>
-              ) : (
-                <p style={{ color: 'var(--text-muted)', margin: 0 }}>No active sprint. Start a sprint from the Backlog tab.</p>
-              )}
+                ) : (
+                  <p style={{ color: 'var(--text-muted)', margin: 0 }}>No subtasks created for this project yet.</p>
+                )}
+              </div>
             </div>
 
             {/* Task Status Breakdown */}
@@ -3723,11 +3783,17 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                     required
                   >
                     <option value="">Select Project...</option>
-                    {projects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
+                    {projects
+                      .filter(p => 
+                        currentUser?.globalRole === 'Admin' || 
+                        currentUser?.globalRole === 'Manager' || 
+                        p.members?.some(m => m.userId === currentUser?.id)
+                      )
+                      .map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
                   </select>
                 </div>
 

@@ -43,7 +43,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
     day = addDays(day, 1);
   }
 
-  const isAdmin = currentUser.globalRole === 'Admin';
+  const isAdmin = currentUser.globalRole === 'Admin' || currentUser.globalRole === 'Manager';
   const allUsers = users || [];
   const teamMembersCount = allUsers.length || 1;
 
@@ -796,7 +796,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                             </div>
                           )}
                         </div>
-                        {entry.status !== 'Approved' && (
+                        {(entry.status !== 'Approved' || isAdmin) && (
                           <button onClick={() => handleDelete(entry.id)} style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer', marginLeft: '0.5rem' }}>
                             <Trash2 size={16} />
                           </button>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
-import { Calendar, Users, DollarSign, Plus, X, Edit, Trash2, GitBranch } from 'lucide-react';
+import { useLocation, Link } from 'react-router-dom';
+import { Calendar, Users, DollarSign, Plus, X, Edit, Trash2, GitBranch, MessageSquare } from 'lucide-react';
 import type { User, Project, ProjectStatus, ProjectRole, Task, PermissionScheme, ProjectWorkflow } from '../types';
 
 interface ProjectsProps {
@@ -316,57 +316,67 @@ export const Projects = ({
         )}
       </div>
 
-      {/* Projects Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '1.5rem' }}>
-        {projects.map(project => {
-          const isHighlighted = highlightedProjectId === project.id;
-          return (
-            <div 
-              key={project.id} 
-              id={project.id}
-              className="glass-panel hover-lift" 
-              style={{ 
-                padding: '1.5rem', 
-                display: 'flex', 
-                flexDirection: 'column', 
-                gap: '1.5rem',
-                border: isHighlighted ? '2px solid var(--accent-primary)' : '1px solid transparent',
-                boxShadow: isHighlighted ? '0 0 20px rgba(99, 102, 241, 0.4)' : undefined,
-                transition: 'all 0.3s ease'
-              }}
-            >
-              <div className="flex-between" style={{ alignItems: 'flex-start' }}>
-                <div>
-                  <h3 style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>{project.name}</h3>
-                  <span style={{ 
-                    fontSize: '0.75rem', 
-                    padding: '0.25rem 0.75rem', 
-                    borderRadius: 'var(--radius-full)', 
-                    background: project.status === 'Active' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                    color: project.status === 'Active' ? 'var(--accent-secondary)' : 'var(--accent-warning)',
-                    fontWeight: 500
-                  }}>
-                    {project.status}
-                  </span>
-                </div>
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                  {canManageWorkflow(project) && (
-                    <>
-                      <button onClick={() => openWorkflowModal(project)} title="Configure Workflow" style={{ background: 'transparent', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                        <GitBranch size={16} />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1.5rem' }}>
+        {projects
+          .filter(project => 
+            currentUser?.globalRole === 'Admin' || 
+            currentUser?.globalRole === 'Manager' || 
+            project.members?.some(m => m.userId === currentUser?.id)
+          )
+          .map(project => {
+            const isHighlighted = highlightedProjectId === project.id;
+            return (
+              <div 
+                key={project.id} 
+                id={project.id}
+                className="glass-panel hover-lift" 
+                style={{ 
+                  padding: '1.5rem', 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: '1.5rem',
+                  border: isHighlighted ? '2px solid var(--accent-primary)' : '1px solid transparent',
+                  boxShadow: isHighlighted ? '0 0 20px rgba(99, 102, 241, 0.4)' : undefined,
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                <div className="flex-between" style={{ alignItems: 'flex-start' }}>
+                  <div>
+                    <h3 style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>{project.name}</h3>
+                    <span style={{ 
+                      fontSize: '0.75rem', 
+                      padding: '0.25rem 0.75rem', 
+                      borderRadius: 'var(--radius-full)', 
+                      background: project.status === 'Active' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                      color: project.status === 'Active' ? 'var(--accent-secondary)' : 'var(--accent-warning)',
+                      fontWeight: 500
+                    }}>
+                      {project.status}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    {(currentUser?.globalRole === 'Admin' || currentUser?.globalRole === 'Manager' || project.members?.some(m => m.userId === currentUser?.id)) && (
+                      <Link to={`/chat?projectId=${project.id}`} title="Project Chat" style={{ color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.25rem' }} className="hover-lift">
+                        <MessageSquare size={16} />
+                      </Link>
+                    )}
+                    {canManageWorkflow(project) && (
+                      <>
+                        <button onClick={() => openWorkflowModal(project)} title="Configure Workflow" style={{ background: 'transparent', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                          <GitBranch size={16} />
+                        </button>
+                        <button onClick={() => openEditModal(project)} title="Edit Project" style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                          <Edit size={16} />
+                        </button>
+                      </>
+                    )}
+                    {(currentUser?.globalRole === 'Admin' || currentUser?.globalRole === 'Manager') && (
+                      <button onClick={() => handleDelete(project.id)} title="Delete Project" style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                        <Trash2 size={16} />
                       </button>
-                      <button onClick={() => openEditModal(project)} title="Edit Project" style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                        <Edit size={16} />
-                      </button>
-                    </>
-                  )}
-                  {(currentUser?.globalRole === 'Admin' || currentUser?.globalRole === 'Manager') && (
-                    <button onClick={() => handleDelete(project.id)} title="Delete Project" style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                      <Trash2 size={16} />
-                    </button>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
 
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.6 }}>
                 {project.description}

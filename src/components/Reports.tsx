@@ -106,7 +106,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
     .filter(ts => ts.status === 'Approved')
     .reduce((sum, ts) => sum + ts.hours, 0);
 
-  const utilizationPct = totalHours > 0 ? Math.round((approvedHours / totalHours) * 100) : 0;
+  // const _utilizationPct = totalHours > 0 ? Math.round((approvedHours / totalHours) * 100) : 0;
 
   // ── Cost & Budget Calculations ──
   const totalCost = filteredTimesheets.reduce((sum, ts) => sum + getEntryCost(ts), 0);
@@ -274,6 +274,140 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
   const projectTotalCost = projectTimesheets.reduce((sum, ts) => sum + getEntryCost(ts), 0);
   const projectBudget = activeProject?.budget || 0;
   const projectBurnRate = projectBudget > 0 ? Math.round((projectTotalCost / projectBudget) * 100) : 0;
+
+  // ── Preset colors for the line chart ──
+  const chartColors = [
+    '#38bdf8', // sky-400
+    '#a78bfa', // violet-400
+    '#f472b6', // pink-400
+    '#fb7185', // rose-400
+    '#34d399', // emerald-400
+    '#fbbf24', // amber-400
+    '#60a5fa', // blue-400
+    '#f87171', // red-400
+  ];
+
+  // Helper to get month name
+  const getMonthName = (dateStr: string) => {
+    if (!dateStr || dateStr.length < 7) return '';
+    const monthIndex = parseInt(dateStr.slice(5, 7), 10) - 1;
+    const monthNames = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return monthNames[monthIndex] || '';
+  };
+
+  // Safe costDate
+  const safeCostDate = costDate || new Date().toISOString().split('T')[0];
+  const selectedYear = safeCostDate.slice(0, 4);
+  const selectedMonthStr = safeCostDate.slice(0, 7);
+
+  // Month-to-Date (MTD) actual cost
+  const mtdTimesheets = timesheets.filter(ts => 
+    ts.projectId === activeProjectId &&
+    ts.date.slice(0, 7) === selectedMonthStr &&
+    ts.date <= safeCostDate
+  );
+  const mtdCost = mtdTimesheets.reduce((sum, ts) => sum + getEntryCost(ts), 0);
+
+  // Year-to-Date (YTD) actual cost
+  const ytdTimesheets = timesheets.filter(ts => 
+    ts.projectId === activeProjectId &&
+    ts.date.slice(0, 4) === selectedYear &&
+    ts.date <= safeCostDate
+  );
+  const ytdCost = ytdTimesheets.reduce((sum, ts) => sum + getEntryCost(ts), 0);
+
+  // ── Resource Trend Data Calculation for LINE CHART ──
+  const getResourceTrendData = () => {
+    // Find users who logged time on this project in the active period
+    const activePeriodUserIds = Array.from(new Set(
+      projectTimesheets.map(ts => ts.userId)
+    ));
+    const chartUsers = users.filter(u => activePeriodUserIds.includes(u.id));
+
+    if (chartUsers.length === 0) return { trendData: [], chartUsers };
+
+    const trendData: any[] = [];
+
+    if (costReportType === 'daily') {
+      // 14-day trend ending on safeCostDate
+      const endDateObj = new Date(safeCostDate);
+      const startDateObj = new Date(safeCostDate);
+      startDateObj.setDate(startDateObj.getDate() - 13); // 14 days total
+      
+      const curr = new Date(startDateObj);
+      while (curr <= endDateObj) {
+        const dateStr = curr.toISOString().split('T')[0];
+        const dayTimesheets = timesheets.filter(ts => ts.projectId === activeProjectId && ts.date === dateStr);
+        
+        const point: any = {
+          date: dateStr,
+          displayDate: `${curr.getDate()} ${getMonthName(dateStr)}`,
+        };
+        
+        chartUsers.forEach(user => {
+          point[user.name] = dayTimesheets
+            .filter(ts => ts.userId === user.id)
+            .reduce((sum, ts) => sum + ts.hours, 0);
+        });
+        
+        trendData.push(point);
+        curr.setDate(curr.getDate() + 1);
+      }
+    } else if (costReportType === 'monthly') {
+      // Day by day of the selected month
+      const [year, month] = selectedMonthStr.split('-').map(Number);
+      const daysInMonth = new Date(year, month, 0).getDate();
+      
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = `${selectedMonthStr}-${String(d).padStart(2, '0')}`;
+        const dayTimesheets = timesheets.filter(ts => ts.projectId === activeProjectId && ts.date === dateStr);
+        
+        const point: any = {
+          day: d,
+          displayDate: `${d} ${getMonthName(dateStr)}`,
+        };
+        
+        chartUsers.forEach(user => {
+          point[user.name] = dayTimesheets
+            .filter(ts => ts.userId === user.id)
+            .reduce((sum, ts) => sum + ts.hours, 0);
+        });
+        
+        trendData.push(point);
+      }
+    } else if (costReportType === 'yearly') {
+      // Month by month of the selected year
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      
+      for (let m = 1; m <= 12; m++) {
+        const monthStr = `${selectedYear}-${String(m).padStart(2, '0')}`;
+        const monthTimesheets = timesheets.filter(ts => 
+          ts.projectId === activeProjectId && 
+          ts.date.slice(0, 7) === monthStr
+        );
+        
+        const point: any = {
+          month: m,
+          displayDate: monthNames[m - 1],
+        };
+        
+        chartUsers.forEach(user => {
+          point[user.name] = monthTimesheets
+            .filter(ts => ts.userId === user.id)
+            .reduce((sum, ts) => sum + ts.hours, 0);
+        });
+        
+        trendData.push(point);
+      }
+    }
+
+    return { trendData, chartUsers };
+  };
+
+  const { trendData, chartUsers } = getResourceTrendData();
 
   // Sprint breakdown for the project
   const projectSprints = tasks
@@ -1157,18 +1291,32 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
             </div>
 
             {/* KPI Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
               <div className="glass-panel" style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 500 }}>Total Effort</span>
                 <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>{projectTotalHours} hrs</span>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Logged in {costReportType === 'daily' ? costDate : costReportType === 'monthly' ? costDate.slice(0, 7) : costDate.slice(0, 4)}</span>
               </div>
               <div className="glass-panel" style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 500 }}>Total Actual Cost</span>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 500 }}>Selected Period Cost</span>
                 <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent-secondary)' }}>
                   ฿{projectTotalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Based on configured rates</span>
+              </div>
+              <div className="glass-panel" style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 500 }}>Month-to-Date Cost (MTD)</span>
+                <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent-info)' }}>
+                  ฿{mtdCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>From 1st to {safeCostDate.slice(8, 10)} {getMonthName(safeCostDate)}</span>
+              </div>
+              <div className="glass-panel" style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 500 }}>Year-to-Date Cost (YTD)</span>
+                <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent-secondary)' }}>
+                  ฿{ytdCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>From Jan 1st to {safeCostDate}</span>
               </div>
               <div className="glass-panel" style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 500 }}>Project Budget</span>
@@ -1188,6 +1336,56 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                   )}
                 </div>
               </div>
+            </div>
+
+            {/* ── Line Chart: Resource Effort Trend ── */}
+            <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
+                <LineChartIcon size={18} color="var(--accent-primary)" /> Team Resource Effort Trend (Logged Hours)
+              </h3>
+              {chartUsers.length === 0 ? (
+                <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '3rem' }}>
+                  No timesheet entries found for this project in the selected period.
+                </div>
+              ) : (
+                <div style={{ width: '100%', height: '320px' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={trendData} margin={{ top: 10, right: 30, left: -20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                      <XAxis 
+                        dataKey="displayDate" 
+                        stroke="var(--text-secondary)" 
+                        fontSize={11}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <YAxis 
+                        stroke="var(--text-secondary)" 
+                        fontSize={11}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '8px' }}
+                        itemStyle={{ fontWeight: 600 }}
+                      />
+                      <Legend iconType="circle" wrapperStyle={{ paddingTop: '15px', fontSize: '12px' }} />
+                      {chartUsers.map((user, idx) => (
+                        <Line 
+                          key={user.id}
+                          type="monotone" 
+                          name={user.name} 
+                          dataKey={user.name} 
+                          stroke={chartColors[idx % chartColors.length]} 
+                          strokeWidth={2.5} 
+                          dot={{ r: 3 }} 
+                          activeDot={{ r: 5 }} 
+                        />
+                      ))}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </div>
 
             {/* ── Table: Cost Rate Config & Effort Estimation (Matching Screenshot) ── */}

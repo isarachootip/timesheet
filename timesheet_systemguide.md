@@ -1,115 +1,93 @@
-# คู่มือสรุปฟังก์ชันระบบ NexTime (Timesheet & Project Management System Guide)
+# NexTime System Guide / คู่มือการใช้งานระบบ NexTime
 
-> **NexTime** คือระบบเว็บแอปพลิเคชันสำหรับบันทึกเวลาทำงาน (Timesheet) วางแผนโครงการ (Project Plan) และจัดการงานทีม (Task Kanban Board) แบบครบวงจรในองค์กร โดยเชื่อมต่อระบบล็อกอินและความปลอดภัยผ่าน LINE Login, Email/Password Login และ Email OTP
-
----
-
-## 🔑 1. ระบบ Authentication & สิทธิ์ผู้ใช้งาน
-
-### ระบบล็อกอินและยืนยันตัวตน (Authentication)
-- **Sign in with LINE:** พนักงานสามารถลงชื่อเข้าใช้งานได้สะดวกผ่านการสแกน QR Code หรือเข้าสู่ระบบด้วยบัญชี LINE (OAuth 2.0)
-- **Email/Password Login:** พนักงานสามารถเข้าสู่ระบบด้วยอีเมลและรหัสผ่านได้โดยตรง รหัสผ่านจะถูกเข้ารหัส SHA-256 Hash ก่อนจัดเก็บในฐานข้อมูล
-- **Auto-binding Profile:** ระบบจะจับคู่ LINE User ID (`line_user_id`) เข้ากับข้อมูลพนักงานในฐานข้อมูลอัตโนมัติเมื่ออีเมลของ LINE ตรงกับอีเมลบริษัทที่ลงทะเบียนไว้
-- **2-Factor Authentication (2FA):** ระบบยืนยันตัวตนแบบ 2 ขั้นตอน ส่งรหัส OTP 6 หลักเข้าอีเมลบริษัทสำหรับการเข้าใช้ครั้งแรกหรือระดับสิทธิ์พิเศษเพื่อความปลอดภัยขั้นสูง
-
-### บัญชีผู้ดูแลระบบ (Default Admin)
-- **Email:** `isarachootip@gmail.com`
-- **System Role:** Admin
-- ระบบจะตรวจสอบและสร้างบัญชี Admin นี้อัตโนมัติเมื่อ Server เริ่มทำงาน (ถ้ายังไม่มีในฐานข้อมูล)
-
-### โครงสร้างสิทธิ์และบทบาท (Role & Permissions)
-ระบบแยกแยะสิทธิ์ออกเป็น 2 ระดับเพื่อป้องกันสิทธิ์การทำงานทับซ้อนกัน:
-
-#### 1. สิทธิ์ระดับระบบ (Global/System Role)
-| System Role | สร้าง Project | ลบ Project | จัดการ Workflow | Assign งาน | เห็นข้อมูลทุกคน |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| **Admin** | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Manager** | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Employee** | ❌ | ❌ | ❌ | ❌ | ❌ |
-
-#### 2. บทบาทระดับโครงการ (Project Role)
-| Project Role | สร้าง Project | จัดการ Workflow | สร้าง/แก้ Task | Assign งาน |
-| :--- | :---: | :---: | :---: | :---: |
-| **PM** | ✅ | ✅ | ✅ | ✅ |
-| **SA, Team Lead, Dev, etc.** | ❌ | ❌ | ตาม Permission Scheme | ❌ |
-
-> **หมายเหตุ:** PM ที่เป็น Project Role สามารถสร้าง Project ใหม่ได้ (ไม่จำเป็นต้องเป็น Admin/Manager ระดับระบบ) สิทธิ์การทำงานภายในโปรเจกต์สามารถปรับแต่งได้ผ่าน **Permission Scheme** ในหน้า Settings
+Welcome to the NexTime System Guide. This document provides a comprehensive overview of all system features, roles, and functionalities.
+ยินดีต้อนรับสู่คู่มือการใช้งานระบบ NexTime เอกสารฉบับนี้อธิบายภาพรวมและคำแนะนำการใช้งานฟีเจอร์ บทบาทหน้าที่ และฟังก์ชันการทำงานทั้งหมดของระบบอย่างครบถ้วน
 
 ---
 
-## 📊 2. ฟังก์ชันหลักของระบบ (Core Features)
+## 1. Access Roles & Permissions / บทบาทและสิทธิ์ผู้ใช้งาน
 
-### 📈 หน้าภาพรวมระบบ (Dashboard)
-- แสดงสถิติสำคัญแบบ Real-time: ชั่วโมงทำงานรวมทั้งหมดของโปรเจกต์, จำนวนโปรเจกต์ที่กำลังทำงาน, จำนวนงาน และงานที่รอการอนุมัติ (Pending Approvals)
-- หน้าต่างแสดงประวัติกิจกรรมล่าสุดในระบบ (Recent Activity Feed)
-- ดีไซน์ทันสมัยด้วยสไตล์ Dark Mode, ไล่เฉดสีสะดุดตา (Color Gradients) และแผงกระจกโปร่งแสง (Glassmorphism)
+The system supports four global roles, defining access rights across projects, timesheets, and settings:
+ระบบสนับสนุนบทบาทการเข้าใช้งาน 4 ระดับ ซึ่งกำหนดสิทธิ์การเข้าถึงโครงการ ใบลงเวลา และการตั้งค่าต่าง ๆ:
 
-### ⏱️ หน้าบันทึกชั่วโมงทำงาน (Timesheet)
-- **ปฏิทินรายเดือนแบบ Mini Calendar:** แสดงปฏิทินทั้งเดือนในรูปแบบตาราง 7 คอลัมน์ (อาทิตย์-เสาร์) สามารถคลิกเลือกวันที่เพื่อดูรายการบันทึกเวลาของวันนั้นได้ทันที
-  - เริ่มต้นที่ **วันปัจจุบัน (Current Date)** อัตโนมัติ
-  - ปุ่ม **◀ ▶ เลื่อนเดือน** สำหรับดูข้อมูลย้อนหลังหรือล่วงหน้า
-  - ปุ่ม **"Today"** สำหรับกลับมายังวันปัจจุบัน
-  - **จุดสีเขียว (Dot Indicator):** แสดงใต้วันที่ที่มีรายการบันทึกเวลาอยู่แล้ว
-  - **วันปัจจุบัน** จะถูก Highlight ด้วยขอบสี
-- บันทึกเวลางานระบุตามวัน, โครงการที่สังกัด, และงานย่อย (Task) พร้อมระบุจำนวนชั่วโมงและคำอธิบายงาน (Description)
-- **สรุปรายเดือน (Monthly Summary):** แสดงชั่วโมงทำงานสะสมของเดือนปัจจุบันเทียบกับเป้าหมาย (Target 160h/เดือน)
-- แสดงประวัติการบันทึกเวลาโดยแยกสถานะชัดเจน:
-  - `Draft`: บันทึกข้อมูลร่างไว้ ยังไม่ได้ส่งอนุมัติ (สามารถแก้ไข/ลบได้)
-  - `Pending`: ส่งให้หัวหน้าโครงการ (PM) ตรวจสอบแล้ว (ไม่สามารถแก้ไขได้ระหว่างรอผล)
-  - `Approved`: ได้รับอนุมัติชั่วโมงทำงานแล้ว
-  - `Rejected`: รายการถูกปฏิเสธ (จะแสดงเหตุผลการปฏิเสธเพื่อให้พนักงานแก้ไขและส่งใหม่)
-- ตัวกรองประสิทธิภาพสูง สามารถกรองตามโปรเจกต์, วันที่ หรือสถานะการอนุมัติได้
-
-### 📅 ระบบแผนงานและไทม์ไลน์ (Project Plan & Gantt Chart)
-- แสดงไทม์ไลน์แผนงานในรูปแบบแผนภูมิแกนต์ (Gantt Chart) ระบุช่วงเวลาการทำงานของแต่ละ Milestone
-- **Auto Milestone Generator:** เมื่อแอดมินสร้างโปรเจกต์และกำหนดวันเริ่ม-สิ้นสุดโครงการ ระบบจะคำนวณและสร้างแผน Milestone สำคัญให้อัตโนมัติจากโครงสร้างเทมเพลตเริ่มต้น (Task Templates)
-- แสดงเปอร์เซ็นต์ความคืบหน้าของงานแต่ละส่วนเทียบกับเป้าหมายโครงการ
-
-### 📋 บอร์ดจัดการงานทีม (Kanban Board)
-- แสดงสถานะของงานย่อยแบ่งเป็น 4 คอลัมน์: `To Do` (รอดำเนินการ), `In Progress` (กำลังทำ), `Review` (รอตรวจ), และ `Done` (เสร็จสิ้น)
-- **Drag & Drop (dnd-kit):** สามารถคลิกลากและวางการ์ดงานเพื่อเปลี่ยนสถานะงานได้อย่างไหลลื่นและแสดงผลทันที
-- ระบุรายละเอียดการ์ดงาน: ผู้รับผิดชอบ (Assignee), ระดับความสำคัญ (`Low`, `Medium`, `High`, `Urgent`), ประเมินชั่วโมงทำงาน (Estimated Hours) และรายการตรวจสอบย่อย (Checklist)
-- **สีของแถบการ์ดระบุระดับความสำคัญ (Task Priority Color Coding):** ขอบด้านซ้ายมือของการ์ดงานจะแสดงแถบสีที่สะท้อนถึงระดับความสำคัญของงานนั้น ๆ ดังนี้:
-  | สีของแถบขอบการ์ด | ระดับความสำคัญ (Priority) | คำอธิบายความหมายของงาน |
-  | :--- | :--- | :--- |
-  | 🔴 **สีแดง** | `Urgent` (ด่วนที่สุด) | งานวิกฤตที่มีผลกระทบสูง ต้องรีบดำเนินการ/แก้ไขทันที |
-  | 🟡 **สีเหลือง** | `High` (ความสำคัญสูง) | งานหลักสำคัญที่มีกำหนดเวลาแน่นอน ควรดำเนินการในลำดับแรก ๆ |
-  | 🔵 **สีฟ้า** | `Medium` (ปานกลาง) | งานทั่วไปตามแผนงานปกติ ดำเนินการตามขั้นตอนปกติของการพัฒนา |
-  | ⚪ **สีเทา** | `Low` (ความสำคัญต่ำ) | งานไม่เร่งรีบ สามารถทำทีหลังได้เมื่อเสร็จสิ้นงานความสำคัญสูงกว่า |
-
-### 👥 ระบบจัดการสมาชิกและอนุมัติเวลา (Team Approvals)
-- **Timesheet Approvals:** หน้าจอสำหรับ PM/Admin ในการพิจารณาตรวจสอบเวลางานของลูกทีม โดยเลือกอนุมัติ (Approve) หรือปฏิเสธ (Reject) พร้อมใส่ความเห็นได้ในคลิกเดียว
-- **Employee Management (CRUD):** สร้างและแก้ไขประวัติพนักงาน:
-  - กรอกชื่อ, อีเมล, **รหัสผ่าน**, แผนก, ความเชี่ยวชาญพิเศษ (Skills) และกำหนดบทบาท
-  - **Password Management:** กำหนดรหัสผ่านเมื่อสร้างพนักงานใหม่ (Required) หรือเปลี่ยนรหัสผ่านเมื่อแก้ไขข้อมูล (Optional — เว้นว่างเพื่อใช้รหัสเดิม)
-  - **Inline HTML5 Camera:** ถ่ายรูปพนักงานผ่านกล้องมือถือ/คอมพิวเตอร์ในหน้าเว็บได้ทันที (ใช้เว็บแคมภายในเบราว์เซอร์ ไม่เรียกเปิดแอปกล้องนอกเครื่อง ป้องกันปัญหามือถือสเปกต่ำแอปเด้งค้าง)
-  - **Draft Persistence:** บันทึกข้อมูลที่พิมพ์ค้างอยู่ลง `localStorage` อัตโนมัติ ป้องกันข้อมูลประวัติสูญหายหากเบราว์เซอร์รีเฟรชตัวเองกระทันหัน
-
-### 📊 รายงานและการวิเคราะห์ (Reports)
-- แผนภูมิกราฟแสดงสถิติวัดประสิทธิภาพ:
-  - สัดส่วนชั่วโมงทำงานแยกตามโปรเจกต์ (Hours by Project)
-  - สัดส่วนชั่วโมงทำงานแยกตามประเภทงาน (Hours by Task)
-  - สรุปชั่วโมงทำงานสะสมของพนักงานแต่ละคน (Hours by Employee)
-- ตารางสรุปข้อมูลแบบละเอียดสำหรับนำไปทำรายงานบัญชีหรือประเมินผลโครงการ
+*   **Admin (ผู้ดูแลระบบ)**: Full administrative access to all data, settings, system configurations, and permission schemes. Can view, edit, and delete all projects, tasks, and timesheets.
+    *สิทธิ์ผู้ดูแลระบบสูงสุด*: เข้าถึงและจัดการข้อมูลทั้งหมดในระบบ การตั้งค่า แผนสิทธิ์โครงการ สามารถสร้าง แก้ไข และลบโปรเจกต์ งาน และใบลงเวลาได้ทั้งหมด
+*   **Manager (ผู้จัดการระบบ)**: Global management role. Has full administrative rights over projects, tasks, and timesheets. Can manage project plans, baselines, and approve/delete timesheets. Unlike Admin, cannot edit core system configs.
+    *สิทธิ์ผู้บริหารระบบ*: มีสิทธิ์จัดการโปรเจกต์ งาน และใบลงเวลาได้ทั้งหมดเทียบเท่า Admin รวมถึงการบันทึกแผนฐานข้อมูล (Baseline) และอนุมัติ/ลบ Timesheet ได้ แต่จะไม่สามารถตั้งค่าระบบเชิงลึก (System Config) ได้
+*   **Employee (พนักงาน)**: Regular project team member. Can view assigned projects, log timesheets, create tasks/subtasks, and transition task statuses within assigned projects. Cannot delete approved timesheets or configure project versions.
+    *สิทธิ์พนักงานปฏิบัติงาน*: สามารถเข้าดูโครงการที่ได้รับมอบหมาย บันทึกชั่วโมงทำงาน (Timesheet) สร้างงานหรือเปลี่ยนสถานะงานได้ตาม Workflow แต่ไม่สามารถลบใบลงเวลาที่อนุมัติแล้ว หรือจัดการเวอร์ชันแผนโครงการได้
+*   **User (ผู้ใช้ทั่วไป)**: Restricted project view role. Can only view projects they are members of and participate in their respective project chats. Can log hours but has no administrative or editing rights on project structures.
+    *สิทธิ์ผู้ใช้งานทั่วไป*: สามารถดูได้เฉพาะโครงการที่ตนเองเป็นสมาชิก และแชทคุยในโครงการเหล่านั้นได้เท่านั้น สามารถลงเวลาได้ แต่ไม่มีสิทธิ์เข้าไปปรับเปลี่ยนโครงสร้างโครงการหรืองาน
 
 ---
 
-## ✉️ 3. ระบบส่งอีเมลแจ้งเตือนอัตโนมัติ (Email Notifications)
-ระบบจะทำการส่งอีเมลแจ้งเตือนผ่าน SMTP Server (Gmail) ไปยังผู้ที่เกี่ยวข้องโดยไม่รบกวนหน้าเว็บหลัก (Asynchronous Non-blocking):
-1. **แจ้งเตือนการส่งเวลา (Employee -> PM):** เมื่อพนักงานกดส่งบันทึกเวลางาน (`Pending`) ระบบจะส่งอีเมลแจ้งเตือนไปยัง PM ผู้ดูแลโครงการนั้นอัตโนมัติ เพื่อให้กดลิงก์เข้ามาตรวจสอบและอนุมัติงาน
-2. **แจ้งเตือนผลการอนุมัติ (PM -> Employee):** เมื่อ PM กดเปลี่ยนสถานะเป็น `Approved` หรือ `Rejected` ระบบจะส่งอีเมลแจ้งเตือนพนักงานเจ้าของรายการทราบผลทันที พร้อมระบุชื่อ PM และเหตุผล (กรณีถูกปฏิเสธ)
+## 2. Project Plan & Baselines / แผนงานโครงการและแผนฐานข้อมูล (Baseline)
+
+The Project Plan module allows tracking progress and comparing it against baseline snapshots:
+เมนู Project Plan & Timeline ใช้สำหรับวางแผนงานโครงการและเปรียบเทียบความคืบหน้าระหว่างแผนงานฐานข้อมูลกับความเป็นจริงในปัจจุบัน:
+
+*   **Active Plan (Baseline Version) / แผนอ้างอิงหลัก**: A saved snapshot of project tasks at a specific point in time (e.g., "Initial Plan", "Phase 1 Baseline"). Changing the Active Plan swaps the active workspace tasks to match that saved version.
+    *แผนอ้างอิงหลัก (Baseline)*: แผนงานที่ถูกจัดเก็บบันทึกสถานะไว้ ณ เวลาใดเวลาหนึ่ง (เช่น แผนตั้งต้น) เพื่อใช้เป็นเกณฑ์เปรียบเทียบ โดยผู้ดูแลระบบสามารถสลับเปลี่ยน Active Plan เพื่อดูเวอร์ชันต่าง ๆ ได้
+*   **Current Live Plan / แผนงานจริงปัจจุบัน**: Represents the real-time status of project tasks, including active progress and actual logged hours.
+    *แผนงานจริงปัจจุบัน*: สถานะโครงการล่าสุดตามการทำงานจริงของทีมงานและการอัปเดตงานแบบเรียลไทม์
+*   **Drift & Variance Analysis / การวิเคราะห์การเบี่ยงเบนแผน**: The system automatically calculates variances between the Active Plan and Current Live Plan:
+    *ระบบคำนวณส่วนต่างระหว่างแผนฐานข้อมูลกับแผนงานจริงให้อัตโนมัติ*:
+    *   *Schedule Slippage (Drift)*: Deviation in timeline start/end dates. (ความล่าช้าของกำหนดการสะสมเป็นจำนวนวัน)
+    *   *Estimate Drift*: Difference between planned and actual hours. (ชั่วโมงทำงานที่เบี่ยงเบนไปจากประมาณการเดิม)
+    *   *Story Points (SP) Drift*: Variation in story points. (คะแนนความยากง่ายงานที่คลาดเคลื่อน)
 
 ---
 
-## ⚙️ 4. เทมเพลตงานเริ่มต้น (Admin Task Templates)
-- Admin สามารถตั้งค่าและจัดการโครงสร้างแผนงานล่วงหน้าในระบบได้
-- เมื่อต้องการสร้างโปรเจกต์ใหม่ ระบบจะดึงข้อมูลเทมเพลตเหล่านี้ไปสร้างการ์ดงานและ Milestone ของโปรเจกต์นั้นโดยอัตโนมัติตามสัดส่วนระยะเวลาโครงการ
+## 3. Task & Subtask Management / การจัดการงานและงานย่อย (Subtasks)
+
+Tasks can be organized into hierarchy levels to track milestone completion:
+การจัดระเบียบงานสามารถแบ่งออกตามความสำคัญและระดับขั้นเพื่อการประเมินความสำเร็จของเป้าหมาย:
+
+*   **Main Task (Milestone/Parent) / งานหลัก**: Represents major deliverables, milestones, or parent tasks.
+    *งานหลัก*: ตัวแทนเป้าหมายสำคัญ (Milestones) หรือหัวข้อหลักของงานที่จะควบคุมงบประมาณเวลา
+*   **Subtask / งานย่อย**: Smaller, actionable tasks created under a Main Task.
+    *งานย่อย (Subtasks)*: รายการงานย่อยที่แบ่งออกจากงานหลัก เพื่อให้เห็นรายละเอียดการปฏิบัติงานได้ชัดเจน
+*   **Progress Rollup / การคำนวณความคืบหน้าแบบเชื่อมโยง**: If a Main Task has subtasks, its progress percentage is calculated purely based on the ratio of completed (Done) subtasks (e.g., 2 of 4 subtasks completed = 50% progress for the Main Task).
+    *การรวมผลความคืบหน้า*: งานหลักที่มีงานย่อย ความคืบหน้าจะคำนวณจากเปอร์เซ็นต์ของจำนวนงานย่อยที่เสร็จสิ้น (Done) เท่านั้น
+*   **Hour Budgeting Limits / การจำกัดชั่วโมงงาน**: The sum of all subtasks' estimated hours cannot exceed the parent Main Task's budgeted estimated hours.
+    *การควบคุมงบประมาณชั่วโมงงาน*: ผลรวมชั่วโมงประมาณการของงานย่อยทั้งหมดจะต้องไม่เกินจำนวนชั่วโมงประมาณการของงานหลัก
 
 ---
 
-## 🗄️ 5. ระบบ Database Migration
-- ระบบใช้ตาราง `migrations` สำหรับติดตาม one-time migration ที่รันไปแล้ว
-- Migration จะรันอัตโนมัติเมื่อ Server เริ่มทำงาน และจะไม่รันซ้ำหากเคยดำเนินการสำเร็จแล้ว
-- ตัวอย่าง migration ที่ใช้งาน:
-  - `set_non_admin_pw_test123`: ตั้งรหัสผ่านเริ่มต้นให้ user ทุกคน (ยกเว้น Admin)
-  - `add_manager_to_assign_task`: เพิ่มสิทธิ์ Manager ให้สามารถ assign งานในระบบ Permission Scheme
+## 4. Timesheet Logging & Approvals / การบันทึกเวลาและการอนุมัติ
+
+NexTime locks in logged time data while providing options for administrative corrections:
+ระบบอำนวยความสะดวกในการบันทึกเวลาพร้อมทั้งควบคุมความถูกต้องของชั่วโมงปฏิบัติงาน:
+
+*   **Draft & Pending Status**: Logged hours are drafted or submitted as pending for PM approval. Users can edit or delete these entries freely.
+    *สถานะร่าง & รออนุมัติ*: ใบลงเวลาอยู่ระหว่างจัดเตรียมหรือรอตรวจสอบ ซึ่งพนักงานสามารถกดลบประวัติเพื่อแก้ไขใหม่ได้เอง
+*   **Approved Status**: Once approved by an Admin, Manager, or PM, the timesheet is locked for normal employees.
+    *สถานะอนุมัติแล้ว*: ใบลงเวลาที่ได้รับการตรวจสอบและอนุมัติแล้วจะถูกล็อกสำหรับพนักงานทั่วไปเพื่อนำข้อมูลไปคำนวณค่าใช้จ่าย
+*   **Administrative Deletion (Corrections) / การลบใบอนุมัติแล้ว**: Users with **Admin** or **Manager** global roles can delete approved timesheets directly on the Timesheet page to allow team members to correct logging errors.
+    *การลบใบอนุมัติแล้ว*: ผู้ใช้งานบทบาท **Admin** และ **Manager** สามารถลบรายการที่ได้รับการอนุมัติ (Approved) แล้วได้ เพื่อเปิดโอกาสให้ลบข้อมูลที่ผิดพลาดและแก้ไขชั่วโมงการลงเวลาใหม่ได้ทันที
+
+---
+
+## 5. Project Chat / ระบบแชทโครงการ
+
+Collaborative messaging rooms for project team members:
+ช่องทางการติดต่อสื่อสารและประสานงานภายในทีมผู้ร่วมโปรเจกต์:
+
+*   **Automatic Pre-selection / การระบุโปรเจกต์ปลายทางอัตโนมัติ**: Clicking the **Chat icon** in the project card in the **Projects** page redirects you directly to the Project Chat page, with the corresponding project pre-selected in the chat dropdown.
+    *ทางลัดแชทโปรเจกต์*: การกดปุ่มแชทในการ์ดโปรเจกต์ที่หน้าโปรเจกต์รวม จะทำการสลับลิงก์ไปยังหน้าแชทและเลือกห้องโครงการดังกล่าวให้พร้อมพิมพ์ได้ทันที
+*   **Access Control / การเข้าถึงแชท**: Admins and Managers have global access to all project chats. Employees and Users can only access chats of projects they are members of.
+    *สิทธิ์การเข้าใช้งาน*: Admin และ Manager เข้าแชทได้ทุกห้อง ส่วน Employee และ User จะเห็นและแชทได้เฉพาะโครงการที่ตนมีรายชื่ออยู่เท่านั้น
+
+---
+
+## 6. Reports & Dashboards / รายงานสรุปและแดชบอร์ด
+
+Advanced data visualization tools for project metrics and costs:
+เครื่องมือสรุปผลและรายงานทางการเงินโครงการในรูปแบบกราฟ:
+
+*   **Project Cost Summary**: Computes actual costs based on role day rates (MTD, YTD, and total costs). Shows budget consumption charts.
+    *รายงานงบประมาณ*: แสดงภาพรวมชั่วโมงและงบประมาณสะสม (MTD, YTD และ ยอดรวมจริงทั้งหมด) เทียบกับงบประมาณที่กำหนดไว้
+*   **Resource Trends Graph**: Line chart showing logged hours of team members over Daily, Monthly, and Yearly filters.
+    *กราฟสถิติผู้ใช้งาน*: แสดงทิศทางชั่วโมงทำงานของพนักงานแต่ละคนตามตัวกรอง รายวัน รายเดือน และรายปี
+*   **Subtasks Overview in Summary tab**: A dedicated analytics card on the Tasks Summary tab showing overall subtask completion percentages and status counts.
+    *ภาพรวมงานย่อยในแดชบอร์ด*: แดชบอร์ดสรุปความคืบหน้ารวมของ Subtask ทั้งหมดในโปรเจกต์ในหน้า Tasks Summary
