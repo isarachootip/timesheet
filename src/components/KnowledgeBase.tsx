@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HelpCircle, ChevronDown, ChevronRight, BookOpen, Database, BarChart3, Clock, Languages, CalendarRange, Users, Star, Shield } from 'lucide-react';
+import { HelpCircle, ChevronDown, ChevronRight, BookOpen, Database, BarChart3, Clock, Languages, CalendarRange, Users, Star, Shield, MessageSquare } from 'lucide-react';
 import type { User } from '../types';
 
 type Lang = 'en' | 'th';
@@ -249,6 +249,22 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
               </ul>
             </div>
           )
+        },
+        {
+          id: 'q15',
+          question: 'What is the Team Chat feature and how does it work?',
+          icon: MessageSquare,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>Team Chat is a project-specific real-time messaging space for collaboration:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Dedicated Rooms:</strong> Every project has its own dedicated chat room. Conversations and attachments are kept organized by project.</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Access Rights:</strong> Employees and Users can only see and chat in rooms of projects they are members of. Admins and Managers can access all rooms.</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>File Sharing & Collaboration:</strong> Upload files, tag teammates, and communicate directly inside the project room.</li>
+                <li><strong>Quick Link:</strong> Click the Chat icon on any project card in the Projects directory to jump straight to that project's chat.</li>
+              </ul>
+            </div>
+          )
         }
       ]
     },
@@ -484,6 +500,22 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
               </ul>
             </div>
           )
+        },
+        {
+          id: 'q15',
+          question: 'ฟีเจอร์ Team Chat (แชททีมโครงการ) คืออะไรและใช้งานอย่างไร?',
+          icon: MessageSquare,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>ระบบ Team Chat ออกแบบมาเพื่อเพิ่มความสะดวกในการคุยประสานงานกันในแต่ละโปรเจกต์แบบเรียลไทม์ครับ:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>ห้องแชทแยกรายโปรเจกต์:</strong> ทุกโครงการจะมีห้องแชทของตัวเองแยกต่างหาก ทำให้การคุยรายละเอียดงานเป็นระเบียบและไม่ปะปนกัน</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>ระบบสิทธิ์การเข้าใช้งาน:</strong> พนักงานทั่วไปจะมองเห็นและพิมพ์แชทได้เฉพาะห้องโปรเจกต์ที่ตนเป็นสมาชิกเท่านั้น ส่วนแอดมินหรือเมเนเจอร์จะเข้าดูได้ทุกห้อง</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>การส่งไฟล์และการพูดคุย:</strong> สามารถคุยงานโต้ตอบ อัปโหลดไฟล์แนบประกอบการทำงาน และแท็กหาเพื่อนร่วมทีมได้โดยตรง</li>
+                <li><strong>ทางเข้าด่วนแชทโปรเจกต์:</strong> สามารถกดไอคอนรูปกล่องข้อความที่มุมขวาบนของการ์ดโครงการที่หน้า Projects เพื่อลิ้งก์ตรงเข้ามายังห้องแชทโครงการนั้น ๆ ได้ทันทีครับ</li>
+              </ul>
+            </div>
+          )
         }
       ]
     }
@@ -554,6 +586,22 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
               </ul>
             </div>
           )
+        },
+        {
+          id: 'f4',
+          question: 'What is the Team Chat module and how is access managed?',
+          icon: MessageSquare,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>The Team Chat module provides real-time collaborative communication for project members:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Dedicated Project Channels:</strong> Each project automatically has its own chat room. Messages are partitioned so that project-related discussions are kept organized.</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Access Rights & Visibility:</strong> Only project members can view and chat in the project's channel. Admins and Managers have global access to all chat rooms.</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Collaborative Tools:</strong> Users can upload attachments, send links, and tag project members to collaborate in real-time.</li>
+                <li><strong>Quick Navigation Shortcut:</strong> Clicking the Chat icon on any project card in the Projects directory immediately opens the chat room for that specific project.</li>
+              </ul>
+            </div>
+          )
         }
       ]
     },
@@ -615,6 +663,22 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
                 <li style={{ marginBottom: '0.25rem' }}><strong>ผู้จัดการโครงการ (PM):</strong> มีสิทธิ์แก้ไข ลบ และจัดการงาน รวมถึงสปรินต์/เวอร์ชัน ทั้งหมดในโครงการที่ตนเองได้รับมอบหมายดูแล</li>
                 <li style={{ marginBottom: '0.25rem' }}><strong>ผู้รับผิดชอบงาน (Assignee):</strong> มีสิทธิ์แก้ไขรายละเอียดงาน หรือย้ายสถานะเฉพาะงานที่ได้รับมอบหมายเท่านั้น แต่ไม่มีสิทธิ์ลบงาน</li>
                 <li><strong>สมาชิกทั่วไป (Member/SA/Frontend dev/ฯลฯ):</strong> มีสิทธิ์สร้างและบันทึกงานใหม่ หรือปรับสถานะงานตามลำดับกระบวนการ (Workflow) แต่ไม่มีสิทธิ์ลบงาน</li>
+              </ul>
+            </div>
+          )
+        },
+        {
+          id: 'f4',
+          question: 'ระบบ Team Chat (แชททีมโครงการ) ทำงานอย่างไร และสิทธิ์การใช้งานเป็นแบบใด?',
+          icon: MessageSquare,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>ระบบ Team Chat ออกแบบมาเพื่อเพิ่มความสะดวกในการคุยงานกันภายในแต่ละโครงการแบบเรียลไทม์:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>ห้องแชทแยกรายโปรเจกต์:</strong> ทุกโครงการจะมีห้องแชทของตัวเองอัตโนมัติ ทำให้บทสนทนาไม่ปะปนกัน และเป็นระเบียบตามแต่ละโครงการ</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>การจำกัดสิทธิ์ความปลอดภัย:</strong> สมาชิกทั่วไป (Employee และ User) จะสามารถมองเห็นและคุยแชทเฉพาะโครงการที่ตนมีชื่อร่วมอยู่ในโปรเจกต์นั้น ๆ เท่านั้น ขณะที่ Admin และ Manager สามารถเข้าถึงได้ทุกห้องเพื่อควบคุมความเรียบร้อย</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>เครื่องมือการทำงานร่วมกัน:</strong> สมาชิกสามารถอัปโหลดไฟล์แนบ ส่งลิงก์ และประสานงานกันได้โดยตรง</li>
+                <li><strong>ปุ่มลัดเข้าถึงห้องแชททันที:</strong> สามารถกดไอคอนรูปกล่องข้อความที่มุมขวาบนของการ์ดโครงการที่หน้า Projects เพื่อลิ้งก์ตรงเข้ามายังห้องแชทของโครงการนั้น ๆ ได้ทันทีครับ</li>
               </ul>
             </div>
           )
