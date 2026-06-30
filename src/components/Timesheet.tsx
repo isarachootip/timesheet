@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Clock, Plus, CheckCircle2, Calendar as CalendarIcon, X, Trash2, ChevronLeft, ChevronRight, XCircle } from 'lucide-react';
+import { Clock, Plus, CheckCircle2, Calendar as CalendarIcon, X, Trash2, ChevronLeft, ChevronRight, XCircle, Edit, Paperclip, ImageIcon } from 'lucide-react';
 import { format, isSameDay, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, isSameMonth } from 'date-fns';
 import type { TimesheetEntry, Project, Task, User, TimesheetStatus } from '../types';
 
@@ -27,9 +27,18 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
   const [endTime, setEndTime] = useState('');
   const [description, setDescription] = useState('');
   const [entryStatus, setEntryStatus] = useState<TimesheetStatus>('Pending');
+  const [imageUrl, setImageUrl] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
-  // Filter project-specific tasks
-  const projectTasks = tasks.filter(t => t.projectId === projectId);
+  // Filter project-specific tasks. Employees/Users only see tasks assigned to them or unassigned.
+  const projectTasks = tasks.filter(t => {
+    if (t.projectId !== projectId) return false;
+    if (!currentUser) return false;
+    if (currentUser.globalRole === 'Admin' || currentUser.globalRole === 'Manager') return true;
+    return !t.assigneeId || t.assigneeId === currentUser.id;
+  });
 
   // Generate calendar grid for the current month
   const monthStart = startOfMonth(currentMonth);
@@ -131,15 +140,78 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
   const getProjectName = (id: string) => projects.find(p => p.id === id)?.name || 'Unknown Project';
   const getTaskName = (id?: string) => id ? (tasks.find(t => t.id === id)?.title || 'Unknown Task') : 'General';
 
-  const openLogModal = () => {
-    setProjectId(projects[0]?.id || '');
+  const resetForm = () => {
+    setProjectId('');
     setTaskId('');
     setHours('');
     setStartTime('');
     setEndTime('');
     setDescription('');
     setEntryStatus('Pending');
+    setImageUrl('');
+    setEditingEntryId(null);
+  };
+
+  const openLogModal = () => {
+    resetForm();
+    if (projects.length > 0) {
+      setProjectId(projects[0].id);
+    }
     setIsModalOpen(true);
+  };
+
+  const openEditModal = (entry: TimesheetEntry) => {
+    setProjectId(entry.projectId);
+    setTaskId(entry.taskId || '');
+    setHours(String(entry.hours));
+    setStartTime(entry.startTime || '');
+    setEndTime(entry.endTime || '');
+    setDescription(entry.description);
+    setEntryStatus(entry.status);
+    setImageUrl(entry.imageUrl || '');
+    setSelectedDate(new Date(entry.date));
+    setEditingEntryId(entry.id);
+    setIsModalOpen(true);
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Only image files are allowed');
+      return;
+    }
+
+    setIsUploading(true);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const base64 = reader.result as string;
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            file: base64,
+            fileName: file.name,
+            type: file.type
+          })
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          setImageUrl(data.url);
+        } else {
+          const err = await res.json();
+          alert(err.error || 'Failed to upload image');
+        }
+      } catch (err: any) {
+        alert(err.message || 'Error uploading file');
+      } finally {
+        setIsUploading(false);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   // Auto-calculate hours from startTime and endTime
@@ -167,20 +239,41 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
     e.preventDefault();
     if (!projectId || !hours || !description) return alert('Project, Hours, and Description are required');
 
-    const newEntry: TimesheetEntry = {
-      id: 'ts_' + Date.now(),
-      userId: currentUser.id,
-      projectId,
-      taskId: taskId || undefined,
-      date: format(selectedDate, 'yyyy-MM-dd'),
-      hours: Number(hours),
-      startTime: startTime || undefined,
-      endTime: endTime || undefined,
-      description,
-      status: entryStatus
-    };
+    if (editingEntryId) {
+      const existing = timesheets.find(ts => ts.id === editingEntryId);
+      const updatedEntry: TimesheetEntry = {
+        ...existing,
+        id: editingEntryId,
+        userId: existing ? existing.userId : currentUser.id,
+        projectId,
+        taskId: taskId || undefined,
+        date: format(selectedDate, 'yyyy-MM-dd'),
+        hours: Number(hours),
+        startTime: startTime || undefined,
+        endTime: endTime || undefined,
+        description,
+        status: existing ? existing.status : 'Pending',
+        imageUrl: imageUrl || undefined
+      };
+      setTimesheets(prev => prev.map(ts => ts.id === editingEntryId ? updatedEntry : ts));
+    } else {
+      const newEntry: TimesheetEntry = {
+        id: 'ts_' + Date.now(),
+        userId: currentUser.id,
+        projectId,
+        taskId: taskId || undefined,
+        date: format(selectedDate, 'yyyy-MM-dd'),
+        hours: Number(hours),
+        startTime: startTime || undefined,
+        endTime: endTime || undefined,
+        description,
+        status: entryStatus,
+        imageUrl: imageUrl || undefined
+      };
+      setTimesheets(prev => [...prev, newEntry]);
+    }
 
-    setTimesheets(prev => [...prev, newEntry]);
+    resetForm();
     setIsModalOpen(false);
   };
 
@@ -763,7 +856,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
                           <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{getProjectName(entry.projectId)}</span>
-                          <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-sm)', color: 'var(--text-secondary)' }}>
+<span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-sm)', color: 'var(--text-secondary)' }}>
                             {getTaskName(entry.taskId)}
                           </span>
                         </div>
@@ -772,6 +865,28 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.4rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                             <Clock size={12} />
                             <span>{entry.startTime} → {entry.endTime}</span>
+                          </div>
+                        )}
+                        {entry.imageUrl && (
+                          <div style={{ marginTop: '0.5rem' }}>
+                            <button
+                              onClick={() => setPreviewImageUrl(entry.imageUrl || '')}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.3rem',
+                                padding: '0.2rem 0.5rem',
+                                background: 'rgba(0, 206, 209, 0.08)',
+                                border: '1px solid rgba(0, 206, 209, 0.2)',
+                                borderRadius: 'var(--radius-sm)',
+                                color: 'var(--accent-primary)',
+                                fontSize: '0.7rem',
+                                cursor: 'pointer'
+                              }}
+                              className="hover-lift"
+                            >
+                              <ImageIcon size={12} /> View Image Attachment
+                            </button>
                           </div>
                         )}
                       </div>
@@ -797,9 +912,14 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                           )}
                         </div>
                         {(entry.status !== 'Approved' || isAdmin) && (
-                          <button onClick={() => handleDelete(entry.id)} style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer', marginLeft: '0.5rem' }}>
-                            <Trash2 size={16} />
-                          </button>
+                          <div style={{ display: 'flex', gap: '0.25rem' }}>
+                            <button onClick={() => openEditModal(entry)} style={{ background: 'transparent', border: 'none', color: 'var(--accent-info)', cursor: 'pointer' }} title="Edit log entry">
+                              <Edit size={16} />
+                            </button>
+                            <button onClick={() => handleDelete(entry.id)} style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer' }} title="Delete log entry">
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -886,8 +1006,8 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
         }}>
           <div className="glass-panel" style={{ padding: '2rem', width: '650px', maxWidth: '95%', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div className="flex-between">
-              <h2 className="text-gradient" style={{ fontSize: '1.5rem' }}>Log Work Time</h2>
-              <button onClick={() => setIsModalOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+              <h2 className="text-gradient" style={{ fontSize: '1.5rem' }}>{editingEntryId ? 'Edit Work Time' : 'Log Work Time'}</h2>
+              <button onClick={() => { setIsModalOpen(false); resetForm(); }} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
                 <X size={20} />
               </button>
             </div>
@@ -1142,6 +1262,56 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                 />
               </div>
 
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <ImageIcon size={16} /> Attach Proof of Work Image (Optional)
+                </label>
+                
+                {imageUrl ? (
+                  <div style={{ position: 'relative', width: '120px', height: '90px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', overflow: 'hidden', background: 'var(--bg-tertiary)' }}>
+                    <img src={imageUrl} alt="Proof of work preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <button 
+                      type="button" 
+                      onClick={() => setImageUrl('')} 
+                      style={{ position: 'absolute', top: '4px', right: '4px', background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%', color: 'white', cursor: 'pointer', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+                      title="Remove image"
+                    >
+                      <X size={12} style={{ margin: 'auto' }} />
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleImageChange} 
+                      id="timesheet-image-upload" 
+                      style={{ display: 'none' }} 
+                      disabled={isUploading}
+                    />
+                    <label 
+                      htmlFor="timesheet-image-upload" 
+                      style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '0.5rem', 
+                        padding: '0.5rem 1rem', 
+                        background: 'var(--bg-tertiary)', 
+                        border: '1px solid var(--border-color)', 
+                        borderRadius: 'var(--radius-md)', 
+                        color: 'var(--text-secondary)', 
+                        cursor: isUploading ? 'not-allowed' : 'pointer',
+                        fontSize: '0.85rem'
+                      }}
+                      className="hover-lift"
+                    >
+                      <Paperclip size={14} />
+                      {isUploading ? 'Uploading...' : 'Choose Image'}
+                    </label>
+                  </div>
+                )}
+              </div>
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                 <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Submission Status</label>
                 <select 
@@ -1164,9 +1334,40 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                 cursor: 'pointer',
                 marginTop: '1rem'
               }} className="hover-lift">
-                Log Time Entry
+                {editingEntryId ? 'Save Changes' : 'Log Time Entry'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Proof of Work Image Full-screen Preview Modal */}
+      {previewImageUrl && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(5px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1200
+        }} onClick={() => setPreviewImageUrl(null)}>
+          <div style={{ position: 'relative', maxWidth: '90%', maxHeight: '90%', display: 'flex', flexDirection: 'column', gap: '0.5rem' }} onClick={e => e.stopPropagation()}>
+            <button 
+              onClick={() => setPreviewImageUrl(null)} 
+              style={{ position: 'absolute', top: '-40px', right: '0', background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.9rem' }}
+            >
+              <X size={20} /> Close
+            </button>
+            <img 
+              src={previewImageUrl} 
+              alt="Full size proof of work" 
+              style={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)' }} 
+            />
           </div>
         </div>
       )}

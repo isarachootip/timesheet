@@ -1230,7 +1230,14 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
     const member = members.find(m => m.userId === currentUser.id);
     if (member) projectRole = member.role;
 
-
+    // Enforce: regular employees/users cannot edit, transition, assign, or delete other people's tasks
+    if (taskObj && taskObj.assigneeId && taskObj.assigneeId !== currentUser.id) {
+      if (['edit_task', 'delete_task', 'transition_task', 'assign_task'].includes(permissionKey)) {
+        if (projectRole !== 'PM') {
+          return false; // Can see, but not edit/modify!
+        }
+      }
+    }
 
     const schemeId = project.permissionSchemeId || 'scheme_default';
     const scheme = permissionSchemes.find(s => s.id === schemeId);

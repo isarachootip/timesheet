@@ -105,7 +105,8 @@ CREATE TABLE IF NOT EXISTS timesheets (
     description TEXT,
     status VARCHAR(50) NOT NULL,
     approved_by VARCHAR(50),
-    approved_at VARCHAR(50)
+    approved_at VARCHAR(50),
+    image_url TEXT
 );
 
 -- 8. Task Commits (Git Integration)

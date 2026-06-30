@@ -118,6 +118,7 @@ export interface TimesheetEntry {
   status: TimesheetStatus;
   approvedBy?: string;
   approvedAt?: string;
+  imageUrl?: string;
 }
 
 export interface PermissionScheme {
