@@ -29,7 +29,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
   });
 
   // Cost Report States
-  const [costReportType, setCostReportType] = useState<'daily' | 'monthly' | 'yearly'>('monthly');
+  const [costReportType, setCostReportType] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly');
   const [costDate, setCostDate] = useState<string>(() => {
     const today = new Date();
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -263,8 +263,13 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
   const activeProject = projects.find(p => p.id === activeProjectId);
   const projectTimesheets = timesheets.filter(ts => {
     if (ts.projectId !== activeProjectId) return false;
+    // For the table, we'll group by the selected type, but we still filter the KPI cards by costDate.
+    // Wait, let's keep the filter for KPIs.
     if (costReportType === 'daily') {
       return ts.date === costDate;
+    } else if (costReportType === 'weekly') {
+      // costDate is '2026-W26'
+      return getWeekString(ts.date) === costDate;
     } else if (costReportType === 'monthly') {
       return ts.date.slice(0, 7) === costDate.slice(0, 7);
     } else {
@@ -298,6 +303,15 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
     ];
     return monthNames[monthIndex] || '';
+  };
+
+  // Helper to get ISO week string (e.g., 2026-W26)
+  const getWeekString = (dateStr: string) => {
+    const date = new Date(dateStr);
+    date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+    const weekNo = Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+    return `${date.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
   };
 
   // Safe costDate
@@ -1247,10 +1261,17 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
               </div>
 
               <div className="glass-panel" style={{ padding: '0.25rem', display: 'flex', gap: '0.25rem' }}>
-                {(['daily', 'monthly', 'yearly'] as const).map(type => (
+                {(['daily', 'weekly', 'monthly', 'yearly'] as const).map(type => (
                   <button
                     key={type}
-                    onClick={() => setCostReportType(type)}
+                    onClick={() => {
+                      setCostReportType(type);
+                      if (type === 'weekly' && !costDate.includes('W')) {
+                        setCostDate(getWeekString(new Date().toISOString().split('T')[0]));
+                      } else if (type === 'monthly' && costDate.includes('W')) {
+                        setCostDate(new Date().toISOString().split('T')[0].slice(0, 7) + '-01');
+                      }
+                    }}
                     style={{
                       background: costReportType === type ? 'var(--bg-tertiary)' : 'transparent',
                       color: costReportType === type ? 'var(--text-primary)' : 'var(--text-secondary)',
@@ -1271,11 +1292,19 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
 
               <div className="glass-panel" style={{ padding: '0.4rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                  {costReportType === 'daily' ? 'Date:' : costReportType === 'monthly' ? 'Month:' : 'Year:'}
+                  {costReportType === 'daily' ? 'Date:' : costReportType === 'weekly' ? 'Week:' : costReportType === 'monthly' ? 'Month:' : 'Year:'}
                 </span>
                 {costReportType === 'daily' && (
                   <input
                     type="date"
+                    value={costDate}
+                    onChange={e => setCostDate(e.target.value)}
+                    style={inputStyle}
+                  />
+                )}
+                {costReportType === 'weekly' && (
+                  <input
+                    type="week"
                     value={costDate}
                     onChange={e => setCostDate(e.target.value)}
                     style={inputStyle}
@@ -1406,89 +1435,89 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
               )}
             </div>
 
-            {/* ── Table: Cost Rate Config & Effort Estimation (Matching Screenshot) ── */}
+            {/* ── Table: Actual Cost & Effort Summary (Replaces Resource Role table) ── */}
             <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Briefcase size={18} color="var(--accent-primary)" /> Project Resource Costs &amp; Effort Configuration
+                <Briefcase size={18} color="var(--accent-primary)" /> Actual Cost &amp; Effort Summary ({costReportType})
               </h3>
               
               <div style={{ overflowX: 'auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem', textAlign: 'left' }}>
                   <thead>
                     <tr style={{ background: '#2F75B5', borderBottom: '1px solid var(--border-color)', color: 'white' }}>
-                      <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Resource Role</th>
-                      <th style={{ padding: '0.75rem 1rem', fontWeight: 600, textAlign: 'center' }}>Effort Estimation (Man-day)</th>
-                      <th style={{ padding: '0.75rem 1rem', fontWeight: 600, textAlign: 'right' }}>Man-day Rate (THB)</th>
-                      <th style={{ padding: '0.75rem 1rem', fontWeight: 600, textAlign: 'right' }}>Cost Estimation (THB)</th>
-                      <th style={{ padding: '0.75rem 1rem', fontWeight: 600, textAlign: 'center' }}>Actual Effort (Man-day)</th>
+                      <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Period</th>
+                      <th style={{ padding: '0.75rem 1rem', fontWeight: 600, textAlign: 'center' }}>Logged Hours</th>
+                      <th style={{ padding: '0.75rem 1rem', fontWeight: 600, textAlign: 'center' }}>Actual Mandays</th>
                       <th style={{ padding: '0.75rem 1rem', fontWeight: 600, textAlign: 'right' }}>Actual Cost (THB)</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(() => {
-                      let totalEstDays = 0;
-                      let totalEstCost = 0;
-                      let totalActDays = 0;
-                      let totalActCost = 0;
-                      let hasEstimates = false;
+                      // Group timesheets based on costReportType
+                      const grouped: Record<string, { hours: number; cost: number }> = {};
+                      
+                      // Filter by project only (ignoring costDate so we can see all periods of that type, 
+                      // or just show periods that match the costDate range).
+                      // We will show the breakdown for ALL timesheets in this project to give a proper view, 
+                      // or if costDate is selected, maybe we just show the periods in that costDate?
+                      // The user wants a Time-based breakdown. Let's group ALL project timesheets by the selected dimension.
+                      const baseTimesheets = selectedProject === 'all' ? timesheets : timesheets.filter(ts => ts.projectId === selectedProject);
 
-                      // Group project members by role and calculate
-                      const rows = costRates.map(rate => {
-                        // Find members in the project who have this project role
-                        const membersInRole = activeProject?.members?.filter(m => m.role.toLowerCase() === rate.roleName.toLowerCase()) || [];
-                        const memberUserIds = membersInRole.map(m => m.userId);
-
-                        // Effort estimation from project tasks:
-                        // Sum estimatedHours of tasks assigned to these members in this project
-                        const tasksInRole = tasks.filter(t => t.projectId === activeProjectId && t.assigneeId && memberUserIds.includes(t.assigneeId));
-                        const estHours = tasksInRole.reduce((s, t) => s + t.estimatedHours, 0);
-                        const estDays = estHours > 0 ? (estHours / 8) : 0;
-                        const estCost = estDays * rate.ratePerDay;
-
-                        if (estDays > 0) {
-                          totalEstDays += estDays;
-                          totalEstCost += estCost;
-                          hasEstimates = true;
+                      baseTimesheets.forEach(ts => {
+                        let key = ts.date;
+                        if (costReportType === 'weekly') {
+                          key = getWeekString(ts.date);
+                        } else if (costReportType === 'monthly') {
+                          key = ts.date.slice(0, 7);
+                        } else if (costReportType === 'yearly') {
+                          key = ts.date.slice(0, 4);
                         }
+                        
+                        if (!grouped[key]) {
+                          grouped[key] = { hours: 0, cost: 0 };
+                        }
+                        grouped[key].hours += ts.hours;
+                        grouped[key].cost += getEntryCost(ts);
+                      });
 
-                        // Actual logged timesheets effort:
-                        const actHours = projectTimesheets.filter(ts => memberUserIds.includes(ts.userId)).reduce((s, ts) => s + ts.hours, 0);
-                        const actDays = actHours / 8;
-                        const actCost = actHours * rate.ratePerHour;
+                      const sortedKeys = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+                      let totalHours = 0;
+                      let totalCost = 0;
 
-                        totalActDays += actDays;
-                        totalActCost += actCost;
-
+                      const rows = sortedKeys.map(key => {
+                        const { hours, cost } = grouped[key];
+                        totalHours += hours;
+                        totalCost += cost;
+                        const mandays = hours / 8;
+                        
                         return (
-                          <tr key={rate.id} style={{ borderBottom: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.01)' }}>
-                            <td style={{ padding: '0.75rem 1rem', fontWeight: 500, color: 'var(--text-primary)' }}>{rate.roleName}</td>
-                            <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>{estDays > 0 ? estDays.toFixed(1) : 'TBD'}</td>
-                            <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>{rate.ratePerDay.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                            <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 600 }}>
-                              {estCost > 0 ? estCost.toLocaleString(undefined, { minimumFractionDigits: 2 }) : 'TBD'}
-                            </td>
-                            <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>{actDays > 0 ? actDays.toFixed(2) : '0.00'}</td>
-                            <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 600, color: actCost > 0 ? 'var(--accent-secondary)' : 'inherit' }}>
-                              ฿{actCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          <tr key={key} style={{ borderBottom: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.01)' }}>
+                            <td style={{ padding: '0.75rem 1rem', fontWeight: 500, color: 'var(--text-primary)' }}>{key}</td>
+                            <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>{hours > 0 ? hours.toFixed(1) : '0'}</td>
+                            <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>{mandays > 0 ? mandays.toFixed(2) : '0.00'}</td>
+                            <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 600, color: cost > 0 ? 'var(--accent-secondary)' : 'inherit' }}>
+                              ฿{cost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                             </td>
                           </tr>
                         );
                       });
 
+                      const totalMandays = totalHours / 8;
+
                       return (
                         <>
-                          {rows}
+                          {rows.length > 0 ? rows : (
+                            <tr>
+                              <td colSpan={4} style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)' }}>No data available</td>
+                            </tr>
+                          )}
                           {/* Total Row */}
                           <tr style={{ background: 'rgba(47, 117, 181, 0.1)', fontWeight: 700, borderBottom: '2px solid #2F75B5', borderTop: '2px solid #2F75B5' }}>
                             <td style={{ padding: '0.85rem 1rem', textTransform: 'uppercase', color: 'var(--text-primary)' }}>Total</td>
-                            <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>{hasEstimates ? totalEstDays.toFixed(1) : 'TBD'}</td>
-                            <td style={{ padding: '0.85rem 1rem' }}></td>
-                            <td style={{ padding: '0.85rem 1rem', textAlign: 'right', color: 'var(--text-primary)' }}>
-                              {hasEstimates ? `฿${totalEstCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : 'TBD'}
-                            </td>
-                            <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>{totalActDays.toFixed(2)}</td>
+                            <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>{totalHours > 0 ? totalHours.toFixed(1) : '0'}</td>
+                            <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>{totalMandays.toFixed(2)}</td>
                             <td style={{ padding: '0.85rem 1rem', textAlign: 'right', color: 'var(--accent-secondary)' }}>
-                              ฿{totalActCost.toLocaleString(undefined, { minimumFractionDigits: 2 })} THB
+                              ฿{totalCost.toLocaleString(undefined, { minimumFractionDigits: 2 })} THB
                             </td>
                           </tr>
                         </>
