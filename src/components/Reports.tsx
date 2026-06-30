@@ -29,7 +29,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
   });
 
   // Cost Report States
-  const [costReportType, setCostReportType] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly');
+  const [costReportType, setCostReportType] = useState<'daily' | 'weekly' | 'monthly' | 'yearly' | 'all'>('monthly');
   const [costDate, setCostDate] = useState<string>(() => {
     const today = new Date();
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -272,8 +272,10 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
       return getWeekString(ts.date) === costDate;
     } else if (costReportType === 'monthly') {
       return ts.date.slice(0, 7) === costDate.slice(0, 7);
-    } else {
+    } else if (costReportType === 'yearly') {
       return ts.date.slice(0, 4) === costDate.slice(0, 4);
+    } else {
+      return true; // 'all'
     }
   });
 
@@ -1261,7 +1263,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
               </div>
 
               <div className="glass-panel" style={{ padding: '0.25rem', display: 'flex', gap: '0.25rem' }}>
-                {(['daily', 'weekly', 'monthly', 'yearly'] as const).map(type => (
+                {(['daily', 'weekly', 'monthly', 'yearly', 'all'] as const).map(type => (
                   <button
                     key={type}
                     onClick={() => {
@@ -1290,10 +1292,11 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                 ))}
               </div>
 
-              <div className="glass-panel" style={{ padding: '0.4rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                  {costReportType === 'daily' ? 'Date:' : costReportType === 'weekly' ? 'Week:' : costReportType === 'monthly' ? 'Month:' : 'Year:'}
-                </span>
+              {costReportType !== 'all' && (
+                <div className="glass-panel" style={{ padding: '0.4rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    {costReportType === 'daily' ? 'Date:' : costReportType === 'weekly' ? 'Week:' : costReportType === 'monthly' ? 'Month:' : 'Year:'}
+                  </span>
                 {costReportType === 'daily' && (
                   <input
                     type="date"
@@ -1335,6 +1338,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                   />
                 )}
               </div>
+              )}
             </div>
 
             {/* KPI Cards */}
@@ -1342,7 +1346,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
               <div className="glass-panel" style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 500 }}>Total Effort</span>
                 <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>{projectTotalHours} hrs</span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Logged in {costReportType === 'daily' ? costDate : costReportType === 'monthly' ? costDate.slice(0, 7) : costDate.slice(0, 4)}</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{costReportType === 'all' ? 'All time logged' : `Logged in ${costReportType === 'daily' ? costDate : costReportType === 'monthly' ? costDate.slice(0, 7) : costReportType === 'weekly' ? costDate : costDate.slice(0, 4)}`}</span>
               </div>
               <div className="glass-panel" style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 500 }}>Selected Period Cost</span>
@@ -1471,6 +1475,8 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                           key = ts.date.slice(0, 7);
                         } else if (costReportType === 'yearly') {
                           key = ts.date.slice(0, 4);
+                        } else if (costReportType === 'all') {
+                          key = 'All Time';
                         }
                         
                         if (!grouped[key]) {
