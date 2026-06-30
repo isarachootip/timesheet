@@ -74,6 +74,7 @@ const initDB = async () => {
     await client.query(`
       ALTER TABLE users ADD COLUMN IF NOT EXISTS line_user_id VARCHAR(100) UNIQUE;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS wfh_days TEXT[] DEFAULT '{}';
     `);
 
     // Create Permission Schemes Table
@@ -1240,7 +1241,8 @@ app.get('/api/initial-data', async (req, res) => {
       department: u.department,
       gender: u.gender,
       birthday: u.birthday,
-      skills: u.skills
+      skills: u.skills,
+      wfhDays: u.wfh_days || []
     }));
 
     const projects = projectsRes.rows.map(p => ({
@@ -1348,7 +1350,7 @@ app.get('/api/initial-data', async (req, res) => {
 
 // Users REST API
 app.post('/api/users', async (req, res) => {
-  const { id, name, email, avatar, globalRole, department, gender, birthday, skills, password } = req.body;
+  const { id, name, email, avatar, globalRole, department, gender, birthday, skills, password, wfhDays } = req.body;
   try {
     // Check if user already exists to preserve their password_hash, or set default ('password123' hashed)
     const existingUser = await pool.query('SELECT password_hash FROM users WHERE id = $1 OR email = $2', [id, email]);
@@ -1362,8 +1364,8 @@ app.post('/api/users', async (req, res) => {
     }
 
     await pool.query(
-      `INSERT INTO users (id, name, email, avatar, global_role, department, gender, birthday, skills, password_hash)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      `INSERT INTO users (id, name, email, avatar, global_role, department, gender, birthday, skills, password_hash, wfh_days)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        ON CONFLICT (id) DO UPDATE SET
          name = EXCLUDED.name,
          email = EXCLUDED.email,
@@ -1373,8 +1375,9 @@ app.post('/api/users', async (req, res) => {
          gender = EXCLUDED.gender,
          birthday = EXCLUDED.birthday,
          skills = EXCLUDED.skills,
-         password_hash = EXCLUDED.password_hash`,
-      [id, name, email, avatar, globalRole, department, gender, birthday, skills, pwHash]
+         password_hash = EXCLUDED.password_hash,
+         wfh_days = EXCLUDED.wfh_days`,
+      [id, name, email, avatar, globalRole, department, gender, birthday, skills, pwHash, wfhDays || []]
     );
     res.json({ success: true });
   } catch (err) {
@@ -1386,9 +1389,9 @@ app.post('/api/users', async (req, res) => {
              id = $1, name = $2, avatar = $3,
              global_role = $4, department = $5,
              gender = $6, birthday = $7, skills = $8,
-             password_hash = $9
-           WHERE email = $10`,
-          [id, name, avatar, globalRole, department, gender, birthday, skills, pwHash, email]
+             password_hash = $9, wfh_days = $10
+           WHERE email = $11`,
+          [id, name, avatar, globalRole, department, gender, birthday, skills, pwHash, wfhDays || [], email]
         );
         res.json({ success: true, note: 'merged by email' });
       } catch (updateErr) {

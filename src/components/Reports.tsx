@@ -13,7 +13,7 @@ interface ReportsProps {
 }
 
 export const Reports = ({ timesheets, projects, users, currentUser, tasks, costRates }: ReportsProps) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'personal' | 'project_cost'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'personal' | 'project_cost' | 'pm_portfolio'>('overview');
   
   // Common states
   const [reportType, setReportType] = useState<'daily' | 'monthly' | 'yearly'>('monthly');
@@ -36,6 +36,8 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
   });
 
   const isAdmin = currentUser?.globalRole === 'Admin' || currentUser?.globalRole === 'Manager';
+  const isProjectPM = projects.some(p => p.members && p.members.some((m: any) => m.userId === currentUser?.id && m.role === 'PM'));
+  const showPmPortfolioTab = isAdmin || isProjectPM;
   
   // Filter timesheets to only show the user's own if they are not Admin/Manager
   const visibleTimesheets = isAdmin
@@ -596,6 +598,22 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
           >
             📁 Project Cost
           </button>
+          {showPmPortfolioTab && (
+            <button 
+              onClick={() => setActiveTab('pm_portfolio')}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: activeTab === 'pm_portfolio' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                borderBottom: activeTab === 'pm_portfolio' ? '2px solid var(--accent-primary)' : '2px solid transparent',
+                padding: '0.5rem 1rem',
+                cursor: 'pointer',
+                fontWeight: activeTab === 'pm_portfolio' ? 600 : 400
+              }}
+            >
+              💼 PM Portfolio
+            </button>
+          )}
         </div>
 
         {/* ── TAB CONTENT: 📊 OVERVIEW ── */}
@@ -1583,6 +1601,207 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ── TAB CONTENT: 💼 PM PORTFOLIO ── */}
+        {activeTab === 'pm_portfolio' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            <div>
+              <h2 className="text-gradient" style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>PM Portfolio Dashboard</h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                Consolidated overview of all projects you manage, including resource allocations, logged hours, and budget utilization.
+              </p>
+            </div>
+
+            {/* Portfolio KPI Cards */}
+            {(() => {
+              const managedProjects = projects.filter(p => isAdmin || p.members?.some(m => m.userId === currentUser?.id && m.role === 'PM'));
+              const pmTimesheets = timesheets.filter(ts => managedProjects.some(p => p.id === ts.projectId));
+              const totalPmHours = pmTimesheets.reduce((sum, ts) => sum + ts.hours, 0);
+              const totalPmCost = pmTimesheets.reduce((sum, ts) => sum + getEntryCost(ts), 0);
+
+              const allPmMembers = new Set<string>();
+              managedProjects.forEach(p => p.members?.forEach(m => allPmMembers.add(m.userId)));
+              const uniquePmResourcesCount = allPmMembers.size;
+
+              return (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                    <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 500 }}>Managed Projects</span>
+                      <span style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--accent-primary)' }}>{managedProjects.length}</span>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Active or Planning</span>
+                    </div>
+                    <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 500 }}>Total Resources</span>
+                      <span style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--accent-info)' }}>{uniquePmResourcesCount} members</span>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Across managed team</span>
+                    </div>
+                    <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 500 }}>Total Logged Effort</span>
+                      <span style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>{totalPmHours.toLocaleString()} hrs</span>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>From all project timesheets</span>
+                    </div>
+                    <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 500 }}>Consolidated Actual Cost</span>
+                      <span style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--accent-secondary)' }}>
+                        ฿{totalPmCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Based on resource billing rates</span>
+                    </div>
+                  </div>
+
+                  {managedProjects.length === 0 ? (
+                    <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                      No projects are currently managed by you as PM.
+                    </div>
+                  ) : (
+                    <>
+                      {/* Project Performance & Cost Table */}
+                      <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
+                          <Briefcase size={18} color="var(--accent-primary)" /> Project Portfolios & Budgets
+                        </h3>
+                        <div style={{ overflowX: 'auto' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
+                            <thead>
+                              <tr style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-tertiary)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                <th style={{ padding: '1rem' }}>Project Name</th>
+                                <th style={{ padding: '1rem', width: '150px' }}>Completion Progress</th>
+                                <th style={{ padding: '1rem', width: '100px', textAlign: 'center' }}>Resources</th>
+                                <th style={{ padding: '1rem', width: '120px', textAlign: 'center' }}>Logged Hours</th>
+                                <th style={{ padding: '1rem', width: '150px', textAlign: 'right' }}>Actual Cost</th>
+                                <th style={{ padding: '1rem', width: '220px' }}>Budget Utilization</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {managedProjects.map(proj => {
+                                const projTimesheets = timesheets.filter(ts => ts.projectId === proj.id);
+                                const projHours = projTimesheets.reduce((s, ts) => s + ts.hours, 0);
+                                const projCost = projTimesheets.reduce((s, ts) => s + getEntryCost(ts), 0);
+                                const projBudget = proj.budget || 0;
+                                const utilization = projBudget > 0 ? (projCost / projBudget) * 100 : 0;
+                                const isOver = projCost > projBudget && projBudget > 0;
+
+                                // Completion % = Done tasks / total tasks
+                                const projTasks = tasks.filter(t => t.projectId === proj.id);
+                                const doneTasks = projTasks.filter(t => t.status === 'Done');
+                                const completionPct = projTasks.length > 0 ? Math.round((doneTasks.length / projTasks.length) * 100) : 0;
+
+                                return (
+                                  <tr key={proj.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                    <td style={{ padding: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                        <span>{proj.name}</span>
+                                        <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-muted)' }}>Status: {proj.status}</span>
+                                      </div>
+                                    </td>
+                                    <td style={{ padding: '1rem' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <div style={{ flex: 1, height: '6px', background: 'var(--bg-tertiary)', borderRadius: '3px', overflow: 'hidden' }}>
+                                          <div style={{ width: `${completionPct}%`, height: '100%', background: 'var(--accent-secondary)' }} />
+                                        </div>
+                                        <span style={{ fontSize: '0.8rem', fontWeight: 600, minWidth: '32px' }}>{completionPct}%</span>
+                                      </div>
+                                    </td>
+                                    <td style={{ padding: '1rem', textAlign: 'center', fontWeight: 500 }}>
+                                      {proj.members?.length || 0}
+                                    </td>
+                                    <td style={{ padding: '1rem', textAlign: 'center', fontWeight: 500 }}>
+                                      {projHours} hrs
+                                    </td>
+                                    <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 600 }}>
+                                      ฿{projCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </td>
+                                    <td style={{ padding: '1rem' }}>
+                                      {projBudget > 0 ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+                                            <span style={{ color: isOver ? 'var(--accent-danger)' : 'var(--text-secondary)' }}>
+                                              {Math.round(utilization)}% used
+                                            </span>
+                                            <span style={{ color: 'var(--text-muted)' }}>Budget: ฿{projBudget.toLocaleString()}</span>
+                                          </div>
+                                          <div style={{ height: '6px', background: 'var(--bg-tertiary)', borderRadius: '3px', overflow: 'hidden' }}>
+                                            <div style={{ 
+                                              width: `${Math.min(100, utilization)}%`, 
+                                              height: '100%', 
+                                              background: isOver ? 'var(--accent-danger)' : 'var(--accent-primary)' 
+                                            }} />
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>No Budget Configured</span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      {/* Detailed Team Resource Allocation per Project */}
+                      <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
+                          <Activity size={18} color="var(--accent-info)" /> Project Resource Allocations & Hours
+                        </h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1.5rem' }}>
+                          {managedProjects.map(proj => {
+                            const projMembers = proj.members || [];
+                            const projTimesheets = timesheets.filter(ts => ts.projectId === proj.id);
+
+                            return (
+                              <div key={proj.id} className="glass-panel" style={{ padding: '1rem 1.25rem', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)' }}>
+                                <h4 style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: '0.75rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', color: 'var(--accent-primary)' }}>
+                                  {proj.name}
+                                </h4>
+                                {projMembers.length === 0 ? (
+                                  <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center', padding: '1rem' }}>
+                                    No members assigned to this project.
+                                  </div>
+                                ) : (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                    {projMembers.map(m => {
+                                      const u = users.find(usr => usr.id === m.userId);
+                                      const userHours = projTimesheets
+                                        .filter(ts => ts.userId === m.userId)
+                                        .reduce((sum, ts) => sum + ts.hours, 0);
+
+                                      if (!u) return null;
+                                      return (
+                                        <div key={m.userId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', padding: '0.35rem 0', borderBottom: '1px dashed rgba(255,255,255,0.02)' }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
+                                            <img 
+                                              src={u.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.name}`} 
+                                              alt={u.name} 
+                                              style={{ width: '24px', height: '24px', borderRadius: '50%' }} 
+                                            />
+                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                              <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{u.name}</span>
+                                              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Role: {m.role}</span>
+                                            </div>
+                                          </div>
+                                          <div style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                            {userHours} hrs logged
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </>
+              );
+            })()}
           </div>
         )}
       </div>

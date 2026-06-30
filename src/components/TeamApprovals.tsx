@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import type { TimesheetEntry, User, GlobalRole, Project, ProjectRole } from '../types';
-import { Check, X, Clock, Award, Users, Plus, Edit, Trash2 } from 'lucide-react';
+import { Check, X, Clock, Award, Users, Plus, Edit, Trash2, Calendar, Home } from 'lucide-react';
 
 interface TeamApprovalsProps {
   users: User[];
@@ -14,7 +14,7 @@ interface TeamApprovalsProps {
 }
 
 export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, projects, setProjects, tasks, currentUser }: TeamApprovalsProps) => {
-  const [activeTab, setActiveTab] = useState<'team' | 'approvals'>('team');
+  const [activeTab, setActiveTab] = useState<'team' | 'approvals' | 'wfh'>('team');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
@@ -474,6 +474,24 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
           </div>
         </button>
         )}
+        <button 
+          onClick={() => setActiveTab('wfh')}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: activeTab === 'wfh' ? 'var(--text-primary)' : 'var(--text-muted)',
+            paddingBottom: '0.75rem',
+            borderBottom: activeTab === 'wfh' ? '2px solid var(--accent-primary)' : '2px solid transparent',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: '1rem',
+            transition: 'all var(--transition-fast)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Calendar size={18} /> WFH Schedule
+          </div>
+        </button>
       </div>
 
       {/* Tab Content */}
@@ -595,7 +613,7 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
             );
           })}
         </div>
-      ) : (
+      ) : activeTab === 'approvals' ? (
         /* Approvals Queue */
         <div className="glass-panel" style={{ padding: '1.5rem', minHeight: '300px' }}>
           <h3 style={{ fontSize: '1.125rem', marginBottom: '1.5rem' }}>Pending Timesheet Submissions</h3>
@@ -675,6 +693,85 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
               ))}
             </div>
           )}
+        </div>
+      ) : (
+        /* WFH Planner Schedule */
+        <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
+              <Home size={18} color="var(--accent-primary)" /> Weekly Work From Home (WFH) Planner
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '0.2rem' }}>
+              Set your planned WFH days for this week. Admins and Managers can monitor all schedules in one view.
+            </p>
+          </div>
+          
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-tertiary)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  <th style={{ padding: '1rem', width: '220px' }}>Employee</th>
+                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+                    <th key={day} style={{ padding: '1rem', textAlign: 'center' }}>{day}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {users.map(user => {
+                  const userWfhDays = user.wfhDays || [];
+                  const isSelf = currentUser.id === user.id;
+
+                  const toggleWfhDay = (day: string) => {
+                    if (!isSelf) return;
+                    let nextDays = [...userWfhDays];
+                    if (nextDays.includes(day)) {
+                      nextDays = nextDays.filter(d => d !== day);
+                    } else {
+                      nextDays.push(day);
+                    }
+                    setUsers(prev => prev.map(u => u.id === user.id ? { ...u, wfhDays: nextDays } : u));
+                    showToast(`Updated WFH days for ${day}`);
+                  };
+
+                  return (
+                    <tr key={user.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', height: '56px' }}>
+                      <td style={{ padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <img 
+                          src={user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} 
+                          alt={user.name} 
+                          style={{ width: '28px', height: '28px', borderRadius: '50%' }} 
+                        />
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>{user.name} {isSelf && '(You)'}</span>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{user.department || 'Staff'}</span>
+                        </div>
+                      </td>
+                      {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => {
+                        const isChecked = userWfhDays.includes(day);
+                        return (
+                          <td key={day} style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
+                            <input 
+                              type="checkbox" 
+                              checked={isChecked}
+                              disabled={!isSelf}
+                              onChange={() => toggleWfhDay(day)}
+                              style={{ 
+                                cursor: isSelf ? 'pointer' : 'not-allowed',
+                                width: '18px',
+                                height: '18px',
+                                accentColor: 'var(--accent-primary)',
+                                opacity: isSelf ? 1 : 0.7
+                              }}
+                            />
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

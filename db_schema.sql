@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS users (
     birthday VARCHAR(50), -- kept as VARCHAR to align with react string picker YYYY-MM-DD
     skills TEXT[] DEFAULT '{}',
     line_user_id VARCHAR(100) UNIQUE,
-    password_hash VARCHAR(255)
+    password_hash VARCHAR(255),
+    wfh_days TEXT[] DEFAULT '{}'
 );
 
 -- 1.5 Permission Schemes Table
