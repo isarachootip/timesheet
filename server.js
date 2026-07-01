@@ -189,6 +189,20 @@ const initDB = async () => {
       ALTER TABLE project_messages ADD COLUMN IF NOT EXISTS attachments JSONB DEFAULT '[]'::jsonb;
     `);
 
+    // Create Chat Notifications Table (for mentions)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS chat_notifications (
+        id VARCHAR(50) PRIMARY KEY,
+        user_id VARCHAR(50) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        project_id VARCHAR(50) NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        message_id VARCHAR(50) NOT NULL REFERENCES project_messages(id) ON DELETE CASCADE,
+        sender_id VARCHAR(50) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        text TEXT NOT NULL,
+        is_read BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+
     // Create Timesheets Table
     await client.query(`
       CREATE TABLE IF NOT EXISTS timesheets (
@@ -2029,7 +2043,7 @@ app.get('/api/projects/:projectId/messages', async (req, res) => {
 
 app.post('/api/projects/:projectId/messages', async (req, res) => {
   const { projectId } = req.params;
-  const { userId, text, attachments } = req.body;
+  const { userId, text, attachments, mentionedUserIds } = req.body;
   
   if (!userId || !text) {
     return res.status(400).json({ error: 'Missing userId or text' });
@@ -2043,6 +2057,19 @@ app.post('/api/projects/:projectId/messages', async (req, res) => {
       'INSERT INTO project_messages (id, project_id, user_id, text, attachments) VALUES ($1, $2, $3, $4, $5)',
       [id, projectId, userId, text, JSON.stringify(safeAttachments)]
     );
+    
+    // Create notifications for mentioned users
+    if (mentionedUserIds && Array.isArray(mentionedUserIds)) {
+      for (const targetUserId of mentionedUserIds) {
+        if (targetUserId === userId) continue; // Don't notify self
+        
+        const notifId = 'notif_' + crypto.randomUUID();
+        await pool.query(
+          'INSERT INTO chat_notifications (id, user_id, project_id, message_id, sender_id, text) VALUES ($1, $2, $3, $4, $5, $6)',
+          [notifId, targetUserId, projectId, id, userId, text]
+        );
+      }
+    }
     
     // Fetch and return the inserted message to ensure timestamp is correct
     const newMsgRes = await pool.query('SELECT * FROM project_messages WHERE id = $1', [id]);
@@ -2058,6 +2085,61 @@ app.post('/api/projects/:projectId/messages', async (req, res) => {
     });
   } catch (err) {
     console.error('Error creating project message:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Chat Notifications APIs
+app.get('/api/users/:userId/chat-notifications', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const result = await pool.query(`
+      SELECT n.*, u.name as sender_name, u.avatar as sender_avatar, p.name as project_name
+      FROM chat_notifications n
+      JOIN users u ON n.sender_id = u.id
+      JOIN projects p ON n.project_id = p.id
+      WHERE n.user_id = $1
+      ORDER BY n.created_at DESC
+    `, [userId]);
+    
+    const notifications = result.rows.map(n => ({
+      id: n.id,
+      userId: n.user_id,
+      projectId: n.project_id,
+      messageId: n.message_id,
+      senderId: n.sender_id,
+      senderName: n.sender_name,
+      senderAvatar: n.sender_avatar,
+      projectName: n.project_name,
+      text: n.text,
+      isRead: n.is_read,
+      createdAt: n.created_at
+    }));
+    res.json(notifications);
+  } catch (err) {
+    console.error('Error fetching chat notifications:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/chat-notifications/:id/read', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query('UPDATE chat_notifications SET is_read = TRUE WHERE id = $1', [id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error marking notification as read:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/users/:userId/projects/:projectId/chat-notifications/read', async (req, res) => {
+  const { userId, projectId } = req.params;
+  try {
+    await pool.query('UPDATE chat_notifications SET is_read = TRUE WHERE user_id = $1 AND project_id = $2', [userId, projectId]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error marking project notifications as read:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -2091,8 +2173,9 @@ app.post('/api/upload', async (req, res) => {
     const filePath = path.join(uploadsDir, uniqueFileName);
     fs.writeFileSync(filePath, buffer);
 
-    const publicUrl = `/uploads/${uniqueFileName}`;
-    res.json({ url: publicUrl, name: fileName, type });
+    // Return the base64 file data URL directly to persist it in the database.
+    // This prevents uploaded files from disappearing when ephemeral containers (Nixpacks/Render/Railway) restart or rebuild.
+    res.json({ url: file, name: fileName, type });
   } catch (err) {
     console.error('Error uploading file:', err);
     res.status(500).json({ error: err.message });

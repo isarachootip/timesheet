@@ -574,54 +574,84 @@ export const Projects = ({
               {/* Members Setup */}
               <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <h4 style={{ fontSize: '0.95rem' }}>Manage Members</h4>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <select 
-                    value={tempUserId} 
-                    onChange={e => setTempUserId(e.target.value)}
-                    style={{ flex: 1, background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
-                  >
-                    <option value="">Select Employee...</option>
-                    {users.map(u => <option key={u.id} value={u.id}>{u.name} ({u.department})</option>)}
-                  </select>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Select Employee</label>
+                    <select 
+                      value={tempUserId} 
+                      onChange={e => setTempUserId(e.target.value)}
+                      style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none', width: '100%' }}
+                    >
+                      <option value="">Select Employee...</option>
+                      {users.map(u => <option key={u.id} value={u.id}>{u.name} ({u.department})</option>)}
+                    </select>
+                  </div>
 
-                  <select 
-                    value={tempRole} 
-                    onChange={e => setTempRole(e.target.value)}
-                    style={{ width: '130px', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
-                  >
-                    <option value="Frontend dev">Frontend dev</option>
-                    <option value="Backend dev">Backend dev</option>
-                    <option value="PM">PM</option>
-                    <option value="SA">SA</option>
-                    <option value="Team Lead">Team Lead</option>
-                    <option value="DevOps">DevOps</option>
-                    <option value="QC">QC</option>
-                    <option value="Designer">Designer</option>
-                    <option value="Custom">Custom Role...</option>
-                  </select>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Role</label>
+                    <select 
+                      value={tempRole} 
+                      onChange={e => setTempRole(e.target.value)}
+                      style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none', width: '100%' }}
+                    >
+                      <option value="Frontend dev">Frontend dev</option>
+                      <option value="Backend dev">Backend dev</option>
+                      <option value="PM">PM</option>
+                      <option value="SA">SA</option>
+                      <option value="Team Lead">Team Lead</option>
+                      <option value="DevOps">DevOps</option>
+                      <option value="QC">QC</option>
+                      <option value="Designer">Designer</option>
+                      <option value="Custom">Custom Role...</option>
+                    </select>
+                  </div>
 
                   {tempRole === 'Custom' && (
-                    <input 
-                      type="text" 
-                      placeholder="Type role..."
-                      value={customRole}
-                      onChange={e => setCustomRole(e.target.value)}
-                      style={{ flex: 1, minWidth: '80px', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
-                    />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                      <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Custom Role Name</label>
+                      <input 
+                        type="text" 
+                        placeholder="Type role..."
+                        value={customRole}
+                        onChange={e => setCustomRole(e.target.value)}
+                        style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
+                      />
+                    </div>
                   )}
 
-                  <input 
-                    type="number" 
-                    placeholder="Rate/MD (THB)"
-                    value={tempManDayRate}
-                    onChange={e => setTempManDayRate(e.target.value)}
-                    style={{ width: '130px', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
-                  />
-
-                  <button type="button" onClick={addMember} style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                    <Plus size={18} />
-                  </button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Rate/MD (THB)</label>
+                    <input 
+                      type="number" 
+                      placeholder="Rate/MD (THB)"
+                      value={tempManDayRate}
+                      onChange={e => setTempManDayRate(e.target.value)}
+                      style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none', width: '100%' }}
+                    />
+                  </div>
                 </div>
+
+                <button 
+                  type="button" 
+                  onClick={addMember} 
+                  style={{ 
+                    background: 'var(--bg-tertiary)', 
+                    color: 'var(--text-primary)', 
+                    border: '1px solid var(--border-color)', 
+                    borderRadius: 'var(--radius-md)', 
+                    padding: '0.5rem 1.25rem', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    gap: '0.5rem',
+                    cursor: 'pointer',
+                    alignSelf: 'flex-start',
+                    fontWeight: 500
+                  }}
+                  className="hover-lift"
+                >
+                  <Plus size={16} /> Add Member
+                </button>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '120px', overflowY: 'auto' }}>
                   {members.map(m => (

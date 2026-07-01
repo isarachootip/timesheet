@@ -29,12 +29,54 @@ export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, curre
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showMentionsDropdown, setShowMentionsDropdown] = useState(false);
+  const [mentionSearchQuery, setMentionSearchQuery] = useState('');
+  const [mentionTriggerIndex, setMentionTriggerIndex] = useState(-1);
+  const [selectedMentionUserIndex, setSelectedMentionUserIndex] = useState(0);
 
   const selectedProject = projects.find(p => p.id === selectedProjectId);
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await fetch(`/api/users/${currentUser.id}/chat-notifications`);
+      if (res.ok) {
+        const data = await res.json();
+        setNotifications(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch chat notifications:', err);
+    }
+  };
+
+  const markNotificationsAsRead = async (projectId: string) => {
+    try {
+      await fetch(`/api/users/${currentUser.id}/projects/${projectId}/chat-notifications/read`, {
+        method: 'POST'
+      });
+      fetchNotifications();
+    } catch (err) {
+      console.error('Failed to mark notifications as read:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 5000);
+    return () => clearInterval(interval);
+  }, [currentUser.id]);
 
   useEffect(() => {
     if (selectedProjectId) {
       fetchMessages(selectedProjectId);
+      markNotificationsAsRead(selectedProjectId);
+
+      const interval = setInterval(() => {
+        fetchMessages(selectedProjectId);
+      }, 5000);
+      return () => clearInterval(interval);
     }
   }, [selectedProjectId]);
 
@@ -59,6 +101,125 @@ export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, curre
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const projectMembers = selectedProject 
+    ? users.filter(u => selectedProject.members.some(m => m.userId === u.id)) 
+    : [];
+
+  const filteredMentionUsers = projectMembers.filter(u => 
+    u.name.toLowerCase().includes(mentionSearchQuery.toLowerCase())
+  );
+
+  const selectMentionUser = (user: User) => {
+    const textBeforeMention = inputValue.slice(0, mentionTriggerIndex);
+    const textAfterMention = inputValue.slice(mentionTriggerIndex + 1 + mentionSearchQuery.length);
+    const newText = `${textBeforeMention}@${user.name} ${textAfterMention}`;
+    setInputValue(newText);
+    setShowMentionsDropdown(false);
+    
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+        const newCursorPos = mentionTriggerIndex + user.name.length + 2; // @ + name + space
+        inputRef.current.setSelectionRange(newCursorPos, newCursorPos);
+      }
+    }, 0);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setInputValue(value);
+    
+    const selectionStart = e.target.selectionStart || 0;
+    const textBeforeCursor = value.slice(0, selectionStart);
+    const lastAtIdx = textBeforeCursor.lastIndexOf('@');
+    
+    if (lastAtIdx !== -1) {
+      const query = textBeforeCursor.slice(lastAtIdx + 1);
+      if (!query.includes(' ') && !query.includes('\n')) {
+        const charBeforeAt = lastAtIdx > 0 ? textBeforeCursor[lastAtIdx - 1] : '';
+        if (charBeforeAt === '' || charBeforeAt === ' ' || charBeforeAt === '\n') {
+          setShowMentionsDropdown(true);
+          setMentionSearchQuery(query);
+          setMentionTriggerIndex(lastAtIdx);
+          setSelectedMentionUserIndex(0);
+          return;
+        }
+      }
+    }
+    setShowMentionsDropdown(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (showMentionsDropdown && filteredMentionUsers.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedMentionUserIndex(prev => (prev + 1) % filteredMentionUsers.length);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedMentionUserIndex(prev => (prev - 1 + filteredMentionUsers.length) % filteredMentionUsers.length);
+      } else if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        selectMentionUser(filteredMentionUsers[selectedMentionUserIndex]);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        setShowMentionsDropdown(false);
+      }
+    }
+  };
+
+  const renderMessageText = (text: string) => {
+    if (!text) return '';
+    
+    const sortedUsers = [...users].sort((a, b) => b.name.length - a.name.length);
+    let parts: (string | React.ReactNode)[] = [text];
+    
+    for (const user of sortedUsers) {
+      const mentionStr = `@${user.name}`;
+      const newParts: (string | React.ReactNode)[] = [];
+      
+      for (const part of parts) {
+        if (typeof part !== 'string') {
+          newParts.push(part);
+          continue;
+        }
+        
+        let index = part.indexOf(mentionStr);
+        let currentText = part;
+        
+        while (index !== -1) {
+          const before = currentText.slice(0, index);
+          const mention = currentText.slice(index, index + mentionStr.length);
+          currentText = currentText.slice(index + mentionStr.length);
+          
+          if (before) newParts.push(before);
+          newParts.push(
+            <span 
+              key={`${user.id}-${index}`} 
+              style={{ 
+                color: 'var(--accent-primary, #3b82f6)', 
+                fontWeight: 600, 
+                background: 'rgba(59, 130, 246, 0.15)',
+                padding: '0.1rem 0.3rem',
+                borderRadius: '4px',
+                border: '1px solid rgba(59, 130, 246, 0.25)',
+                display: 'inline-block'
+              }}
+            >
+              {mention}
+            </span>
+          );
+          
+          index = currentText.indexOf(mentionStr);
+        }
+        
+        if (currentText) newParts.push(currentText);
+      }
+      parts = newParts;
+    }
+    
+    return parts;
   };
 
   const handleSendMessage = async (e?: React.FormEvent) => {
@@ -119,6 +280,14 @@ export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, curre
     setSelectedFile(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
 
+    // Identify mentioned users
+    const mentionedUserIds: string[] = [];
+    projectMembers.forEach(u => {
+      if (newMsg.text.includes(`@${u.name}`)) {
+        mentionedUserIds.push(u.id);
+      }
+    });
+
     try {
       const res = await fetch(`/api/projects/${selectedProjectId}/messages`, {
         method: 'POST',
@@ -126,7 +295,8 @@ export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, curre
         body: JSON.stringify({
           userId: currentUser.id,
           text: newMsg.text || ' ', // Backend requires text, so if only file, send a space
-          attachments: newMsg.attachments
+          attachments: newMsg.attachments,
+          mentionedUserIds
         })
       });
       if (res.ok) {
@@ -188,33 +358,52 @@ export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, curre
                 You are not part of any projects.
               </div>
             ) : (
-              myProjects.map(p => (
-                <button
-                  key={p.id}
-                  onClick={() => setSelectedProjectId(p.id)}
-                  style={{
-                    width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.75rem',
-                    padding: '0.75rem 1rem',
-                    background: selectedProjectId === p.id ? 'var(--bg-tertiary)' : 'transparent',
-                    border: 'none',
-                    borderRadius: 'var(--radius-md)',
-                    color: selectedProjectId === p.id ? 'var(--text-primary)' : 'var(--text-secondary)',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    transition: 'all 0.2s',
-                    marginBottom: '0.25rem'
-                  }}
-                  className="hover-lift"
-                >
-                  <Hash size={16} color={selectedProjectId === p.id ? 'var(--accent-primary)' : 'currentColor'} />
-                  <span style={{ fontWeight: selectedProjectId === p.id ? 600 : 400, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {p.name}
-                  </span>
-                </button>
-              ))
+              myProjects.map(p => {
+                const projectUnreadCount = notifications.filter(n => !n.isRead && n.projectId === p.id).length;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => setSelectedProjectId(p.id)}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      padding: '0.75rem 1rem',
+                      background: selectedProjectId === p.id ? 'var(--bg-tertiary)' : 'transparent',
+                      border: 'none',
+                      borderRadius: 'var(--radius-md)',
+                      color: selectedProjectId === p.id ? 'var(--text-primary)' : 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.2s',
+                      marginBottom: '0.25rem'
+                    }}
+                    className="hover-lift"
+                  >
+                    <Hash size={16} color={selectedProjectId === p.id ? 'var(--accent-primary)' : 'currentColor'} />
+                    <span style={{ fontWeight: selectedProjectId === p.id ? 600 : 400, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {p.name}
+                    </span>
+                    {projectUnreadCount > 0 && (
+                      <span 
+                        style={{
+                          background: 'var(--accent-danger, #ef4444)',
+                          color: 'white',
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          padding: '0.1rem 0.4rem',
+                          borderRadius: '10px',
+                          minWidth: '18px',
+                          textAlign: 'center'
+                        }}
+                      >
+                        {projectUnreadCount}
+                      </span>
+                    )}
+                  </button>
+                );
+              })
             )}
           </div>
         </div>
@@ -299,20 +488,20 @@ export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, curre
                                 boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
                                 whiteSpace: 'pre-wrap'
                               }}>
-                                {msg.text.trim() ? msg.text : ''}
+                                {msg.text.trim() ? renderMessageText(msg.text) : ''}
                                 {msg.attachments && msg.attachments.length > 0 && (
                                   <div style={{ marginTop: msg.text.trim() ? '0.75rem' : '0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                     {msg.attachments.map((att, i) => {
                                       const isImage = att.type.startsWith('image/');
                                       if (isImage) {
                                         return (
-                                          <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>
+                                          <a key={i} href={att.url} download={att.name} style={{ display: 'block' }}>
                                             <img src={att.url} alt={att.name} style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '0.5rem' }} />
                                           </a>
                                         );
                                       } else {
                                         return (
-                                          <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" style={{
+                                          <a key={i} href={att.url} download={att.name} style={{
                                             display: 'flex', alignItems: 'center', gap: '0.5rem',
                                             padding: '0.5rem', background: 'rgba(0,0,0,0.1)', borderRadius: '0.5rem',
                                             color: 'inherit', textDecoration: 'none'
@@ -337,7 +526,54 @@ export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, curre
                 <div ref={messagesEndRef} />
               </div>
 
-              <div style={{ padding: '1.25rem', borderTop: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.02)' }}>
+              <div style={{ padding: '1.25rem', borderTop: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.02)', position: 'relative' }}>
+                {showMentionsDropdown && filteredMentionUsers.length > 0 && (
+                  <div 
+                    style={{
+                      position: 'absolute',
+                      bottom: '100%',
+                      left: '1.25rem',
+                      width: '260px',
+                      background: 'rgba(20, 20, 25, 0.95)',
+                      backdropFilter: 'blur(10px)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: 'var(--radius-md)',
+                      boxShadow: '0 -4px 20px rgba(0,0,0,0.4)',
+                      zIndex: 100,
+                      maxHeight: '200px',
+                      overflowY: 'auto',
+                      marginBottom: '0.5rem',
+                      padding: '0.25rem 0'
+                    }}
+                  >
+                    {filteredMentionUsers.map((user, idx) => (
+                      <div
+                        key={user.id}
+                        onClick={() => selectMentionUser(user)}
+                        onMouseEnter={() => setSelectedMentionUserIndex(idx)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.75rem',
+                          padding: '0.5rem 1rem',
+                          cursor: 'pointer',
+                          background: idx === selectedMentionUserIndex ? 'var(--accent-primary)' : 'transparent',
+                          color: idx === selectedMentionUserIndex ? 'white' : 'var(--text-primary)',
+                          transition: 'background 0.1s'
+                        }}
+                      >
+                        {user.avatar ? (
+                          <img src={user.avatar} alt={user.name} style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} />
+                        ) : (
+                          <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem' }}>
+                            {user.name.charAt(0)}
+                          </div>
+                        )}
+                        <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{user.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {selectedFile && (
                   <div style={{ alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', padding: '0.5rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-sm)', display: 'inline-flex' }}>
                     <FileText size={16} />
@@ -383,8 +619,10 @@ export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, curre
                   <div style={{ flex: 1, background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', padding: '0.5rem 1rem', transition: 'all 0.2s' }} className="focus-within-ring">
                     <input
                       type="text"
+                      ref={inputRef}
                       value={inputValue}
-                      onChange={(e) => setInputValue(e.target.value)}
+                      onChange={handleInputChange}
+                      onKeyDown={handleKeyDown}
                       placeholder={`Message #${selectedProject.name}...`}
                       style={{
                         flex: 1,

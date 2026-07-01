@@ -23,7 +23,7 @@ const getLocalStorage = <T,>(key: string, fallback: T): T => {
   return data ? JSON.parse(data) : fallback;
 };
 
-const SidebarItem = ({ icon: Icon, label, path }: { icon: any, label: string, path: string }) => {
+const SidebarItem = ({ icon: Icon, label, path, badgeCount }: { icon: any, label: string, path: string, badgeCount?: number }) => {
   const location = useLocation();
   const isActive = location.pathname === path;
   
@@ -39,12 +39,29 @@ const SidebarItem = ({ icon: Icon, label, path }: { icon: any, label: string, pa
         background: isActive ? 'var(--bg-tertiary)' : 'transparent',
         borderRight: isActive ? '3px solid var(--accent-primary)' : '3px solid transparent',
         transition: 'all var(--transition-fast)',
-        fontWeight: isActive ? 500 : 400
+        fontWeight: isActive ? 500 : 400,
+        position: 'relative'
       }}
       className="hover-lift"
     >
       <Icon size={20} color={isActive ? 'var(--accent-primary)' : 'currentColor'} />
-      <span>{label}</span>
+      <span style={{ flex: 1 }}>{label}</span>
+      {badgeCount && badgeCount > 0 ? (
+        <span 
+          style={{
+            background: 'var(--accent-danger, #ef4444)',
+            color: 'white',
+            fontSize: '0.7rem',
+            fontWeight: 700,
+            padding: '0.1rem 0.4rem',
+            borderRadius: '10px',
+            minWidth: '18px',
+            textAlign: 'center'
+          }}
+        >
+          {badgeCount}
+        </span>
+      ) : null}
     </Link>
   );
 };
@@ -52,6 +69,7 @@ const SidebarItem = ({ icon: Icon, label, path }: { icon: any, label: string, pa
 // ─── Notification Bell Component ───
 const NotificationBell = ({ tasks, currentUser }: { tasks: Task[], currentUser: User }) => {
   const [open, setOpen] = useState(false);
+  const [chatNotifications, setChatNotifications] = useState<any[]>([]);
   const ref = useRef<HTMLDivElement>(null);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -62,13 +80,44 @@ const NotificationBell = ({ tasks, currentUser }: { tasks: Task[], currentUser: 
   const overdue = myTasks.filter(t => new Date(t.endDate!) < today);
   const dueSoon = myTasks.filter(t => { const d = new Date(t.endDate!); return d >= today && d <= in3Days; });
   const dueThisWeek = myTasks.filter(t => { const d = new Date(t.endDate!); return d > in3Days && d <= in7Days; });
-  const total = overdue.length + dueSoon.length + dueThisWeek.length;
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await fetch(`/api/users/${currentUser.id}/chat-notifications`);
+      if (res.ok) {
+        const data = await res.json();
+        setChatNotifications(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch chat notifications:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 5000);
+    return () => clearInterval(interval);
+  }, [currentUser.id]);
+
+  const unreadChatNotifs = chatNotifications.filter(n => !n.isRead);
+  const total = overdue.length + dueSoon.length + dueThisWeek.length + unreadChatNotifs.length;
 
   useEffect(() => {
     const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  const handleMarkAsRead = async (notifId: string, projectId: string) => {
+    try {
+      await fetch(`/api/chat-notifications/${notifId}/read`, { method: 'POST' });
+      fetchNotifications();
+      setOpen(false);
+      window.location.href = `/chat?projectId=${projectId}`;
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const NotifRow = ({ icon, color, label, tasks }: { icon: React.ReactNode, color: string, label: string, tasks: Task[] }) => (
     tasks.length > 0 ? <>
@@ -95,14 +144,50 @@ const NotificationBell = ({ tasks, currentUser }: { tasks: Task[], currentUser: 
       {open && (
         <div className="notif-dropdown">
           <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>🔔 My Task Alerts</span>
+            <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>🔔 Notifications</span>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{total} items</span>
           </div>
           {total === 0 ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>✅ All caught up! No urgent tasks.</div>
+            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>✅ All caught up! No notifications.</div>
           ) : (
             <div style={{ maxHeight: '420px', overflowY: 'auto' }}>
-              <NotifRow icon={<AlertTriangle size={12} />} color="#ef4444" label="Overdue" tasks={overdue} />
+              {/* Chat Mentions Row */}
+              {unreadChatNotifs.length > 0 && (
+                <>
+                  <div style={{ padding: '0.6rem 1.25rem', fontSize: '0.72rem', fontWeight: 700, color: 'var(--accent-primary)', background: 'rgba(59, 130, 246, 0.1)', letterSpacing: '0.05em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <MessageSquare size={12} /> Chat Mentions ({unreadChatNotifs.length})
+                  </div>
+                  {unreadChatNotifs.map(n => (
+                    <div 
+                      key={n.id} 
+                      className="notif-item" 
+                      onClick={() => handleMarkAsRead(n.id, n.projectId)}
+                      style={{ cursor: 'pointer', transition: 'background 0.2s', padding: '0.75rem 1.25rem', borderBottom: '1px solid rgba(255,255,255,0.03)', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}
+                    >
+                      {n.senderAvatar ? (
+                        <img src={n.senderAvatar} alt={n.senderName} style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', marginTop: '0.1rem' }} />
+                      ) : (
+                        <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', marginTop: '0.1rem' }}>
+                          {n.senderName.charAt(0)}
+                        </div>
+                      )}
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-primary)', lineHeight: '1.4' }}>
+                          <strong>{n.senderName}</strong> mentioned you in <span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>#{n.projectName}</span>
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '220px' }}>
+                          "{n.text}"
+                        </div>
+                        <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                          {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+              
+              <NotifRow icon={<AlertTriangle size={12} />} color="#ef4444" label="Overdue Tasks" tasks={overdue} />
               <NotifRow icon={<AlertCircle size={12} />} color="#f59e0b" label="Due in 3 days" tasks={dueSoon} />
               <NotifRow icon={<CalendarClock size={12} />} color="#3b82f6" label="Due this week" tasks={dueThisWeek} />
             </div>
@@ -137,6 +222,27 @@ const MobileBottomNav = () => {
 
 const AppLayout = ({ children, currentUser, tasks, onLogout }: { children: React.ReactNode, currentUser: User, tasks: Task[], onLogout: () => void }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [chatNotifications, setChatNotifications] = useState<any[]>([]);
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await fetch(`/api/users/${currentUser.id}/chat-notifications`);
+      if (res.ok) {
+        const data = await res.json();
+        setChatNotifications(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch chat notifications:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 5000);
+    return () => clearInterval(interval);
+  }, [currentUser.id]);
+
+  const unreadChatCount = chatNotifications.filter(n => !n.isRead).length;
 
   return (
     <div className="app-container">
@@ -172,7 +278,7 @@ const AppLayout = ({ children, currentUser, tasks, onLogout }: { children: React
           <SidebarItem icon={CalendarRange} label="Project Plan" path="/project-plan" />
           <SidebarItem icon={CheckSquare} label="Tasks" path="/tasks" />
           <SidebarItem icon={Clock} label="Timesheet" path="/timesheet" />
-          <SidebarItem icon={MessageSquare} label="Team Chat" path="/chat" />
+          <SidebarItem icon={MessageSquare} label="Team Chat" path="/chat" badgeCount={unreadChatCount} />
           <SidebarItem icon={Users} label="Team" path="/team" />
           <SidebarItem icon={BarChart3} label="Reports" path="/reports" />
           <SidebarItem icon={SettingsIcon} label="Settings" path="/settings" />

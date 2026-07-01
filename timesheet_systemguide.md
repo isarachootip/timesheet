@@ -77,6 +77,11 @@ Collaborative messaging rooms for project team members:
     *ทางลัดแชทโปรเจกต์*: การกดปุ่มแชทในการ์ดโปรเจกต์ที่หน้าโปรเจกต์รวม จะทำการสลับลิงก์ไปยังหน้าแชทและเลือกห้องโครงการดังกล่าวให้พร้อมพิมพ์ได้ทันที
 *   **Access Control / การเข้าถึงแชท**: Admins and Managers have global access to all project chats. Employees and Users can only access chats of projects they are members of.
     *สิทธิ์การเข้าใช้งาน*: Admin และ Manager เข้าแชทได้ทุกห้อง ส่วน Employee และ User จะเห็นและแชทได้เฉพาะโครงการที่ตนมีรายชื่ออยู่เท่านั้น
+*   **User Mentions (@) / การระบุตัวผู้ใช้งานด้วย @**: Typying `@` in the chat input presents a selection dropdown of project members. Selecting a user inserts `@Name ` and displays the mention with a distinct visual highlight inside the chat bubble.
+    *การกล่าวถึงผู้ใช้ด้วย @*: การพิมพ์ `@` จะแสดงกล่องตัวเลือกสำหรับสมาชิกของโครงการเพื่อแทรกเข้าช่องพิมพ์ทันที พร้อมทั้งแสดงไฮไลต์สีฟ้าโดดเด่นในกล่องข้อความแชท
+*   **Real-time Mentions Notification / การแจ้งเตือนเมื่อโดนแท็ก**: Mentioning a user triggers a red unread badge next to the project name and on the main sidebar menu. It also generates an unread alert in the system-wide **Notification Bell** that redirects the user directly to the target room when clicked.
+    *ระบบแจ้งเตือนการกล่าวถึง*: เมื่อถูกกล่าวถึงจะมีป้ายเตือนสีแดงแสดงตรงชื่อโครงการและเมนูแถบข้าง รวมถึงการแสดงรายการแจ้งเตือนด่วนที่กระดิ่งระบบมุมขวาบน ซึ่งสามารถกดเพื่อสลับมาเปิดดูห้องแชทได้โดยตรง
+
 
 ---
 
