@@ -831,7 +831,7 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
                         <div key={m.id} style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)', paddingBottom: '0.75rem' }}>
                           {/* Label */}
                           <div style={{ width: '240px', display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'white', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }} title={m.title}>
+                            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: progress === 100 ? '#10b981' : 'white', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.45rem', textShadow: progress === 100 ? '0 0 8px rgba(16,185,129,0.3)' : 'none' }} title={m.title}>
                               {progress === 100 && (
                                 <Check size={18} color="#10b981" strokeWidth={3.5} style={{ flexShrink: 0, filter: 'drop-shadow(0 0 3px rgba(16,185,129,0.4))' }} />
                               )}
@@ -930,7 +930,7 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
                       return (
                         <div key={m.id} style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)', paddingBottom: '0.65rem' }}>
                           <div style={{ width: '240px', display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'white', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }} title={m.title}>
+                            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: progress === 100 ? '#10b981' : 'white', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.45rem', textShadow: progress === 100 ? '0 0 8px rgba(16,185,129,0.3)' : 'none' }} title={m.title}>
                               {progress === 100 && (
                                 <Check size={18} color="#10b981" strokeWidth={3.5} style={{ flexShrink: 0, filter: 'drop-shadow(0 0 3px rgba(16,185,129,0.4))' }} />
                               )}
