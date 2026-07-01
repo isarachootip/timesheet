@@ -831,9 +831,9 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
                         <div key={m.id} style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)', paddingBottom: '0.75rem' }}>
                           {/* Label */}
                           <div style={{ width: '240px', display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'white', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }} title={m.title}>
+                            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'white', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }} title={m.title}>
                               {progress === 100 && (
-                                <Check size={14} color="#10b981" strokeWidth={3} style={{ flexShrink: 0 }} />
+                                <Check size={18} color="#10b981" strokeWidth={3.5} style={{ flexShrink: 0, filter: 'drop-shadow(0 0 3px rgba(16,185,129,0.4))' }} />
                               )}
                               {m.title}
                             </span>
@@ -856,7 +856,7 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
                                 <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${progress}%`, background: progress === 100 ? '#10b981' : '#38bdf8', opacity: 0.2 }} />
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', zIndex: 1 }}>
                                   {progress === 100 && (
-                                    <Check size={12} color="#10b981" strokeWidth={3} style={{ filter: 'drop-shadow(0 0 4px rgba(16,185,129,0.8))' }} />
+                                    <Check size={14} color="#10b981" strokeWidth={3.5} style={{ filter: 'drop-shadow(0 0 4px rgba(16,185,129,0.8))' }} />
                                   )}
                                   <span style={{ fontSize: '0.65rem', fontWeight: 700, color: progress === 100 ? '#10b981' : '#38bdf8', textShadow: progress === 100 ? '0 0 4px rgba(16,185,129,0.4)' : 'none' }}>
                                     {progress}% (Comp)
@@ -930,9 +930,9 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
                       return (
                         <div key={m.id} style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)', paddingBottom: '0.65rem' }}>
                           <div style={{ width: '240px', display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'white', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }} title={m.title}>
+                            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'white', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }} title={m.title}>
                               {progress === 100 && (
-                                <Check size={14} color="#10b981" strokeWidth={3} style={{ flexShrink: 0 }} />
+                                <Check size={18} color="#10b981" strokeWidth={3.5} style={{ flexShrink: 0, filter: 'drop-shadow(0 0 3px rgba(16,185,129,0.4))' }} />
                               )}
                               {m.title}
                             </span>
@@ -947,7 +947,7 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
                               <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${progress}%`, background: getPriorityColor(m.priority), opacity: 0.2 }} />
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', zIndex: 1 }}>
                                 {progress === 100 && (
-                                  <Check size={12} color="#10b981" strokeWidth={3} style={{ filter: 'drop-shadow(0 0 4px rgba(16,185,129,0.8))' }} />
+                                  <Check size={14} color="#10b981" strokeWidth={3.5} style={{ filter: 'drop-shadow(0 0 4px rgba(16,185,129,0.8))' }} />
                                 )}
                                 <span style={{ fontSize: '0.72rem', fontWeight: 700, color: progress === 100 ? '#10b981' : 'white' }}>{progress}%</span>
                               </div>
