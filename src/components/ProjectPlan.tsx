@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Project, Task, User, TaskPriority, TaskStatus, TaskTemplate, PermissionScheme } from '../types';
-import { Calendar, CheckCircle2, Clock, ArrowRight, Plus, Edit, Trash2, X, Save, Zap, ChevronDown, ChevronRight, BarChart3 } from 'lucide-react';
+import { Calendar, CheckCircle2, Check, Clock, ArrowRight, Plus, Edit, Trash2, X, Save, Zap, ChevronDown, ChevronRight, BarChart3 } from 'lucide-react';
 
 interface Baseline {
   id: string;
@@ -831,7 +831,12 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
                         <div key={m.id} style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)', paddingBottom: '0.75rem' }}>
                           {/* Label */}
                           <div style={{ width: '240px', display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'white', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }} title={m.title}>{m.title}</span>
+                            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'white', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }} title={m.title}>
+                              {progress === 100 && (
+                                <Check size={14} color="#10b981" strokeWidth={3} style={{ flexShrink: 0 }} />
+                              )}
+                              {m.title}
+                            </span>
                             <span style={{ fontSize: '0.72rem', color: '#6b7280', marginTop: '0.1rem' }}>
                               {subtasks.length} subtasks · Est: {compTask?.compare?.estimatedHours ?? m.estimatedHours}h vs Base: {compTask?.base?.estimatedHours ?? 0}h
                             </span>
@@ -851,7 +856,7 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
                                 <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${progress}%`, background: progress === 100 ? '#10b981' : '#38bdf8', opacity: 0.2 }} />
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', zIndex: 1 }}>
                                   {progress === 100 && (
-                                    <CheckCircle2 size={12} color="#10b981" style={{ filter: 'drop-shadow(0 0 4px rgba(16,185,129,0.8))' }} />
+                                    <Check size={12} color="#10b981" strokeWidth={3} style={{ filter: 'drop-shadow(0 0 4px rgba(16,185,129,0.8))' }} />
                                   )}
                                   <span style={{ fontSize: '0.65rem', fontWeight: 700, color: progress === 100 ? '#10b981' : '#38bdf8', textShadow: progress === 100 ? '0 0 4px rgba(16,185,129,0.4)' : 'none' }}>
                                     {progress}% (Comp)
@@ -925,7 +930,12 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
                       return (
                         <div key={m.id} style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)', paddingBottom: '0.65rem' }}>
                           <div style={{ width: '240px', display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'white', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }} title={m.title}>{m.title}</span>
+                            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'white', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }} title={m.title}>
+                              {progress === 100 && (
+                                <Check size={14} color="#10b981" strokeWidth={3} style={{ flexShrink: 0 }} />
+                              )}
+                              {m.title}
+                            </span>
                             <span style={{ fontSize: '0.72rem', color: '#6b7280', marginTop: '0.1rem' }}>{subtasks.length} subtasks · {m.estimatedHours}h</span>
                           </div>
                           <div style={{ flex: 1, position: 'relative', height: '34px', marginLeft: '1rem' }}>
@@ -935,7 +945,12 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
                               borderRadius: '6px', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 8px',
                             }} title={`${m.title}: ${m.startDate || 'TBD'} → ${m.endDate || 'TBD'}`}>
                               <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${progress}%`, background: getPriorityColor(m.priority), opacity: 0.2 }} />
-                              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'white', zIndex: 1 }}>{progress}%</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', zIndex: 1 }}>
+                                {progress === 100 && (
+                                  <Check size={12} color="#10b981" strokeWidth={3} style={{ filter: 'drop-shadow(0 0 4px rgba(16,185,129,0.8))' }} />
+                                )}
+                                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: progress === 100 ? '#10b981' : 'white' }}>{progress}%</span>
+                              </div>
                             </div>
                           </div>
                         </div>
