@@ -210,6 +210,7 @@ const initDB = async () => {
       ALTER TABLE timesheets ADD COLUMN IF NOT EXISTS start_time VARCHAR(10);
       ALTER TABLE timesheets ADD COLUMN IF NOT EXISTS end_time VARCHAR(10);
       ALTER TABLE timesheets ADD COLUMN IF NOT EXISTS image_url TEXT;
+      ALTER TABLE timesheets ADD COLUMN IF NOT EXISTS work_results TEXT;
     `);
 
     // Create Task Commits Table
@@ -1290,7 +1291,8 @@ app.get('/api/initial-data', async (req, res) => {
       status: ts.status,
       approvedBy: ts.approved_by,
       approvedAt: ts.approved_at,
-      imageUrl: ts.image_url || undefined
+      imageUrl: ts.image_url || undefined,
+      workResults: ts.work_results || undefined
     }));
 
     const taskTemplates = templatesRes.rows.map(tpl => ({
@@ -2175,15 +2177,15 @@ app.post('/api/webhooks/gitlab', async (req, res) => {
 
 // Timesheets REST API
 app.post('/api/timesheets', async (req, res) => {
-  const { id, userId, projectId, taskId, date, hours, startTime, endTime, description, status, approvedBy, approvedAt, imageUrl } = req.body;
+  const { id, userId, projectId, taskId, date, hours, startTime, endTime, description, status, approvedBy, approvedAt, imageUrl, workResults } = req.body;
   try {
     // Check existing status before update to detect transitions
     const existingTimesheet = await pool.query('SELECT status FROM timesheets WHERE id = $1', [id]);
     const oldStatus = existingTimesheet.rows[0]?.status;
 
     await pool.query(
-      `INSERT INTO timesheets (id, user_id, project_id, task_id, date, hours, start_time, end_time, description, status, approved_by, approved_at, image_url)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      `INSERT INTO timesheets (id, user_id, project_id, task_id, date, hours, start_time, end_time, description, status, approved_by, approved_at, image_url, work_results)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
        ON CONFLICT (id) DO UPDATE SET
          user_id = EXCLUDED.user_id,
          project_id = EXCLUDED.project_id,
@@ -2196,8 +2198,9 @@ app.post('/api/timesheets', async (req, res) => {
          status = EXCLUDED.status,
          approved_by = EXCLUDED.approved_by,
          approved_at = EXCLUDED.approved_at,
-         image_url = EXCLUDED.image_url`,
-      [id, userId, projectId, taskId, date, hours, startTime || null, endTime || null, description, status, approvedBy, approvedAt, imageUrl || null]
+         image_url = EXCLUDED.image_url,
+         work_results = EXCLUDED.work_results`,
+      [id, userId, projectId, taskId, date, hours, startTime || null, endTime || null, description, status, approvedBy, approvedAt, imageUrl || null, workResults || null]
     );
 
     // Send email notifications asynchronously (non-blocking)

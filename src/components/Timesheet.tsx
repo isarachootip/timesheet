@@ -26,6 +26,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [description, setDescription] = useState('');
+  const [workResults, setWorkResults] = useState('');
   const [entryStatus, setEntryStatus] = useState<TimesheetStatus>('Pending');
   const [imageUrl, setImageUrl] = useState('');
   const [isUploading, setIsUploading] = useState(false);
@@ -147,6 +148,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
     setStartTime('');
     setEndTime('');
     setDescription('');
+    setWorkResults('');
     setEntryStatus('Pending');
     setImageUrl('');
     setEditingEntryId(null);
@@ -167,6 +169,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
     setStartTime(entry.startTime || '');
     setEndTime(entry.endTime || '');
     setDescription(entry.description);
+    setWorkResults(entry.workResults || '');
     setEntryStatus(entry.status);
     setImageUrl(entry.imageUrl || '');
     setSelectedDate(new Date(entry.date));
@@ -252,6 +255,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
         startTime: startTime || undefined,
         endTime: endTime || undefined,
         description,
+        workResults: workResults || undefined,
         status: existing ? existing.status : 'Pending',
         imageUrl: imageUrl || undefined
       };
@@ -267,6 +271,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
         startTime: startTime || undefined,
         endTime: endTime || undefined,
         description,
+        workResults: workResults || undefined,
         status: entryStatus,
         imageUrl: imageUrl || undefined
       };
@@ -558,7 +563,10 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                                     {getTaskName(entry.taskId)}
                                   </span>
                                 </div>
-                                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>{entry.description}</p>
+                                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}><strong>เป้าหมาย:</strong> {entry.description}</p>
+                                {entry.workResults && (
+                                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.2rem 0 0 0' }}><strong>ผลการทำงาน:</strong> {entry.workResults}</p>
+                                )}
                                 {entry.startTime && entry.endTime && (
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.35rem', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                                     <Clock size={10} />
@@ -731,7 +739,10 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                                     {getTaskName(entry.taskId)}
                                   </span>
                                 </div>
-                                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>{entry.description}</p>
+                                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}><strong>เป้าหมาย:</strong> {entry.description}</p>
+                                {entry.workResults && (
+                                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.2rem 0 0 0' }}><strong>ผลการทำงาน:</strong> {entry.workResults}</p>
+                                )}
                                 {entry.startTime && entry.endTime && (
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.35rem', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                                     <Clock size={10} />
@@ -860,7 +871,10 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                             {getTaskName(entry.taskId)}
                           </span>
                         </div>
-                        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{entry.description}</p>
+                        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}><strong>เป้าหมาย:</strong> {entry.description}</p>
+                        {entry.workResults && (
+                          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}><strong>ผลการทำงาน:</strong> {entry.workResults}</p>
+                        )}
                         {entry.startTime && entry.endTime && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.4rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                             <Clock size={12} />
@@ -1252,13 +1266,23 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Description / Activity *</label>
+                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>เป้าหมาย / Description (Goal/Activity) *</label>
                 <textarea 
                   value={description} 
                   onChange={e => setDescription(e.target.value)} 
                   style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none', minHeight: '60px', resize: 'vertical' }}
-                  placeholder="What did you work on?"
+                  placeholder="What was the goal or task?"
                   required
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>ผลการทำงาน / Work Results (Optional)</label>
+                <textarea 
+                  value={workResults} 
+                  onChange={e => setWorkResults(e.target.value)} 
+                  style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none', minHeight: '60px', resize: 'vertical' }}
+                  placeholder="What was the actual result?"
                 />
               </div>
 

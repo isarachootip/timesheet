@@ -120,6 +120,7 @@ export interface TimesheetEntry {
   approvedBy?: string;
   approvedAt?: string;
   imageUrl?: string;
+  workResults?: string;
 }
 
 export interface PermissionScheme {
