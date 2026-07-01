@@ -265,6 +265,21 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
               </ul>
             </div>
           )
+        },
+        {
+          id: 'q16',
+          question: 'How do I record my work results and attach images in a Timesheet?',
+          icon: Clock,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>The Timesheet form is divided into Goal and Work Results to clearly capture your progress:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Goal / Description:</strong> This mandatory field is where you write the target or activity you intended to accomplish.</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Work Results:</strong> This optional field is where you describe the actual outcome or results achieved during that time.</li>
+                <li><strong>Proof of Work Image:</strong> You can click "Choose Image" to attach an image (e.g., screenshot or photo) to provide visual proof of your work results.</li>
+              </ul>
+            </div>
+          )
         }
       ]
     },
@@ -516,6 +531,21 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
               </ul>
             </div>
           )
+        },
+        {
+          id: 'q16',
+          question: 'การบันทึกผลการทำงานและแนบรูปภาพใน Timesheet ทำอย่างไร?',
+          icon: Clock,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>ฟอร์มลงเวลา (Timesheet) ถูกแบ่งออกเป็นส่วนเป้าหมายและผลการทำงาน เพื่อให้การรายงานผลชัดเจนยิ่งขึ้น:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>เป้าหมาย / Description:</strong> ช่องบังคับกรอก สำหรับระบุว่าเป้าหมายของงาน หรือสิ่งที่คุณตั้งใจจะทำในชั่วโมงนั้นคืออะไร</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>ผลการทำงาน / Work Results:</strong> ช่องเสริม (ไม่บังคับ) สำหรับอธิบายผลลัพธ์ที่ทำได้จริง หรือผลผลิตที่เกิดขึ้น</li>
+                <li><strong>แนบรูปภาพ (Proof of Work):</strong> สามารถกดปุ่ม "Choose Image" เพื่อแนบไฟล์รูปภาพ (เช่น สกรีนช็อตหรือภาพถ่าย) เพื่อใช้เป็นหลักฐานประกอบผลการทำงานได้ครับ</li>
+              </ul>
+            </div>
+          )
         }
       ]
     }
@@ -599,6 +629,21 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
                 <li style={{ marginBottom: '0.25rem' }}><strong>Access Rights & Visibility:</strong> Only project members can view and chat in the project's channel. Admins and Managers have global access to all chat rooms.</li>
                 <li style={{ marginBottom: '0.25rem' }}><strong>Collaborative Tools:</strong> Users can upload attachments, send links, and tag project members to collaborate in real-time.</li>
                 <li><strong>Quick Navigation Shortcut:</strong> Clicking the Chat icon on any project card in the Projects directory immediately opens the chat room for that specific project.</li>
+              </ul>
+            </div>
+          )
+        },
+        {
+          id: 'f5',
+          question: 'Timesheet: Separation of Goals and Actual Work Results',
+          icon: Clock,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>Timesheets now support dual-tracking for better accountability:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}>Users can record what they <em>planned</em> to do (Goal) separately from what they <em>actually achieved</em> (Work Result).</li>
+                <li style={{ marginBottom: '0.25rem' }}>Provides more precise reporting for managers reviewing timesheet logs.</li>
+                <li>Image attachments (Proof of Work) complement the Work Results for visual verification.</li>
               </ul>
             </div>
           )
