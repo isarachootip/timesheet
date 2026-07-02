@@ -49,6 +49,8 @@ export interface Project {
   members: ProjectMember[];
   customColumns?: string[];
   permissionSchemeId?: string;
+  projectType?: 'dev' | 'support';
+  supportTaskStyle?: 'monthly' | 'categories';
 }
 
 export interface Sprint {

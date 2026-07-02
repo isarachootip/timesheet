@@ -162,15 +162,15 @@ export const Settings = ({
     setSchemeName('');
     setSchemeDesc('');
     setSchemePerms({
-      browse_project: ["Admin", "Manager", "PM", "Member"],
-      create_task: ["Admin", "PM", "Member"],
-      edit_task: ["Admin", "PM", "Assignee"],
-      assign_task: ["Admin", "PM"],
-      delete_task: ["Admin", "PM"],
-      transition_task: ["Admin", "PM", "Assignee", "Member"],
-      manage_sprints: ["Admin", "PM"],
-      manage_releases: ["Admin", "PM"],
-      manage_members: ["Admin", "PM"]
+      browse_project: ["Admin", "Manager", "PM", "Team Lead", "Member"],
+      create_task: ["Admin", "PM", "Team Lead", "Member"],
+      edit_task: ["Admin", "PM", "Team Lead", "Assignee"],
+      assign_task: ["Admin", "PM", "Team Lead"],
+      delete_task: ["Admin", "PM", "Team Lead"],
+      transition_task: ["Admin", "PM", "Team Lead", "Assignee", "Member"],
+      manage_sprints: ["Admin", "PM", "Team Lead"],
+      manage_releases: ["Admin", "PM", "Team Lead"],
+      manage_members: ["Admin", "PM", "Team Lead"]
     });
     setIsSchemeModalOpen(true);
   };
@@ -796,7 +796,7 @@ export const Settings = ({
                   Define default daily and hourly cost rates for each project resource role. These rates are used in the Reports dashboard to calculate project costs based on logged timesheets.
                 </p>
 
-                <div style={{ overflowX: 'auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)' }}>
+                <div style={{ overflowX: 'auto', maxHeight: '400px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem', textAlign: 'left' }}>
                     <thead>
                       <tr style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
@@ -1154,12 +1154,12 @@ export const Settings = ({
               {/* Permission Checkboard Matrix */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Permissions Matrix</label>
-                <div style={{ overflowX: 'auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', background: 'var(--bg-tertiary)' }}>
+                <div style={{ overflowX: 'auto', maxHeight: '400px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', background: 'var(--bg-tertiary)' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
                     <thead>
                       <tr style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
                         <th style={{ padding: '0.75rem' }}>Permission Key</th>
-                        {["Admin", "Manager", "PM", "Member", "Assignee"].map(role => (
+                        {["Admin", "Manager", "PM", "Team Lead", "Member", "Assignee"].map(role => (
                           <th key={role} style={{ padding: '0.75rem', textAlign: 'center' }}>{role}</th>
                         ))}
                       </tr>
@@ -1183,7 +1183,7 @@ export const Settings = ({
                               <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{perm.name}</div>
                               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{perm.desc}</div>
                             </td>
-                            {["Admin", "Manager", "PM", "Member", "Assignee"].map(role => {
+                            {["Admin", "Manager", "PM", "Team Lead", "Member", "Assignee"].map(role => {
                               const isChecked = activeRoles.includes(role);
                               return (
                                 <td key={role} style={{ padding: '0.75rem', textAlign: 'center' }}>

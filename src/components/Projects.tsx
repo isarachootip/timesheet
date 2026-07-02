@@ -57,6 +57,8 @@ export const Projects = ({
   const [members, setMembers] = useState<{ userId: string; role: ProjectRole; manDayRate?: number }[]>([]);
   const [customColumnsText, setCustomColumnsText] = useState('To Do, In Progress, Review, Done');
   const [permissionSchemeId, setPermissionSchemeId] = useState('scheme_default');
+  const [projectType, setProjectType] = useState<'dev' | 'support'>('dev');
+  const [supportTaskStyle, setSupportTaskStyle] = useState<'monthly' | 'categories'>('categories');
 
   // Member select helper state
   const [tempUserId, setTempUserId] = useState('');
@@ -86,6 +88,8 @@ export const Projects = ({
     setMembers([]);
     setCustomColumnsText('To Do, In Progress, Review, Done');
     setPermissionSchemeId('scheme_default');
+    setProjectType('dev');
+    setSupportTaskStyle('categories');
     setIsModalOpen(true);
   };
 
@@ -100,6 +104,8 @@ export const Projects = ({
     setMembers(project.members);
     setCustomColumnsText(project.customColumns ? project.customColumns.join(', ') : 'To Do, In Progress, Review, Done');
     setPermissionSchemeId(project.permissionSchemeId || 'scheme_default');
+    setProjectType(project.projectType || 'dev');
+    setSupportTaskStyle(project.supportTaskStyle || 'categories');
     setIsModalOpen(true);
   };
 
@@ -119,7 +125,9 @@ export const Projects = ({
       budget: budget ? parseNumberFromCommas(budget) : undefined,
       members,
       customColumns: cols.length > 0 ? cols : ['To Do', 'In Progress', 'Review', 'Done'],
-      permissionSchemeId: permissionSchemeId
+      permissionSchemeId: permissionSchemeId,
+      projectType,
+      supportTaskStyle: projectType === 'support' ? supportTaskStyle : undefined
     };
 
     if (editingProject) {
@@ -142,14 +150,14 @@ export const Projects = ({
     if (currentUser.globalRole === 'Admin') return true;
     if (currentUser.globalRole === 'Manager') return true;
     const member = project.members.find(m => m.userId === currentUser.id);
-    return member?.role === 'PM';
+    return member?.role === 'PM' || member?.role === 'Team Lead' || member?.role === 'Leader';
   };
 
   const canCreateProject = () => {
     if (!currentUser) return false;
     if (currentUser.globalRole === 'Admin' || currentUser.globalRole === 'Manager') return true;
-    // Allow PM (project role) to create projects
-    return projects.some(p => p.members?.some(m => m.userId === currentUser.id && m.role === 'PM'));
+    // Allow PM/Team Lead/Leader to create projects
+    return projects.some(p => p.members?.some(m => m.userId === currentUser.id && (m.role === 'PM' || m.role === 'Team Lead' || m.role === 'Leader')));
   };
 
   // Workflow Editor State
@@ -343,16 +351,28 @@ export const Projects = ({
                 <div className="flex-between" style={{ alignItems: 'flex-start' }}>
                   <div>
                     <h3 style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>{project.name}</h3>
-                    <span style={{ 
-                      fontSize: '0.75rem', 
-                      padding: '0.25rem 0.75rem', 
-                      borderRadius: 'var(--radius-full)', 
-                      background: project.status === 'Active' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                      color: project.status === 'Active' ? 'var(--accent-secondary)' : 'var(--accent-warning)',
-                      fontWeight: 500
-                    }}>
-                      {project.status}
-                    </span>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <span style={{ 
+                        fontSize: '0.75rem', 
+                        padding: '0.25rem 0.75rem', 
+                        borderRadius: 'var(--radius-full)', 
+                        background: project.status === 'Active' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                        color: project.status === 'Active' ? 'var(--accent-secondary)' : 'var(--accent-warning)',
+                        fontWeight: 500
+                      }}>
+                        {project.status}
+                      </span>
+                      <span style={{ 
+                        fontSize: '0.75rem', 
+                        padding: '0.25rem 0.75rem', 
+                        borderRadius: 'var(--radius-full)', 
+                        background: project.projectType === 'support' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(139, 92, 246, 0.1)',
+                        color: project.projectType === 'support' ? '#3b82f6' : '#8b5cf6',
+                        fontWeight: 500
+                      }}>
+                        {project.projectType === 'support' ? 'Support' : 'Development'}
+                      </span>
+                    </div>
                   </div>
                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                     {(currentUser?.globalRole === 'Admin' || currentUser?.globalRole === 'Manager' || project.members?.some(m => m.userId === currentUser?.id)) && (
@@ -520,6 +540,34 @@ export const Projects = ({
                     <option key={ps.id} value={ps.id}>{ps.name} - {ps.description}</option>
                   ))}
                 </select>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: projectType === 'support' ? '1fr 1fr' : '1fr', gap: '1rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Project Type</label>
+                  <select 
+                    value={projectType} 
+                    onChange={e => setProjectType(e.target.value as 'dev' | 'support')}
+                    style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none' }}
+                  >
+                    <option value="dev">Development Project (มี Timeline & Sprint/Release)</option>
+                    <option value="support">Support Project (มีแค่ Task & บันทึกเวลาแยกตามระบบ/BU)</option>
+                  </select>
+                </div>
+
+                {projectType === 'support' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Support Task Auto-generation</label>
+                    <select 
+                      value={supportTaskStyle} 
+                      onChange={e => setSupportTaskStyle(e.target.value as 'monthly' | 'categories')}
+                      style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none' }}
+                    >
+                      <option value="categories">Category-based Tasks (ระบบสนับสนุน / BU Support)</option>
+                      <option value="monthly">Monthly Tasks (แบ่งเป็นถังรายเดือน [YYYY-MM])</option>
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>

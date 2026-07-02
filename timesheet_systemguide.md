@@ -35,6 +35,8 @@ The Project Plan module allows tracking progress and comparing it against baseli
     *   *Schedule Slippage (Drift)*: Deviation in timeline start/end dates. (ความล่าช้าของกำหนดการสะสมเป็นจำนวนวัน)
     *   *Estimate Drift*: Difference between planned and actual hours. (ชั่วโมงทำงานที่เบี่ยงเบนไปจากประมาณการเดิม)
     *   *Story Points (SP) Drift*: Variation in story points. (คะแนนความยากง่ายงานที่คลาดเคลื่อน)
+*   **Support Project Exception / ข้อยกเว้นสำหรับโครงการ Support**: Support projects (where `projectType = 'support'`) bypass the baseline versioning and Gantt charts. The UI displays a warning message directing users to log timesheets or manage tasks on the board.
+    *ข้อยกเว้นโครงการซัพพอร์ต*: สำหรับโครงการประเภท Support ระบบจะปิดการใช้งานแผนงานและ Baseline ทั้งหมด โดยจะมีปุ่มทางลัดนำทางไปยังบอร์ดหรือหน้าบันทึกเวลาแทนเพื่อให้ทีมงานสามารถเริ่มปฏิบัติงานและลงเวลาได้ทันที
 
 ---
 

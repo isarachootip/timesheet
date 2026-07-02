@@ -36,7 +36,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
   });
 
   const isAdmin = currentUser?.globalRole === 'Admin' || currentUser?.globalRole === 'Manager';
-  const isProjectPM = projects.some(p => p.members && p.members.some((m: any) => m.userId === currentUser?.id && m.role === 'PM'));
+  const isProjectPM = projects.some(p => p.members && p.members.some((m: any) => m.userId === currentUser?.id && (m.role === 'PM' || m.role === 'Team Lead' || m.role === 'Leader')));
   const showPmPortfolioTab = isAdmin || isProjectPM;
   
   // Filter timesheets to only show the user's own if they are not Admin/Manager
@@ -1445,7 +1445,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                 <Briefcase size={18} color="var(--accent-primary)" /> Actual Cost &amp; Effort Summary ({costReportType})
               </h3>
               
-              <div style={{ overflowX: 'auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)' }}>
+              <div style={{ overflowX: 'auto', maxHeight: '380px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem', textAlign: 'left' }}>
                   <thead>
                     <tr style={{ background: '#2F75B5', borderBottom: '1px solid var(--border-color)', color: 'white' }}>
@@ -1542,7 +1542,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                   <Activity size={18} /> Sprint Cost Allocation
                 </h3>
                 
-                <div style={{ overflowX: 'auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)' }}>
+                <div style={{ overflowX: 'auto', maxHeight: '280px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.02)' }}>
@@ -1651,7 +1651,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
 
             {/* Portfolio KPI Cards */}
             {(() => {
-              const managedProjects = projects.filter(p => isAdmin || p.members?.some(m => m.userId === currentUser?.id && m.role === 'PM'));
+              const managedProjects = projects.filter(p => isAdmin || p.members?.some(m => m.userId === currentUser?.id && (m.role === 'PM' || m.role === 'Team Lead' || m.role === 'Leader')));
               const pmTimesheets = timesheets.filter(ts => managedProjects.some(p => p.id === ts.projectId));
               const totalPmHours = pmTimesheets.reduce((sum, ts) => sum + ts.hours, 0);
               const totalPmCost = pmTimesheets.reduce((sum, ts) => sum + getEntryCost(ts), 0);
@@ -1698,7 +1698,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                         <h3 style={{ fontSize: '1.1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
                           <Briefcase size={18} color="var(--accent-primary)" /> Project Portfolios & Budgets
                         </h3>
-                        <div style={{ overflowX: 'auto' }}>
+                        <div style={{ overflowX: 'auto', maxHeight: '400px', overflowY: 'auto' }}>
                           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
                             <thead>
                               <tr style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-tertiary)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>

@@ -222,7 +222,7 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
 
   // Check if current user has approval rights (Admin or PM of any project)
   const isPMorAdmin = currentUser.globalRole === 'Admin' || currentUser.globalRole === 'Manager' ||
-    projects.some(p => p.members?.some(m => m.userId === currentUser.id && m.role === 'PM'));
+    projects.some(p => p.members?.some(m => m.userId === currentUser.id && (m.role === 'PM' || m.role === 'Team Lead' || m.role === 'Leader')));
 
   const handleApprove = (id: string) => {
     setTimesheets(prev => prev.map(ts => ts.id === id ? { ...ts, status: 'Approved', approvedBy: currentUser.id, approvedAt: new Date().toISOString() } : ts));
@@ -706,7 +706,7 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
             </p>
           </div>
           
-          <div style={{ overflowX: 'auto' }}>
+          <div style={{ overflowX: 'auto', maxHeight: '450px', overflowY: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-tertiary)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>

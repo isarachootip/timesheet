@@ -103,6 +103,8 @@ const initDB = async () => {
     await client.query(`
       ALTER TABLE projects ADD COLUMN IF NOT EXISTS custom_columns JSONB DEFAULT '["To Do", "In Progress", "Review", "Done"]'::jsonb;
       ALTER TABLE projects ADD COLUMN IF NOT EXISTS permission_scheme_id VARCHAR(50);
+      ALTER TABLE projects ADD COLUMN IF NOT EXISTS project_type VARCHAR(50) DEFAULT 'dev';
+      ALTER TABLE projects ADD COLUMN IF NOT EXISTS support_task_style VARCHAR(50) DEFAULT 'categories';
     `);
 
     // Create Project Workflows Table
@@ -333,15 +335,15 @@ const initDB = async () => {
         name: 'Default Permission Scheme',
         description: 'Standard permissions for project members, managers, and admins.',
         permissions: JSON.stringify({
-          browse_project: ["Admin", "Manager", "PM", "Member"],
-          create_task: ["Admin", "PM", "Member"],
-          edit_task: ["Admin", "PM", "Assignee"],
-          assign_task: ["Admin", "Manager", "PM"],
-          delete_task: ["Admin", "PM"],
-          transition_task: ["Admin", "PM", "Assignee", "Member"],
-          manage_sprints: ["Admin", "PM"],
-          manage_releases: ["Admin", "PM"],
-          manage_members: ["Admin", "PM"]
+          browse_project: ["Admin", "Manager", "PM", "Team Lead", "Member"],
+          create_task: ["Admin", "PM", "Team Lead", "Member"],
+          edit_task: ["Admin", "PM", "Team Lead", "Assignee"],
+          assign_task: ["Admin", "Manager", "PM", "Team Lead"],
+          delete_task: ["Admin", "PM", "Team Lead"],
+          transition_task: ["Admin", "PM", "Team Lead", "Assignee", "Member"],
+          manage_sprints: ["Admin", "PM", "Team Lead"],
+          manage_releases: ["Admin", "PM", "Team Lead"],
+          manage_members: ["Admin", "PM", "Team Lead"]
         })
       };
       await client.query(
@@ -404,15 +406,15 @@ const initDB = async () => {
         name: 'Default Permission Scheme',
         description: 'Standard permissions for project members, managers, and admins.',
         permissions: JSON.stringify({
-          browse_project: ["Admin", "Manager", "PM", "Member"],
-          create_task: ["Admin", "PM", "Member"],
-          edit_task: ["Admin", "PM", "Assignee"],
-          assign_task: ["Admin", "Manager", "PM"],
-          delete_task: ["Admin", "PM"],
-          transition_task: ["Admin", "PM", "Assignee", "Member"],
-          manage_sprints: ["Admin", "PM"],
-          manage_releases: ["Admin", "PM"],
-          manage_members: ["Admin", "PM"]
+          browse_project: ["Admin", "Manager", "PM", "Team Lead", "Member"],
+          create_task: ["Admin", "PM", "Team Lead", "Member"],
+          edit_task: ["Admin", "PM", "Team Lead", "Assignee"],
+          assign_task: ["Admin", "Manager", "PM", "Team Lead"],
+          delete_task: ["Admin", "PM", "Team Lead"],
+          transition_task: ["Admin", "PM", "Team Lead", "Assignee", "Member"],
+          manage_sprints: ["Admin", "PM", "Team Lead"],
+          manage_releases: ["Admin", "PM", "Team Lead"],
+          manage_members: ["Admin", "PM", "Team Lead"]
         })
       };
       await client.query(
@@ -578,6 +580,29 @@ const initDB = async () => {
       `);
       await client.query('INSERT INTO migrations (id) VALUES ($1)', [migAssign]);
       console.log('✅ One-time migration: added Manager to assign_task permission.');
+    }
+
+    // ONE-TIME: Add Team Lead to default permission scheme
+    const migTeamLead = 'add_team_lead_to_default_permission_scheme_v2';
+    const migTeamLeadDone = await client.query('SELECT id FROM migrations WHERE id = $1', [migTeamLead]);
+    if (migTeamLeadDone.rows.length === 0) {
+      await client.query(`
+        UPDATE permission_schemes 
+        SET permissions = '{
+          "browse_project": ["Admin", "Manager", "PM", "Team Lead", "Member"],
+          "create_task": ["Admin", "PM", "Team Lead", "Member"],
+          "edit_task": ["Admin", "PM", "Team Lead", "Assignee"],
+          "assign_task": ["Admin", "Manager", "PM", "Team Lead"],
+          "delete_task": ["Admin", "PM", "Team Lead"],
+          "transition_task": ["Admin", "PM", "Team Lead", "Assignee", "Member"],
+          "manage_sprints": ["Admin", "PM", "Team Lead"],
+          "manage_releases": ["Admin", "PM", "Team Lead"],
+          "manage_members": ["Admin", "PM", "Team Lead"]
+        }'::jsonb
+        WHERE id = 'scheme_default'
+      `);
+      await client.query('INSERT INTO migrations (id) VALUES ($1)', [migTeamLead]);
+      console.log('✅ One-time migration: updated default scheme to include Team Lead role.');
     }
 
     // Auto-create initial plan baseline for existing projects with tasks
@@ -789,6 +814,7 @@ app.post('/api/chat', async (req, res) => {
 8. SP (Story Points): ประเมินความยากง่ายตาม Fibonacci (1,2,3,5,8...) 1 SP คืองานง่ายสุด
 9. Timeline & Releases: Timeline คือปฏิทิน Gantt Chart ลากปรับเวลาได้, Releases คือจัดกลุ่มฟีเจอร์อัปเดต
 10. Project Roles: ในหน้า Team คือประวัติ(Resume) ว่าใครทำโปรเจกต์อะไรบ้าง ดึงอัตโนมัติ และจะลบอัตโนมัติถ้าถูกเอาชื่อออก
+11. แผนงานไม่ขึ้นหลังสร้างโปรเจกต์: ให้รีเฟรชหน้าเว็บ (F5) หรือดูว่าไม่ได้ใส่ End Date ตอนสร้างโปรเจกต์หรือไม่ (ถ้าไม่มี ให้ไปสร้างเองที่เมนู Project Plan)
 ตอบคำถามด้วยความสุภาพ เป็นกันเอง เสมือนเป็นเพื่อนร่วมงาน`;
 
       try {
@@ -1270,7 +1296,9 @@ app.get('/api/initial-data', async (req, res) => {
       budget: parseFloat(p.budget || '0'),
       members: p.members,
       customColumns: p.custom_columns,
-      permissionSchemeId: p.permission_scheme_id
+      permissionSchemeId: p.permission_scheme_id,
+      projectType: p.project_type || 'dev',
+      supportTaskStyle: p.support_task_style || 'categories'
     }));
 
     const tasks = tasksRes.rows.map(t => ({
@@ -1435,15 +1463,15 @@ app.delete('/api/users/:id', async (req, res) => {
 
 // Projects REST API
 app.post('/api/projects', async (req, res) => {
-  const { id, name, description, status, startDate, endDate, budget, members, customColumns, permissionSchemeId } = req.body;
+  const { id, name, description, status, startDate, endDate, budget, members, customColumns, permissionSchemeId, projectType, supportTaskStyle } = req.body;
   try {
     const checkExist = await pool.query('SELECT 1 FROM projects WHERE id = $1', [id]);
     const isNew = checkExist.rows.length === 0;
     const cols = customColumns || ["To Do", "In Progress", "Review", "Done"];
 
     await pool.query(
-      `INSERT INTO projects (id, name, description, status, start_date, end_date, budget, members, custom_columns, permission_scheme_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      `INSERT INTO projects (id, name, description, status, start_date, end_date, budget, members, custom_columns, permission_scheme_id, project_type, support_task_style)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        ON CONFLICT (id) DO UPDATE SET
          name = EXCLUDED.name,
          description = EXCLUDED.description,
@@ -1453,43 +1481,130 @@ app.post('/api/projects', async (req, res) => {
          budget = EXCLUDED.budget,
          members = EXCLUDED.members,
          custom_columns = EXCLUDED.custom_columns,
-         permission_scheme_id = EXCLUDED.permission_scheme_id`,
-      [id, name, description, status, startDate, endDate, budget, JSON.stringify(members), JSON.stringify(cols), permissionSchemeId || null]
+         permission_scheme_id = EXCLUDED.permission_scheme_id,
+         project_type = EXCLUDED.project_type,
+         support_task_style = EXCLUDED.support_task_style`,
+      [
+        id, 
+        name, 
+        description, 
+        status, 
+        startDate, 
+        endDate || null, 
+        budget || null, 
+        JSON.stringify(members), 
+        JSON.stringify(cols), 
+        permissionSchemeId || null, 
+        projectType || 'dev', 
+        supportTaskStyle || 'categories'
+      ]
     );
 
-    // Auto-generate main tasks from templates for new projects
-    if (isNew && startDate && endDate) {
-      const templates = await pool.query('SELECT * FROM task_templates');
-      const startD = new Date(startDate);
-      const endD = new Date(endDate);
-      const totalMs = endD.getTime() - startD.getTime();
-      
-      for (const tpl of templates.rows) {
-        // Calculate proportional start and end dates
-        const taskStartMs = startD.getTime() + (totalMs * parseFloat(tpl.start_percent) / 100);
-        const taskEndMs = startD.getTime() + (totalMs * parseFloat(tpl.end_percent) / 100);
-        
-        // Format as YYYY-MM-DD
-        const taskStartStr = new Date(taskStartMs).toISOString().split('T')[0];
-        const taskEndStr = new Date(taskEndMs).toISOString().split('T')[0];
-        
-        const taskId = 't_' + Math.random().toString(36).substr(2, 9);
-        await pool.query(
-          `INSERT INTO tasks (id, project_id, assignee_id, title, description, status, priority, estimated_hours, created_at, start_date, end_date, sprint_id, release_id, story_points, issue_type)
-           VALUES ($1, $2, NULL, $3, $4, $5, $6, $7, $8, $9, $10, NULL, NULL, 0, 'Task')`,
-          [
-            taskId,
-            id,
-            tpl.title,
-            tpl.description || '',
-            'To Do',
-            tpl.priority || 'Medium',
-            parseFloat(tpl.estimated_hours || '0'),
-            new Date().toISOString(),
-            taskStartStr,
-            taskEndStr
-          ]
-        );
+    // Auto-generate main tasks for new projects
+    if (isNew && startDate) {
+      if (projectType === 'support') {
+        if (supportTaskStyle === 'monthly') {
+          const startD = new Date(startDate);
+          // If no end date, default to 12 months from start date
+          const endD = endDate ? new Date(endDate) : new Date(startD.getFullYear(), startD.getMonth() + 12, 1);
+          
+          let current = new Date(startD.getFullYear(), startD.getMonth(), 1);
+          const final = new Date(endD.getFullYear(), endD.getMonth(), 1);
+          
+          while (current <= final) {
+            const year = current.getFullYear();
+            const month = String(current.getMonth() + 1).padStart(2, '0');
+            const taskTitle = `[${year}-${month}] Support & Maintenance`;
+            
+            const tStart = (current.getFullYear() === startD.getFullYear() && current.getMonth() === startD.getMonth()) 
+              ? startDate 
+              : `${year}-${month}-01`;
+              
+            let lastDay = new Date(year, current.getMonth() + 1, 0).getDate();
+            const tEnd = (current.getFullYear() === endD.getFullYear() && current.getMonth() === endD.getMonth() && endDate)
+              ? endDate
+              : `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
+              
+            const taskId = 't_' + Math.random().toString(36).substr(2, 9);
+            await pool.query(
+              `INSERT INTO tasks (id, project_id, assignee_id, title, description, status, priority, estimated_hours, created_at, start_date, end_date, sprint_id, release_id, story_points, issue_type)
+               VALUES ($1, $2, NULL, $3, $4, $5, $6, 0, $7, $8, $9, NULL, NULL, 0, 'Task')`,
+              [
+                taskId,
+                id,
+                taskTitle,
+                `Support work for ${year}-${month}`,
+                'To Do',
+                'Medium',
+                new Date().toISOString(),
+                tStart,
+                tEnd
+              ]
+            );
+            
+            current.setMonth(current.getMonth() + 1);
+          }
+        } else {
+          // Category-based Support tasks
+          const categories = [
+            { title: 'User Support & Helpdesk', desc: 'Handling user queries, access issues, and general assistance.' },
+            { title: 'System Maintenance & Operations', desc: 'Routine checks, database backup, server updates, and monitoring.' },
+            { title: 'Bug Fixing & Enhancement Support', desc: 'Investigating errors, deploying patches, and resolving reported system issues.' }
+          ];
+          
+          for (const cat of categories) {
+            const taskId = 't_' + Math.random().toString(36).substr(2, 9);
+            await pool.query(
+              `INSERT INTO tasks (id, project_id, assignee_id, title, description, status, priority, estimated_hours, created_at, start_date, end_date, sprint_id, release_id, story_points, issue_type)
+               VALUES ($1, $2, NULL, $3, $4, $5, $6, 0, $7, $8, $9, NULL, NULL, 0, 'Task')`,
+              [
+                taskId,
+                id,
+                cat.title,
+                cat.desc,
+                'To Do',
+                'Medium',
+                new Date().toISOString(),
+                startDate,
+                endDate || null
+              ]
+            );
+          }
+        }
+      } else {
+        // Normal template tasks for Dev Projects
+        if (endDate) {
+          const templates = await pool.query('SELECT * FROM task_templates');
+          const startD = new Date(startDate);
+          const endD = new Date(endDate);
+          const totalMs = endD.getTime() - startD.getTime();
+          
+          for (const tpl of templates.rows) {
+            const taskStartMs = startD.getTime() + (totalMs * parseFloat(tpl.start_percent) / 100);
+            const taskEndMs = startD.getTime() + (totalMs * parseFloat(tpl.end_percent) / 100);
+            
+            const taskStartStr = new Date(taskStartMs).toISOString().split('T')[0];
+            const taskEndStr = new Date(taskEndMs).toISOString().split('T')[0];
+            
+            const taskId = 't_' + Math.random().toString(36).substr(2, 9);
+            await pool.query(
+              `INSERT INTO tasks (id, project_id, assignee_id, title, description, status, priority, estimated_hours, created_at, start_date, end_date, sprint_id, release_id, story_points, issue_type)
+               VALUES ($1, $2, NULL, $3, $4, $5, $6, $7, $8, $9, $10, NULL, NULL, 0, 'Task')`,
+              [
+                taskId,
+                id,
+                tpl.title,
+                tpl.description || '',
+                'To Do',
+                tpl.priority || 'Medium',
+                parseFloat(tpl.estimated_hours || '0'),
+                new Date().toISOString(),
+                taskStartStr,
+                taskEndStr
+              ]
+            );
+          }
+        }
       }
     }
 
@@ -1575,7 +1690,12 @@ async function checkPermission(userId, projectId, permissionKey, taskObject = nu
     const members = typeof project.members === 'string' ? JSON.parse(project.members) : project.members;
     if (Array.isArray(members)) {
       const member = members.find(m => m.userId === userId);
-      if (member) projectRole = member.role;
+      if (member) {
+        projectRole = member.role;
+        if (projectRole === 'Team Lead' || projectRole === 'Leader') {
+          projectRole = 'PM';
+        }
+      }
     }
 
     // If global role is Manager/Owner, they might act as Owner/PM by default
@@ -1643,7 +1763,7 @@ async function validateTransition(userId, projectId, taskObject, newStatus) {
         const projectRes = await pool.query('SELECT members FROM projects WHERE id = $1', [projectId]);
         const members = projectRes.rows[0]?.members || [];
         const memberRole = members.find(m => m.userId === userId)?.role;
-        if (globalRole !== 'Admin' && memberRole !== 'PM' && globalRole !== 'Manager') {
+        if (globalRole !== 'Admin' && memberRole !== 'PM' && memberRole !== 'Team Lead' && memberRole !== 'Leader' && globalRole !== 'Manager') {
           return { allowed: false, reason: `Only a Project Manager or Admin can perform this transition.` };
         }
       }
@@ -2303,7 +2423,7 @@ app.post('/api/timesheets', async (req, res) => {
           if (status === 'Pending') {
             // Find PM of this project
             const members = project.members || [];
-            const pmMember = members.find(m => m.role === 'PM');
+            const pmMember = members.find(m => m.role === 'PM' || m.role === 'Team Lead' || m.role === 'Leader');
             if (pmMember) {
               const pmRes = await pool.query('SELECT name, email FROM users WHERE id = $1', [pmMember.userId]);
               const pm = pmRes.rows[0];
@@ -2592,6 +2712,17 @@ app.post('/api/clean-tasks', async (req, res) => {
   }
 });
 
+
+app.get('/api/user-manual', async (req, res) => {
+  try {
+    const filePath = path.join(__dirname, 'user_manual.md');
+    const content = await fs.promises.readFile(filePath, 'utf8');
+    res.json({ success: true, content });
+  } catch (err) {
+    console.error('Error reading user manual:', err);
+    res.status(500).json({ error: 'Failed to read user manual' });
+  }
+});
 
 // Using app.use instead of app.get('/(.*)', ...) to avoid path-to-regexp v6 incompatibility
 app.use((req, res) => {

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import type { Project, Task, User, TaskPriority, TaskStatus, TaskTemplate, PermissionScheme } from '../types';
 import { Calendar, CheckCircle2, Check, Clock, ArrowRight, Plus, Edit, Trash2, X, Save, Zap, ChevronDown, ChevronRight, BarChart3 } from 'lucide-react';
 
@@ -317,7 +318,12 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
     let projectRole: string | null = null;
     const members = project.members || [];
     const member = members.find(m => m.userId === currentUser.id);
-    if (member) projectRole = member.role;
+    if (member) {
+      projectRole = member.role;
+      if (projectRole === 'Team Lead' || projectRole === 'Leader') {
+        projectRole = 'PM';
+      }
+    }
 
     const schemeId = project.permissionSchemeId || 'scheme_default';
     const scheme = permissionSchemes.find(s => s.id === schemeId);
@@ -505,7 +511,7 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
           </div>
 
           {/* Active Baseline Plan Selector */}
-          {baselines.length > 0 && (
+          {project?.projectType !== 'support' && baselines.length > 0 && (
             <div className="glass-panel" style={{ padding: '0.4rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Active Plan:</span>
               <select
@@ -524,7 +530,7 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
           )}
 
           {/* Compare Baseline Plan Selector */}
-          {baselines.length > 0 && (
+          {project?.projectType !== 'support' && baselines.length > 0 && (
             <div className="glass-panel" style={{ padding: '0.4rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Compare vs:</span>
               <select
@@ -543,35 +549,63 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
           )}
 
           {/* Save Version Button */}
-          <button 
-            onClick={() => setIsBaselineModalOpen(true)} 
-            className="hover-lift" 
-            style={{ 
-              background: 'rgba(255,255,255,0.06)', 
-              color: 'white', 
-              border: '1px solid rgba(255,255,255,0.12)', 
-              padding: '0.6rem 1.25rem', 
-              borderRadius: '8px', 
-              fontWeight: 600, 
-              cursor: 'pointer', 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '0.5rem', 
-              fontSize: '0.9rem' 
-            }}
-          >
-            <Save size={16} /> Save Version
-          </button>
+          {project?.projectType !== 'support' && (
+            <button 
+              onClick={() => setIsBaselineModalOpen(true)} 
+              className="hover-lift" 
+              style={{ 
+                background: 'rgba(255,255,255,0.06)', 
+                color: 'white', 
+                border: '1px solid rgba(255,255,255,0.12)', 
+                padding: '0.6rem 1.25rem', 
+                borderRadius: '8px', 
+                fontWeight: 600, 
+                cursor: 'pointer', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.5rem', 
+                fontSize: '0.9rem' 
+              }}
+            >
+              <Save size={16} /> Save Version
+            </button>
+          )}
 
           {/* Add Main Task button */}
-          <button onClick={openAddMainTask} className="hover-lift" style={{ background: 'var(--accent-primary)', color: 'white', border: 'none', padding: '0.6rem 1.25rem', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
-            <Plus size={16} /> Add Milestone
-          </button>
+          {project?.projectType !== 'support' && (
+            <button onClick={openAddMainTask} className="hover-lift" style={{ background: 'var(--accent-primary)', color: 'white', border: 'none', padding: '0.6rem 1.25rem', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
+              <Plus size={16} /> Add Milestone
+            </button>
+          )}
         </div>
       </div>
 
       {project ? (
-        <>
+        project.projectType === 'support' ? (
+          <div className="glass-panel flex-center" style={{ padding: '4rem 2rem', flexDirection: 'column', gap: '1.5rem', textAlign: 'center', minHeight: '300px' }}>
+            <div style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', borderRadius: '50%', padding: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Clock size={48} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.5rem', color: 'white' }}>Support & Maintenance Project</h2>
+              <p style={{ color: 'var(--text-secondary)', maxWidth: '500px', margin: '0 auto', fontSize: '0.95rem', lineHeight: '1.5' }}>
+                โปรเจกต์นี้เป็นประเภท Support ซึ่งเป็นงานบริการดูแลและบำรุงรักษาอย่างต่อเนื่อง จึงไม่มีการใช้งาน Timeline, Milestones, หรือการบันทึกแผนงานฐานข้อมูล (Baseline)
+              </p>
+              <p style={{ color: 'var(--text-secondary)', maxWidth: '500px', margin: '0.5rem auto 0 auto', fontSize: '0.9rem' }}>
+                คุณสามารถไปจัดการงานแยกตามระบบ/BU หรือบันทึกเวลาปฏิบัติงานได้ในเมนูบอร์ดและลงเวลาหลักของระบบได้ทันที
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+              <Link to="/tasks" className="hover-lift" style={{ background: 'var(--accent-primary)', color: 'white', textDecoration: 'none', padding: '0.6rem 1.5rem', borderRadius: '8px', fontWeight: 600, fontSize: '0.9rem' }}>
+                ไปที่หน้า Tasks Board
+              </Link>
+              <Link to="/timesheet" className="hover-lift" style={{ background: 'rgba(255,255,255,0.06)', color: 'white', textDecoration: 'none', border: '1px solid rgba(255,255,255,0.12)', padding: '0.6rem 1.5rem', borderRadius: '8px', fontWeight: 600, fontSize: '0.9rem' }}>
+                ไปที่หน้า Timesheets
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <>
           {/* ─── Variance Dashboard Widgets ─── */}
           {compareData && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '0.5rem' }}>
@@ -990,13 +1024,13 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
                         {/* Title */}
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <span style={{ fontSize: '0.6rem', padding: '0.15rem 0.5rem', borderRadius: '4px', background: 'rgba(99,102,241,0.2)', color: '#a5b4fc', fontWeight: 700 }}>MAIN</span>
-                            <span style={{ fontSize: '0.95rem', fontWeight: 700, color: 'white' }}>{m.title}</span>
+                            <span style={{ fontSize: '0.7rem', padding: '0.15rem 0.5rem', borderRadius: '4px', background: 'rgba(99,102,241,0.2)', color: '#a5b4fc', fontWeight: 700 }}>MAIN</span>
+                            <span style={{ fontSize: '1.05rem', fontWeight: 700, color: 'white' }}>{m.title}</span>
                           </div>
-                          <p style={{ fontSize: '0.78rem', color: '#6b7280', marginTop: '0.15rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '280px' }}>{m.description}</p>
+                          <p style={{ fontSize: '0.875rem', color: '#9ca3af', marginTop: '0.15rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '280px' }}>{m.description}</p>
                         </div>
                         {/* Dates */}
-                        <div style={{ fontSize: '0.8rem', color: '#9ca3af' }}>
+                        <div style={{ fontSize: '0.9rem', color: '#d1d5db' }}>
                           {m.startDate && m.endDate ? (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                               <span>{new Date(m.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
@@ -1006,15 +1040,15 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
                           ) : <span style={{ color: '#4b5563' }}>Not scheduled</span>}
                         </div>
                         {/* Hours */}
-                        <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'white' }}>{m.estimatedHours}h</span>
+                        <span style={{ fontSize: '1rem', fontWeight: 700, color: 'white' }}>{m.estimatedHours}h</span>
                         {/* Owner */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <img src={getAssigneeAvatar(m.assigneeId)} alt="" style={{ width: '26px', height: '26px', borderRadius: '50%' }} />
-                          <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>{getAssigneeName(m.assigneeId)}</span>
+                          <img src={getAssigneeAvatar(m.assigneeId)} alt="" style={{ width: '28px', height: '28px', borderRadius: '50%' }} />
+                          <span style={{ fontSize: '0.9rem', color: '#d1d5db' }}>{getAssigneeName(m.assigneeId)}</span>
                         </div>
                         {/* Status + Progress */}
                         <div>
-                          <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.6rem', borderRadius: '6px', background: statusColors.bg, color: statusColors.text, border: `1px solid ${statusColors.border}33`, fontWeight: 600 }}>{m.status}</span>
+                          <span style={{ fontSize: '0.82rem', padding: '0.2rem 0.6rem', borderRadius: '6px', background: statusColors.bg, color: statusColors.text, border: `1px solid ${statusColors.border}33`, fontWeight: 600 }}>{m.status}</span>
                           <div style={{ marginTop: '0.35rem', width: '80px', height: '4px', background: 'rgba(255,255,255,0.08)', borderRadius: '2px', overflow: 'hidden' }}>
                             <div style={{ width: `${progress}%`, height: '100%', background: getPriorityColor(m.priority), borderRadius: '2px' }} />
                           </div>
@@ -1039,18 +1073,18 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
                                 <div key={sub.id} style={{ padding: '0.65rem 1.25rem 0.65rem 3rem', display: 'grid', gridTemplateColumns: '28px 2fr 1fr 1fr 1fr 1fr auto', gap: '0.75rem', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
                                   <span style={{ color: '#374151', fontSize: '0.85rem' }}>↳</span>
                                   <div>
-                                    <span style={{ fontSize: '0.875rem', fontWeight: 500, color: '#d1d5db' }}>{sub.title}</span>
-                                    <p style={{ fontSize: '0.72rem', color: '#6b7280', marginTop: '0.1rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '260px' }}>{sub.description}</p>
+                                    <span style={{ fontSize: '0.95rem', fontWeight: 500, color: '#e5e7eb' }}>{sub.title}</span>
+                                    <p style={{ fontSize: '0.8rem', color: '#9ca3af', marginTop: '0.1rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '260px' }}>{sub.description}</p>
                                   </div>
-                                  <div style={{ fontSize: '0.78rem', color: '#6b7280' }}>
+                                  <div style={{ fontSize: '0.85rem', color: '#9ca3af' }}>
                                     {sub.startDate ? new Date(sub.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '—'}
                                   </div>
-                                  <span style={{ fontSize: '0.85rem', color: '#d1d5db' }}>{sub.estimatedHours}h</span>
+                                  <span style={{ fontSize: '0.92rem', color: '#e5e7eb' }}>{sub.estimatedHours}h</span>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                    <img src={getAssigneeAvatar(sub.assigneeId)} alt="" style={{ width: '22px', height: '22px', borderRadius: '50%' }} />
-                                    <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>{getAssigneeName(sub.assigneeId)}</span>
+                                    <img src={getAssigneeAvatar(sub.assigneeId)} alt="" style={{ width: '24px', height: '24px', borderRadius: '50%' }} />
+                                    <span style={{ fontSize: '0.85rem', color: '#9ca3af' }}>{getAssigneeName(sub.assigneeId)}</span>
                                   </div>
-                                  <span style={{ fontSize: '0.72rem', padding: '0.15rem 0.5rem', borderRadius: '5px', background: subColors.bg, color: subColors.text, fontWeight: 600 }}>{sub.status}</span>
+                                  <span style={{ fontSize: '0.8rem', padding: '0.15rem 0.5rem', borderRadius: '5px', background: subColors.bg, color: subColors.text, fontWeight: 600 }}>{sub.status}</span>
                                   <div style={{ display: 'flex', gap: '0.3rem' }}>
                                     <button onClick={() => openEditTask(sub)} style={{ background: 'rgba(255,255,255,0.06)', border: 'none', color: '#9ca3af', cursor: 'pointer', borderRadius: '6px', padding: '0.3rem 0.45rem', display: 'flex' }}><Edit size={12} /></button>
                                     <button onClick={() => handleDeleteTask(sub.id, false)} style={{ background: 'rgba(239,68,68,0.1)', border: 'none', color: '#ef4444', cursor: 'pointer', borderRadius: '6px', padding: '0.3rem 0.45rem', display: 'flex' }}><Trash2 size={12} /></button>
@@ -1072,7 +1106,8 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
               </div>
             </div>
           )}
-        </>
+          </>
+        )
       ) : (
         <div className="glass-panel flex-center" style={{ minHeight: '300px', flexDirection: 'column', gap: '1rem' }}>
           <p style={{ color: 'var(--text-secondary)', fontSize: '1rem' }}>No active projects found. Please create a project first.</p>

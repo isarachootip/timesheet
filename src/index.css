@@ -506,5 +506,17 @@ select option:hover, option:hover {
   color: var(--bg-primary) !important;
 }
 
+/* Sticky Table Headers and Columns */
+thead th, thead td {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+  background-color: var(--bg-secondary) !important;
+}
+
+.glass-panel thead th, .glass-panel thead td {
+  background-color: var(--bg-tertiary) !important;
+}
+
 
 

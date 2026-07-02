@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { HelpCircle, ChevronDown, ChevronRight, BookOpen, Database, BarChart3, Clock, Languages, CalendarRange, Users, Star, Shield, MessageSquare } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { HelpCircle, ChevronDown, ChevronRight, BookOpen, Database, BarChart3, Clock, Languages, CalendarRange, Users, Star, Shield, MessageSquare, Zap } from 'lucide-react';
+import { marked } from 'marked';
 import type { User } from '../types';
 
 type Lang = 'en' | 'th';
@@ -12,9 +13,30 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
   const [lang, setLang] = useState<Lang>('th');
   const [expandedId, setExpandedId] = useState<string | null>('q1');
   const [expandedFeatureId, setExpandedFeatureId] = useState<string | null>('f1');
-  const [activeTab, setActiveTab] = useState<'faq' | 'features'>('faq');
+  const [activeTab, setActiveTab] = useState<'faq' | 'manual' | 'features'>('faq');
+  const [manualHtml, setManualHtml] = useState<string>('');
+  const [loadingManual, setLoadingManual] = useState<boolean>(false);
 
   const isAdmin = currentUser?.globalRole === 'Admin';
+
+  useEffect(() => {
+    if (activeTab === 'manual' && !manualHtml) {
+      setLoadingManual(true);
+      fetch('/api/user-manual')
+        .then(res => res.json())
+        .then(async data => {
+          if (data.success && data.content) {
+            const html = await marked.parse(data.content);
+            setManualHtml(html);
+          }
+          setLoadingManual(false);
+        })
+        .catch(err => {
+          console.error(err);
+          setLoadingManual(false);
+        });
+    }
+  }, [activeTab, manualHtml]);
 
   const content = {
     en: {
@@ -280,12 +302,30 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
               </ul>
             </div>
           )
+        },
+        {
+          id: 'q17',
+          question: "Why doesn't the \"Auto-Generated Plan\" appear immediately on a new project card?",
+          icon: Zap,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>This can happen due to two main reasons:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}>
+                  <strong>Need to Refresh:</strong> When a new project is created, the system auto-generates milestones on the server/database. However, the client-side task state is not synchronized immediately. Try <strong>refreshing your page (F5 / Reload)</strong> to load the new tasks.
+                </li>
+                <li>
+                  <strong>Missing End Date:</strong> The auto-generation logic only triggers if the project is created with both a <strong>Start Date</strong> and <strong>End Date</strong>. If you created the project without an End Date and added it later via Edit, the tasks won't auto-generate. To fix this, go to the <strong>Project Plan</strong> tab, select your project, and click the <strong>🚀 Generate Milestones from Templates</strong> button.
+                </li>
+              </ul>
+            </div>
+          )
         }
       ]
     },
     th: {
-      title: "คู่มือการใช้งาน (FAQ)",
-      subtitle: "เอกสารคู่มือและคำถามที่พบบ่อยของระบบ",
+      title: "คำถามที่พบบ่อย (FAQ)",
+      subtitle: "คำถามและคำแนะนำที่พบบ่อยเกี่ยวกับการใช้งานระบบ",
       needHelpTitle: "ต้องการความช่วยเหลือเพิ่มเติม?",
       needHelpDesc: "หากคุณมีคำถามเพิ่มเติมหรือต้องการความช่วยเหลือด้านเทคนิค สามารถกดไอคอนแชทที่มุมขวาล่างเพื่อสอบถามผู้ช่วย AI ได้ตลอดเวลาครับ",
       faqs: [
@@ -546,6 +586,24 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
               </ul>
             </div>
           )
+        },
+        {
+          id: 'q17',
+          question: 'ทำไมแถบ "Auto-Generated Plan" ถึงไม่แสดงทันทีหลังสร้างโปรเจกต์ใหม่?',
+          icon: Zap,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>ปัญหานี้สามารถเกิดขึ้นได้จาก 2 สาเหตุหลักๆ ครับ:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}>
+                  <strong>ข้อมูลหน้าจอยังไม่ได้ดึงล่าสุด (ต้องกดรีเฟรช):</strong> เมื่อสร้างโปรเจกต์ใหม่ ระบบจะดึง Milestone Tasks มาลง Database ทันที แต่ฝั่งหน้าเว็บยังไม่ได้ดึงอัปเดตงานล่าสุดเข้ามา ให้ลอง **กดรีเฟรชหน้าจอ (F5 / Reload)** เพื่อดึงข้อมูลใหม่มาแสดงผลครับ
+                </li>
+                <li>
+                  <strong>ไม่ได้ระบุ End Date ในตอนแรก:</strong> ระบบหลังบ้านจะสร้างแผนงานอัตโนมัติเฉพาะตอนที่ระบุทั้ง **Start Date** และ **End Date** พร้อมกันตั้งแต่สร้างโปรเจกต์ หากคุณแก้ไขเพื่อเพิ่ม End Date ทีหลัง แผนงานจะไม่ถูกสร้างอัตโนมัติ ให้ไปที่แท็บ **Project Plan** เลือกโปรเจกต์ และกดปุ่ม **🚀 Generate Milestones from Templates** เพื่อสั่งสร้างแผนงานด้วยตนเองครับ
+                </li>
+              </ul>
+            </div>
+          )
         }
       ]
     }
@@ -647,6 +705,27 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
               </ul>
             </div>
           )
+        },
+        {
+          id: 'f6',
+          question: 'Development Projects vs. Support Projects & Auto-Task Generation',
+          icon: Star,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>Administrators can now choose a Project Type when creating or editing projects:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Development Projects:</strong> Follow standard Agile workflows, timelines, and Gantt charts with Sprints, Releases, and Baselines.</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Support Projects:</strong> Geared towards ongoing service maintenance (OpEx tracking) without timeline limits. Gantt chart is disabled in the UI.</li>
+                <li>
+                  <strong>Support Task Auto-generation:</strong>
+                  <ul style={{ listStyleType: 'circle', paddingLeft: '1.25rem', marginTop: '0.25rem' }}>
+                    <li><em>Category-based Tasks:</em> Automatically generates 3 default tasks: <code>User Support & Helpdesk</code>, <code>System Maintenance & Operations</code>, and <code>Bug Fixing & Enhancement Support</code>. Perfect for system-specific or BU-specific categorization.</li>
+                    <li><em>Monthly Tasks:</em> Generates monthly bucket tasks (e.g. <code>[2026-01] Support & Maintenance</code>) for the duration of the project to cleanly partition timesheet reports month-by-month.</li>
+                  </ul>
+                </li>
+              </ul>
+            </div>
+          )
         }
       ]
     },
@@ -727,6 +806,42 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
               </ul>
             </div>
           )
+        },
+        {
+          id: 'f5',
+          question: 'ระบบบันทึกเวลา (Timesheet): การแยกเป้าหมายงานออกจากผลงานจริง',
+          icon: Clock,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>Timesheet รองรับการกรอกข้อมูล 2 ระดับเพื่อความโปร่งใสและตรวจสอบง่ายขึ้น:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}>ผู้ใช้งานสามารถระบุ <strong>เป้าหมายงานที่ตั้งใจทำ (Goal)</strong> ควบคู่ไปกับ <strong>ผลลัพธ์การทำงานจริง (Work Result)</strong> ในแต่ละวันได้แยกกัน</li>
+                <li style={{ marginBottom: '0.25rem' }}>ช่วยให้ผู้บริหารหรือผู้จัดการโครงการประเมินประสิทธิผลการทำงานจริงได้อย่างถูกต้อง</li>
+                <li>สามารถแนบไฟล์ภาพเพื่อเป็นหลักฐานอ้างอิงผลงาน (Proof of Work) ได้โดยตรง</li>
+              </ul>
+            </div>
+          )
+        },
+        {
+          id: 'f6',
+          question: 'ความแตกต่างของ Development Project และ Support Project รวมถึงการสร้างงานออโต้',
+          icon: Star,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>ผู้ดูแลระบบสามารถเลือก <strong>Project Type</strong> ได้ในขั้นตอนการสร้างหรือแก้ไขโปรเจกต์:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Development Projects (โครงการพัฒนา):</strong> ใช้สำหรับโครงการปกติ มีการติดตาม Timeline, กำหนด Milestone ย่อย, ทำแผน Baseline และวางแผนแบบ Agile Sprints / Releases</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Support Projects (โครงการซัพพอร์ต):</strong> ใช้สำหรับงานบำรุงรักษาหรืองานบริการดูแลระบบย่อย/BU ซึ่งไม่มีกำหนดสิ้นสุดแผนงานแบบ CapEx โดยระบบจะซ่อนหน้า Timeline Gantt Chart เพื่อลดความซับซ้อน</li>
+                <li>
+                  <strong>การสร้างงานอัตโนมัติ (Support Task Auto-generation):</strong>
+                  <ul style={{ listStyleType: 'circle', paddingLeft: '1.25rem', marginTop: '0.25rem' }}>
+                    <li><em>Category-based Tasks:</em> สร้างถังงานแยกประเภทหลัก 3 รายการ ได้แก่ <code>User Support & Helpdesk</code>, <code>System Maintenance & Operations</code> และ <code>Bug Fixing & Enhancement Support</code> เพื่อให้พนักงานเข้ามาเลือกกรอกเวลาสะสมได้ตามระบบหรือหน่วยธุรกิจ (BU)</li>
+                    <li><em>Monthly Tasks:</em> สร้างถังงานอิงตามเดือนปฏิทินตลอดระยะสัญญาซัพพอร์ต (เช่น <code>[2026-01] Support & Maintenance</code>) ช่วยแยกชั่วโมงทำงานออกเป็นรายเดือนอย่างมีระเบียบ</li>
+                  </ul>
+                </li>
+              </ul>
+            </div>
+          )
         }
       ]
     }
@@ -743,10 +858,18 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
           </div>
           <div>
             <h1 style={{ fontSize: '2rem', fontWeight: 700, margin: 0 }} className="text-gradient">
-              {activeTab === 'faq' ? current.title : currentFeatures.title}
+              {activeTab === 'faq' 
+                ? current.title 
+                : activeTab === 'manual' 
+                  ? (lang === 'en' ? 'User Manual' : 'คู่มือการใช้งานระบบ')
+                  : currentFeatures.title}
             </h1>
             <p style={{ color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-              {activeTab === 'faq' ? current.subtitle : currentFeatures.subtitle}
+              {activeTab === 'faq' 
+                ? current.subtitle 
+                : activeTab === 'manual' 
+                  ? (lang === 'en' ? 'Detailed guides and walkthroughs for system functions.' : 'คู่มือแนะนำการใช้งานระบบและฟังก์ชันต่าง ๆ อย่างละเอียด')
+                  : currentFeatures.subtitle}
             </p>
           </div>
         </div>
@@ -774,27 +897,45 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
         </button>
       </header>
 
-      {/* Tab Switcher - Only visible to Admins */}
-      {isAdmin && (
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
-          <button
-            onClick={() => setActiveTab('faq')}
-            style={{
-              background: activeTab === 'faq' ? 'rgba(56, 189, 248, 0.15)' : 'transparent',
-              color: activeTab === 'faq' ? 'var(--accent-primary)' : 'var(--text-secondary)',
-              border: 'none',
-              padding: '0.6rem 1.25rem',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: 600,
-              fontSize: '0.9rem',
-              transition: 'all 0.2s ease',
-              outline: 'none',
-              boxShadow: activeTab === 'faq' ? '0 0 12px rgba(56, 189, 248, 0.05)' : 'none'
-            }}
-          >
-            {lang === 'en' ? 'FAQ & Manual' : 'คู่มือ & คำถามที่พบบ่อย (FAQ)'}
-          </button>
+      {/* Tab Switcher - Now visible to all users to switch between FAQ and Manual */}
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
+        <button
+          onClick={() => setActiveTab('faq')}
+          style={{
+            background: activeTab === 'faq' ? 'rgba(56, 189, 248, 0.15)' : 'transparent',
+            color: activeTab === 'faq' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+            border: 'none',
+            padding: '0.6rem 1.25rem',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: 600,
+            fontSize: '0.9rem',
+            transition: 'all 0.2s ease',
+            outline: 'none',
+            boxShadow: activeTab === 'faq' ? '0 0 12px rgba(56, 189, 248, 0.05)' : 'none'
+          }}
+        >
+          {lang === 'en' ? 'FAQ' : 'คำถามที่พบบ่อย (FAQ)'}
+        </button>
+        <button
+          onClick={() => setActiveTab('manual')}
+          style={{
+            background: activeTab === 'manual' ? 'rgba(0, 245, 255, 0.15)' : 'transparent',
+            color: activeTab === 'manual' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+            border: 'none',
+            padding: '0.6rem 1.25rem',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: 600,
+            fontSize: '0.9rem',
+            transition: 'all 0.2s ease',
+            outline: 'none',
+            boxShadow: activeTab === 'manual' ? '0 0 12px rgba(0, 245, 255, 0.05)' : 'none'
+          }}
+        >
+          {lang === 'en' ? 'User Manual' : 'คู่มือการใช้งาน (Manual)'}
+        </button>
+        {isAdmin && (
           <button
             onClick={() => setActiveTab('features')}
             style={{
@@ -813,10 +954,33 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
           >
             {lang === 'en' ? 'System Features' : 'คู่มือฟีเจอร์สำหรับ Admin'}
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
-      {activeTab === 'faq' ? (
+      <style>{`
+        .manual-content h1 { font-size: 1.8rem; margin-top: 1.5rem; margin-bottom: 1rem; color: var(--text-primary); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
+        .manual-content h2 { font-size: 1.4rem; margin-top: 1.5rem; margin-bottom: 0.75rem; color: var(--accent-primary); }
+        .manual-content h3 { font-size: 1.15rem; margin-top: 1.25rem; margin-bottom: 0.5rem; color: var(--accent-secondary); }
+        .manual-content p { margin-bottom: 1rem; line-height: 1.6; color: var(--text-secondary); }
+        .manual-content ul, .manual-content ol { margin-bottom: 1rem; padding-left: 1.5rem; color: var(--text-secondary); }
+        .manual-content li { margin-bottom: 0.35rem; }
+        .manual-content blockquote { border-left: 4px solid var(--accent-primary); background: rgba(0, 245, 255, 0.05); padding: 0.75rem 1rem; margin-bottom: 1rem; border-radius: 4px; }
+        .manual-content table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
+        .manual-content th, .manual-content td { border: 1px solid var(--border-color); padding: 0.75rem; text-align: left; }
+        .manual-content th { background: var(--bg-tertiary); color: var(--text-primary); font-weight: 600; }
+        .manual-content tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+        .manual-content a { color: var(--accent-primary); }
+        .manual-content a:hover { text-decoration: underline; }
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        .animate-spin {
+          animation: spin 1.5s linear infinite;
+        }
+      `}</style>
+
+      {activeTab === 'faq' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {current.faqs.map(faq => {
             const Icon = faq.icon;
@@ -880,7 +1044,24 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
             );
           })}
         </div>
-      ) : (
+      )}
+
+      {activeTab === 'manual' && (
+        <div className="glass-panel manual-content" style={{ padding: '2rem', borderRadius: '12px' }}>
+          {loadingManual ? (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '250px', color: 'var(--text-secondary)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+                <Clock className="animate-spin" size={32} />
+                <span>{lang === 'en' ? 'Loading manual...' : 'กำลังโหลดคู่มือการใช้งาน...'}</span>
+              </div>
+            </div>
+          ) : (
+            <div dangerouslySetInnerHTML={{ __html: manualHtml }} />
+          )}
+        </div>
+      )}
+
+      {activeTab === 'features' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {currentFeatures.features.map(feat => {
             const Icon = feat.icon;

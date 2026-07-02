@@ -420,7 +420,6 @@ function DroppableColumn({
     'Review': '#3b82f6',
     'Done': '#10b981',
   };
-
   return (
     <div
       ref={setNodeRef}
@@ -433,8 +432,9 @@ function DroppableColumn({
         display: 'flex',
         flexDirection: 'column',
         gap: '1rem',
-        maxHeight: 'calc(100vh - 280px)',
-        overflowY: 'auto',
+        height: '100%',
+        maxHeight: '100%',
+        overflowY: 'hidden',
         border: isHighlighted
           ? '2px solid rgba(139, 92, 246, 0.7)'
           : '2px solid transparent',
@@ -450,6 +450,7 @@ function DroppableColumn({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          flexShrink: 0,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -478,8 +479,8 @@ function DroppableColumn({
         </div>
       </div>
 
-      {/* Task Cards */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', minHeight: '60px' }}>
+      {/* Task Cards - Internally scrollable */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', minHeight: '60px', flex: 1, overflowY: 'auto', paddingRight: '4px' }}>
         {tasks.map((task) => (
           <DraggableCard
             key={task.id}
@@ -1228,7 +1229,12 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
     let projectRole: string | null = null;
     const members = project.members || [];
     const member = members.find(m => m.userId === currentUser.id);
-    if (member) projectRole = member.role;
+    if (member) {
+      projectRole = member.role;
+      if (projectRole === 'Team Lead' || projectRole === 'Leader') {
+        projectRole = 'PM';
+      }
+    }
 
     // Enforce: regular employees/users cannot edit, transition, assign, or delete other people's tasks
     if (taskObj && taskObj.assigneeId && taskObj.assigneeId !== currentUser.id) {
@@ -1420,6 +1426,23 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
       setCommits([]);
     }
   }, [editingTask]);
+
+  // Lock parent overflow when in Board view
+  useEffect(() => {
+    const contentArea = document.querySelector('.content-area') as HTMLElement;
+    if (contentArea) {
+      if (activeSubTab === 'board') {
+        contentArea.style.overflowY = 'hidden';
+      } else {
+        contentArea.style.overflowY = 'auto';
+      }
+    }
+    return () => {
+      if (contentArea) {
+        contentArea.style.overflowY = 'auto';
+      }
+    };
+  }, [activeSubTab]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -2758,7 +2781,8 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
               gap: '1.25rem',
               flex: 1,
               overflowX: 'auto',
-              alignItems: 'start',
+              overflowY: 'hidden',
+              alignItems: 'stretch',
             }}
           >
             {activeColumns.map((colStatus) => {

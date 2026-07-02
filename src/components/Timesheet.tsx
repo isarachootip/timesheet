@@ -98,7 +98,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
   pendingProjects.forEach(pid => {
     const proj = projects.find(p => p.id === pid);
     if (proj) {
-      proj.members.filter(m => m.role === 'PM').forEach(pm => {
+      proj.members.filter(m => m.role === 'PM' || m.role === 'Team Lead' || m.role === 'Leader').forEach(pm => {
         const user = users?.find(u => u.id === pm.userId);
         if (user) approvers.add(user.name.split(' ')[0]); // Use first name for brevity
       });
@@ -504,8 +504,8 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                 </div>
               </div>
 
-              {/* Employee Log Cards */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {/* Employee Log Cards - Internally scrollable */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxHeight: 'calc(100vh - 430px)', overflowY: 'auto', paddingRight: '4px' }}>
                 {allUsers.map(user => {
                   const uEntries = projectTodaysEntries.filter(ts => ts.userId === user.id);
                   if (selectedReportProject !== 'all' && uEntries.length === 0) return null; // Hide users with no entries for this project
@@ -681,8 +681,8 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                 </div>
               </div>
 
-              {/* Employee Log Cards */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {/* Employee Log Cards - Internally scrollable */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxHeight: 'calc(100vh - 430px)', overflowY: 'auto', paddingRight: '4px' }}>
                 {allUsers.map(user => {
                   const uEntries = timesheets.filter(ts => ts.userId === user.id && isSameDay(new Date(ts.date), selectedDate));
                   const userTotalHours = uEntries.reduce((sum, e) => sum + e.hours, 0);
