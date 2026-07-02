@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { BarChart3, TrendingUp, Download, Printer, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Briefcase, Clock, Activity, LineChart as LineChartIcon } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import type { User, Project, TimesheetEntry, Task, CostRate } from '../types';
+import { BarChart3, TrendingUp, Download, Printer, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Briefcase, Clock, Activity, LineChart as LineChartIcon, PieChart as PieChartIcon } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import type { User, Project, TimesheetEntry, Task, CostRate, Sprint } from '../types';
 
 interface ReportsProps {
   timesheets: TimesheetEntry[];
@@ -10,9 +10,10 @@ interface ReportsProps {
   currentUser: User | null;
   tasks: Task[];
   costRates: CostRate[];
+  sprints: Sprint[];
 }
 
-export const Reports = ({ timesheets, projects, users, currentUser, tasks, costRates }: ReportsProps) => {
+export const Reports = ({ timesheets, projects, users, currentUser, tasks, costRates, sprints }: ReportsProps) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'personal' | 'project_cost' | 'pm_portfolio'>('overview');
   
   // Common states
@@ -262,7 +263,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
   const activeProjectId = selectedProject === 'all' ? (projects[0]?.id || '') : selectedProject;
   const activeProject = projects.find(p => p.id === activeProjectId);
   const projectTimesheets = timesheets.filter(ts => {
-    if (ts.projectId !== activeProjectId) return false;
+    if (selectedProject !== 'all' && ts.projectId !== selectedProject) return false;
     // For the table, we'll group by the selected type, but we still filter the KPI cards by costDate.
     // Wait, let's keep the filter for KPIs.
     if (costReportType === 'daily') {
@@ -281,7 +282,9 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
 
   const projectTotalHours = projectTimesheets.reduce((sum, ts) => sum + ts.hours, 0);
   const projectTotalCost = projectTimesheets.reduce((sum, ts) => sum + getEntryCost(ts), 0);
-  const projectBudget = activeProject?.budget || 0;
+  const projectBudget = selectedProject === 'all'
+    ? projects.reduce((sum, p) => sum + (p.budget || 0), 0)
+    : (activeProject?.budget || 0);
   const projectBurnRate = projectBudget > 0 ? Math.round((projectTotalCost / projectBudget) * 100) : 0;
 
   // ── Preset colors for the line chart ──
@@ -323,7 +326,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
 
   // Month-to-Date (MTD) actual cost
   const mtdTimesheets = timesheets.filter(ts => 
-    ts.projectId === activeProjectId &&
+    (selectedProject === 'all' || ts.projectId === selectedProject) &&
     ts.date.slice(0, 7) === selectedMonthStr &&
     ts.date <= safeCostDate
   );
@@ -331,7 +334,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
 
   // Year-to-Date (YTD) actual cost
   const ytdTimesheets = timesheets.filter(ts => 
-    ts.projectId === activeProjectId &&
+    (selectedProject === 'all' || ts.projectId === selectedProject) &&
     ts.date.slice(0, 4) === selectedYear &&
     ts.date <= safeCostDate
   );
@@ -358,7 +361,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
       const curr = new Date(startDateObj);
       while (curr <= endDateObj) {
         const dateStr = curr.toISOString().split('T')[0];
-        const dayTimesheets = timesheets.filter(ts => ts.projectId === activeProjectId && ts.date === dateStr);
+        const dayTimesheets = timesheets.filter(ts => (selectedProject === 'all' || ts.projectId === selectedProject) && ts.date === dateStr);
         
         const point: any = {
           date: dateStr,
@@ -381,7 +384,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
       
       for (let d = 1; d <= daysInMonth; d++) {
         const dateStr = `${selectedMonthStr}-${String(d).padStart(2, '0')}`;
-        const dayTimesheets = timesheets.filter(ts => ts.projectId === activeProjectId && ts.date === dateStr);
+        const dayTimesheets = timesheets.filter(ts => (selectedProject === 'all' || ts.projectId === selectedProject) && ts.date === dateStr);
         
         const point: any = {
           day: d,
@@ -403,7 +406,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
       for (let m = 1; m <= 12; m++) {
         const monthStr = `${selectedYear}-${String(m).padStart(2, '0')}`;
         const monthTimesheets = timesheets.filter(ts => 
-          ts.projectId === activeProjectId && 
+          (selectedProject === 'all' || ts.projectId === selectedProject) && 
           ts.date.slice(0, 7) === monthStr
         );
         
@@ -429,21 +432,61 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
 
   // Sprint breakdown for the project
   const projectSprints = tasks
-    .filter(t => t.projectId === activeProjectId && t.sprintId)
+    .filter(t => (selectedProject === 'all' || t.projectId === selectedProject) && t.sprintId)
     .reduce((acc: Record<string, { name: string; hours: number; cost: number }>, task) => {
-      const tsForTask = timesheets.filter(ts => ts.taskId === task.id);
+      const tsForTask = projectTimesheets.filter(ts => ts.taskId === task.id);
       const hours = tsForTask.reduce((sum, ts) => sum + ts.hours, 0);
       const cost = tsForTask.reduce((sum, ts) => sum + getEntryCost(ts), 0);
       
       if (hours > 0) {
+        const sprintObj = sprints.find(s => s.id === task.sprintId);
+        const sprintName = sprintObj ? sprintObj.name : `Sprint ${task.sprintId}`;
+        const displayName = selectedProject === 'all'
+          ? `${projects.find(p => p.id === task.projectId)?.name || ''}: ${sprintName}`
+          : sprintName;
+
         if (!acc[task.sprintId!]) {
-          acc[task.sprintId!] = { name: `Sprint ${task.sprintId}`, hours: 0, cost: 0 };
+          acc[task.sprintId!] = { name: displayName, hours: 0, cost: 0 };
         }
         acc[task.sprintId!].hours += hours;
         acc[task.sprintId!].cost += cost;
       }
       return acc;
     }, {});
+
+  // Task cost breakdown for the cycle graph (donut chart)
+  const rawTaskCostData = tasks
+    .filter(t => selectedProject === 'all' || t.projectId === selectedProject)
+    .map(task => {
+      const tsForTask = projectTimesheets.filter(ts => ts.taskId === task.id);
+      const hours = tsForTask.reduce((sum, ts) => sum + ts.hours, 0);
+      const cost = tsForTask.reduce((sum, ts) => sum + getEntryCost(ts), 0);
+      return {
+        name: selectedProject === 'all' 
+          ? `[${projects.find(p => p.id === task.projectId)?.name || ''}] ${task.title}`
+          : task.title,
+        value: cost,
+        hours
+      };
+    })
+    .filter(item => item.value > 0);
+
+  // Add unassigned timesheet entries to taskCostData
+  const unassignedTimesheets = projectTimesheets.filter(ts => !ts.taskId);
+  const unassignedHours = unassignedTimesheets.reduce((sum, ts) => sum + ts.hours, 0);
+  const unassignedCost = unassignedTimesheets.reduce((sum, ts) => sum + getEntryCost(ts), 0);
+  
+  if (unassignedCost > 0) {
+    rawTaskCostData.push({
+      name: 'Unassigned / General Project Work',
+      value: unassignedCost,
+      hours: unassignedHours
+    });
+  }
+
+  const taskCostData = rawTaskCostData.sort((a, b) => b.value - a.value);
+
+  const totalTaskCost = taskCostData.reduce((sum, item) => sum + item.value, 0);
 
   // ── Export CSV ──
   const exportCSV = () => {
@@ -1256,6 +1299,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                   onChange={e => setSelectedProject(e.target.value)}
                   style={{ ...selectStyle, border: 'none', background: 'transparent' }}
                 >
+                  <option value="all" style={{ background: 'var(--bg-secondary)' }}>All Projects</option>
                   {projects.map(p => (
                     <option key={p.id} value={p.id} style={{ background: 'var(--bg-secondary)' }}>{p.name}</option>
                   ))}
@@ -1534,8 +1578,8 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
               </div>
             </div>
 
-            {/* Sprints Cost Breakdown & Task Detail Costs Grid */}
-            <div className="reports-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '2rem' }}>
+            {/* Sprints Cost Breakdown, Task Detail Costs, and Task Cost Graph Grid */}
+            <div className="reports-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr 1.2fr', gap: '2rem' }}>
               {/* Sprint Cost */}
               <div className="glass-panel" style={{ padding: '1.5rem' }}>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -1592,7 +1636,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                     </thead>
                     <tbody>
                       {(() => {
-                        const projectTasks = tasks.filter(t => t.projectId === activeProjectId);
+                        const projectTasks = tasks.filter(t => selectedProject === 'all' || t.projectId === selectedProject);
                         const taskRows = projectTasks.map(task => {
                           const tsForTask = projectTimesheets.filter(ts => ts.taskId === task.id);
                           const hours = tsForTask.reduce((sum, ts) => sum + ts.hours, 0);
@@ -1601,13 +1645,15 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                           if (hours === 0) return null;
 
                           const assignee = users.find(u => u.id === task.assigneeId);
-                          const member = activeProject?.members?.find(m => m.userId === task.assigneeId);
+                          const proj = projects.find(p => p.id === task.projectId);
+                          const member = proj?.members?.find(m => m.userId === task.assigneeId);
                           const roleName = member?.role || '—';
+                          const displayTitle = selectedProject === 'all' ? `[${proj?.name || ''}] ${task.title}` : task.title;
 
                           return (
                             <tr key={task.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                              <td style={{ padding: '0.5rem 0.75rem', fontWeight: 500, color: 'var(--text-primary)' }} title={task.title}>
-                                {task.title.length > 28 ? `${task.title.slice(0, 28)}...` : task.title}
+                              <td style={{ padding: '0.5rem 0.75rem', fontWeight: 500, color: 'var(--text-primary)' }} title={displayTitle}>
+                                {displayTitle.length > 28 ? `${displayTitle.slice(0, 28)}...` : displayTitle}
                               </td>
                               <td style={{ padding: '0.5rem 0.75rem', color: 'var(--text-secondary)' }}>
                                 {assignee ? `${assignee.name.split(' ')[0]} (${roleName})` : 'Unassigned'}
@@ -1619,6 +1665,27 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                             </tr>
                           );
                         }).filter(Boolean);
+
+                        // Include unassigned row if there are any unassigned timesheets in this period
+                        const unassignedTimesheetsInProject = projectTimesheets.filter(ts => !ts.taskId);
+                        if (unassignedTimesheetsInProject.length > 0) {
+                          const unassignedHours = unassignedTimesheetsInProject.reduce((sum, ts) => sum + ts.hours, 0);
+                          const unassignedCost = unassignedTimesheetsInProject.reduce((sum, ts) => sum + getEntryCost(ts), 0);
+                          taskRows.push(
+                            <tr key="unassigned-row" style={{ borderBottom: '1px solid var(--border-color)', fontStyle: 'italic' }}>
+                              <td style={{ padding: '0.5rem 0.75rem', fontWeight: 500, color: 'var(--text-muted)' }}>
+                                Unassigned / General Project Work
+                              </td>
+                              <td style={{ padding: '0.5rem 0.75rem', color: 'var(--text-muted)' }}>
+                                —
+                              </td>
+                              <td style={{ padding: '0.5rem 0.75rem', textAlign: 'center', color: 'var(--text-muted)' }}>{unassignedHours} hrs</td>
+                              <td style={{ padding: '0.5rem 0.75rem', textAlign: 'right', fontWeight: 600, color: 'var(--text-muted)' }}>
+                                ฿{unassignedCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                              </td>
+                            </tr>
+                          );
+                        }
 
                         if (taskRows.length === 0) {
                           return (
@@ -1634,6 +1701,89 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                     </tbody>
                   </table>
                 </div>
+              </div>
+
+              {/* Task Cost Distribution Donut Chart */}
+              <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
+                  <PieChartIcon size={18} color="var(--accent-primary)" /> Task Cost Distribution
+                </h3>
+                {taskCostData.length === 0 ? (
+                  <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '3rem', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    No task cost data available.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
+                    <div style={{ position: 'relative', width: '100%', height: '220px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                      <PieChart width={260} height={220}>
+                        <Pie
+                          data={taskCostData}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={55}
+                          outerRadius={75}
+                          paddingAngle={2}
+                        >
+                          {taskCostData.map((_, index) => (
+                            <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          formatter={(value: any) => [`฿${value.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 'Cost']}
+                          contentStyle={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: '8px' }}
+                        />
+                      </PieChart>
+                      <div style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        textAlign: 'center',
+                        pointerEvents: 'none'
+                      }}>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.5px' }}>Total Task Cost</div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent-secondary)' }}>
+                          ฿{totalTaskCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                        </div>
+                      </div>
+                    </div>
+                    {/* Compact Legend */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.75rem', maxHeight: '100px', overflowY: 'auto', paddingRight: '4px' }}>
+                      {(() => {
+                        const topTasks = taskCostData.slice(0, 4);
+                        const otherTasks = taskCostData.slice(4);
+                        const otherCost = otherTasks.reduce((sum, item) => sum + item.value, 0);
+                        const legendItems = [...topTasks];
+                        if (otherCost > 0) {
+                          legendItems.push({
+                            name: 'Others',
+                            value: otherCost,
+                            hours: otherTasks.reduce((sum, item) => sum + item.hours, 0)
+                          });
+                        }
+                        return legendItems.map((item, idx) => {
+                          const percentage = ((item.value / totalTaskCost) * 100).toFixed(1);
+                          const color = item.name === 'Others' ? 'var(--text-muted)' : chartColors[idx % chartColors.length];
+                          return (
+                            <div key={item.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', minWidth: 0 }}>
+                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: color, flexShrink: 0 }} />
+                                <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', color: 'var(--text-secondary)' }} title={item.name}>
+                                  {item.name}
+                                </span>
+                              </div>
+                              <span style={{ fontWeight: 600, color: 'var(--text-primary)', marginLeft: '0.5rem', flexShrink: 0 }}>
+                                {percentage}%
+                              </span>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
