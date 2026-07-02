@@ -509,6 +509,44 @@ export const Projects = ({
                 />
               </div>
 
+              <div style={{ display: 'grid', gridTemplateColumns: projectType === 'support' ? '1fr 1fr' : '1fr', gap: '1rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ 
+                    fontSize: '0.875rem', 
+                    color: 'var(--text-secondary)',
+                    textDecoration: 'underline',
+                    textDecorationColor: '#ff4d4d',
+                    textDecorationThickness: '2px',
+                    textUnderlineOffset: '4px',
+                    fontWeight: 600
+                  }}>
+                    Project Type
+                  </label>
+                  <select 
+                    value={projectType} 
+                    onChange={e => setProjectType(e.target.value as 'dev' | 'support')}
+                    style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none' }}
+                  >
+                    <option value="dev">Development Project (มี Timeline & Sprint/Release)</option>
+                    <option value="support">Support Project (มีแค่ Task & บันทึกเวลาแยกตามระบบ/BU)</option>
+                  </select>
+                </div>
+
+                {projectType === 'support' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Support Task Auto-generation</label>
+                    <select 
+                      value={supportTaskStyle} 
+                      onChange={e => setSupportTaskStyle(e.target.value as 'monthly' | 'categories')}
+                      style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none' }}
+                    >
+                      <option value="categories">Category-based Tasks (ระบบสนับสนุน / BU Support)</option>
+                      <option value="monthly">Monthly Tasks (แบ่งเป็นถังรายเดือน [YYYY-MM])</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                 <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Description</label>
                 <textarea 
@@ -540,34 +578,6 @@ export const Projects = ({
                     <option key={ps.id} value={ps.id}>{ps.name} - {ps.description}</option>
                   ))}
                 </select>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: projectType === 'support' ? '1fr 1fr' : '1fr', gap: '1rem' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                  <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Project Type</label>
-                  <select 
-                    value={projectType} 
-                    onChange={e => setProjectType(e.target.value as 'dev' | 'support')}
-                    style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none' }}
-                  >
-                    <option value="dev">Development Project (มี Timeline & Sprint/Release)</option>
-                    <option value="support">Support Project (มีแค่ Task & บันทึกเวลาแยกตามระบบ/BU)</option>
-                  </select>
-                </div>
-
-                {projectType === 'support' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                    <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Support Task Auto-generation</label>
-                    <select 
-                      value={supportTaskStyle} 
-                      onChange={e => setSupportTaskStyle(e.target.value as 'monthly' | 'categories')}
-                      style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none' }}
-                    >
-                      <option value="categories">Category-based Tasks (ระบบสนับสนุน / BU Support)</option>
-                      <option value="monthly">Monthly Tasks (แบ่งเป็นถังรายเดือน [YYYY-MM])</option>
-                    </select>
-                  </div>
-                )}
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
