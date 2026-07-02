@@ -1567,7 +1567,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                             <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>{totalHours > 0 ? totalHours.toFixed(1) : '0'}</td>
                             <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>{totalMandays.toFixed(2)}</td>
                             <td style={{ padding: '0.85rem 1rem', textAlign: 'right', color: 'var(--accent-secondary)' }}>
-                              ฿{totalCost.toLocaleString(undefined, { minimumFractionDigits: 2 })} THB
+                              ฿{totalCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                             </td>
                           </tr>
                         </>
