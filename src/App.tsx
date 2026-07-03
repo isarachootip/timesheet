@@ -15,7 +15,7 @@ import KnowledgeBase from './components/KnowledgeBase';
 import ChatWidget from './components/ChatWidget';
 import { mockUsers, mockProjects, mockTasks, mockTimesheets } from './data/mockData';
 import type { User, Project, Task, TimesheetEntry, TaskTemplate, Sprint, Release, PermissionScheme, ProjectWorkflow, CostRate } from './types';
-import { formatToDDMMYY } from './utils';
+import { formatToDDMMYYYY } from './utils';
 import './index.css';
 
 // --- Helper to use LocalStorage with fallback ---
@@ -129,7 +129,7 @@ const NotificationBell = ({ tasks, currentUser }: { tasks: Task[], currentUser: 
         <div key={t.id} className="notif-item">
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>{t.title}</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>Due: {formatToDDMMYY(t.endDate)}</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>Due: {formatToDDMMYYYY(t.endDate)}</div>
           </div>
         </div>
       ))}

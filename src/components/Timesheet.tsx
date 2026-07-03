@@ -458,7 +458,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                 <div>
                   <h3 style={{ fontSize: '1.125rem' }}>Project Daily Report</h3>
                   <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.1rem' }}>
-                    Activity log for {format(selectedDate, 'MMMM d, yyyy')}
+                    Activity log for {format(selectedDate, 'dd/MM/yyyy')}
                   </p>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -653,7 +653,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                 <div>
                   <h3 style={{ fontSize: '1.125rem' }}>Team Daily Report</h3>
                   <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.1rem' }}>
-                    Activity log for {format(selectedDate, 'MMMM d, yyyy')}
+                    Activity log for {format(selectedDate, 'dd/MM/yyyy')}
                   </p>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -826,7 +826,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
           ) : (
             <div className="glass-panel" style={{ padding: '1.5rem', minHeight: '400px' }}>
               <div className="flex-between" style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
-                <h3 style={{ fontSize: '1.125rem' }}>Entries for {format(selectedDate, 'MMMM d, yyyy')}</h3>
+                <h3 style={{ fontSize: '1.125rem' }}>Entries for {format(selectedDate, 'dd/MM/yyyy')}</h3>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                   <div style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>{totalHoursToday} Hours Total</div>
                   <button onClick={openLogModal} style={{ 

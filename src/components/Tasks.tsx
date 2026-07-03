@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Task, TaskStatus, TaskPriority, Project, User, Sprint, Release, TaskCommit } from '../types';
-import { formatToDDMMYY } from '../utils';
+import { formatToDDMMYYYY } from '../utils';
 import { Plus, Filter, Clock, X, Edit, Trash2, GripVertical, Calendar, Bug, FileText, CheckSquare, Layers, GitBranch, GitCommit, ChevronRight, ChevronDown, BarChart3, CalendarRange } from 'lucide-react';
 import {
   DndContext,
@@ -340,7 +340,7 @@ function TaskCardContent({
           )}
           {task.startDate && (
             <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-              📅 {formatToDDMMYY(task.startDate)}{task.endDate ? ` → ${formatToDDMMYY(task.endDate)}` : ''}
+              📅 {formatToDDMMYYYY(task.startDate)}{task.endDate ? ` → ${formatToDDMMYYYY(task.endDate)}` : ''}
             </span>
           )}
         </div>
@@ -561,7 +561,7 @@ const getJiraStatusStyle = (status: TaskStatus) => {
 };
 
 const formatDueDate = (dateStr?: string) => {
-  return formatToDDMMYY(dateStr);
+  return formatToDDMMYYYY(dateStr);
 };
 
 interface BacklogTaskRowProps {
@@ -2174,7 +2174,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                       <div>
                         <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '1rem' }}>{activeSprint.name}</span>
                         <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginLeft: '0.75rem' }}>
-                          {formatToDDMMYY(activeSprint.startDate) || '—'} → {formatToDDMMYY(activeSprint.endDate) || '—'}
+                          {formatToDDMMYYYY(activeSprint.startDate) || '—'} → {formatToDDMMYYYY(activeSprint.endDate) || '—'}
                         </span>
                       </div>
                       <span style={{ fontWeight: 700, color: '#7C3AED', fontSize: '1.25rem' }}>{sprintDonePercent}%</span>
@@ -2321,7 +2321,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                           }}>
                             {daysLeft === 0 ? 'Today' : daysLeft === 1 ? 'Tomorrow' : `${daysLeft}d left`}
                           </span>
-                          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{formatToDDMMYY(t.endDate)}</span>
+                          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{formatToDDMMYYYY(t.endDate)}</span>
                         </div>
                       </div>
                     );
@@ -2854,7 +2854,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                   sprintName={activeSprint.name}
                   sprintDates={
                     activeSprint.startDate && activeSprint.endDate
-                      ? `${formatToDDMMYY(activeSprint.startDate)} - ${formatToDDMMYY(activeSprint.endDate)}`
+                      ? `${formatToDDMMYYYY(activeSprint.startDate)} - ${formatToDDMMYYYY(activeSprint.endDate)}`
                       : undefined
                   }
                   sprintStatus="Active"
@@ -2952,7 +2952,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                   sprintName={sprint.name}
                   sprintDates={
                     sprint.startDate && sprint.endDate
-                      ? `${formatToDDMMYY(sprint.startDate)} - ${formatToDDMMYY(sprint.endDate)}`
+                      ? `${formatToDDMMYYYY(sprint.startDate)} - ${formatToDDMMYYYY(sprint.endDate)}`
                       : undefined
                   }
                   sprintStatus="Planned"

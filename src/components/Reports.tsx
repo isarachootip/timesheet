@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { BarChart3, TrendingUp, Download, Printer, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Briefcase, Clock, Activity, LineChart as LineChartIcon, PieChart as PieChartIcon } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import type { User, Project, TimesheetEntry, Task, CostRate, Sprint } from '../types';
+import { formatToDDMMYYYY } from '../utils';
 
 interface ReportsProps {
   timesheets: TimesheetEntry[];
@@ -1063,7 +1064,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                                 background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)',
                               }}
                             >
-                              <td style={{ padding: '0.45rem 0.75rem', whiteSpace: 'nowrap' }}>{ts.date}</td>
+                              <td style={{ padding: '0.45rem 0.75rem', whiteSpace: 'nowrap' }}>{formatToDDMMYYYY(ts.date)}</td>
                               {isAdmin && (
                                 <td style={{ padding: '0.45rem 0.75rem', whiteSpace: 'nowrap' }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>

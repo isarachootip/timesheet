@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { TimesheetEntry, User, GlobalRole, Project, ProjectRole } from '../types';
 import { Check, X, Clock, Award, Users, Plus, Edit, Trash2, Calendar, Home } from 'lucide-react';
+import { formatToDDMMYYYY } from '../utils';
 
 interface TeamApprovalsProps {
   users: User[];
@@ -603,7 +604,7 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                           borderRadius: 'var(--radius-sm)' 
                         }}>
                           {pr.projectName} ({pr.role})
-                          {pr.startDate && <span style={{ marginLeft: '4px', opacity: 0.8 }}>• {pr.startDate} {pr.endDate ? `to ${pr.endDate}` : '(Present)'}</span>}
+                          {pr.startDate && <span style={{ marginLeft: '4px', opacity: 0.8 }}>• {formatToDDMMYYYY(pr.startDate)} {pr.endDate ? `to ${formatToDDMMYYYY(pr.endDate)}` : '(Present)'}</span>}
                         </span>
                       ))}
                     </div>
@@ -640,7 +641,7 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
                         <span style={{ fontWeight: 600 }}>{getUserName(entry.userId)}</span>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{entry.date}</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{formatToDDMMYYYY(entry.date)}</span>
                       </div>
                       <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                         <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{getProjectName(entry.projectId)}</span> ({getTaskName(entry.taskId)}): {entry.description}

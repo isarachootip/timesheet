@@ -1,7 +1,7 @@
 import { Clock, CheckSquare, Briefcase, AlertTriangle, TrendingUp, Users, ChevronRight, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { User, Project, Task, TimesheetEntry } from '../types';
-import { formatToDDMMYY } from '../utils';
+import { formatToDDMMYYYY } from '../utils';
 
 interface DashboardProps {
   projects: Project[];
@@ -18,7 +18,7 @@ const getGreeting = (): string => {
 };
 
 const formatDate = (date: Date): string => {
-  return formatToDDMMYY(date);
+  return formatToDDMMYYYY(date);
 };
 
 const priorityColors: Record<string, string> = {
@@ -374,7 +374,7 @@ export const Dashboard = ({ projects, tasks, timesheets, currentUser }: Dashboar
                         {task.endDate && (
                            <span style={{ fontSize: '0.75rem', color: isOverdue ? '#ef4444' : 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
                              <Calendar size={11} />
-                             {formatToDDMMYY(task.endDate)}
+                             {formatToDDMMYYYY(task.endDate)}
                            </span>
                         )}
                       </div>
