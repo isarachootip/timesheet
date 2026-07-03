@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Task, TaskStatus, TaskPriority, Project, User, Sprint, Release, TaskCommit } from '../types';
+import { formatToYYMMDD } from '../utils';
 import { Plus, Filter, Clock, X, Edit, Trash2, GripVertical, Calendar, Bug, FileText, CheckSquare, Layers, GitBranch, GitCommit, ChevronRight, ChevronDown, BarChart3, CalendarRange } from 'lucide-react';
 import {
   DndContext,
@@ -339,7 +340,7 @@ function TaskCardContent({
           )}
           {task.startDate && (
             <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-              📅 {task.startDate}{task.endDate ? ` → ${task.endDate}` : ''}
+              📅 {formatToYYMMDD(task.startDate)}{task.endDate ? ` → ${formatToYYMMDD(task.endDate)}` : ''}
             </span>
           )}
         </div>
@@ -560,13 +561,7 @@ const getJiraStatusStyle = (status: TaskStatus) => {
 };
 
 const formatDueDate = (dateStr?: string) => {
-  if (!dateStr) return '';
-  try {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  } catch (e) {
-    return dateStr;
-  }
+  return formatToYYMMDD(dateStr);
 };
 
 interface BacklogTaskRowProps {
@@ -2179,7 +2174,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                       <div>
                         <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '1rem' }}>{activeSprint.name}</span>
                         <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginLeft: '0.75rem' }}>
-                          {activeSprint.startDate || '—'} → {activeSprint.endDate || '—'}
+                          {formatToYYMMDD(activeSprint.startDate) || '—'} → {formatToYYMMDD(activeSprint.endDate) || '—'}
                         </span>
                       </div>
                       <span style={{ fontWeight: 700, color: '#7C3AED', fontSize: '1.25rem' }}>{sprintDonePercent}%</span>
@@ -2326,7 +2321,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                           }}>
                             {daysLeft === 0 ? 'Today' : daysLeft === 1 ? 'Tomorrow' : `${daysLeft}d left`}
                           </span>
-                          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{t.endDate}</span>
+                          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{formatToYYMMDD(t.endDate)}</span>
                         </div>
                       </div>
                     );
@@ -2339,9 +2334,17 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
       })()}
 
       {/* ── TIMELINE TAB ───────────────────────────────────────────────────────── */}
-      {activeSubTab === 'timeline' && (() => {
-        // Timeline Gantt Chart implementation
-        const timelineTasks = filteredTasks.filter(t => t.startDate || t.endDate);
+      {activeSubTab === 'timeline' && (
+        selectedProject === 'all' ? (
+          <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+            <h3>Please Select a Project</h3>
+            <p style={{ marginTop: '0.5rem', color: 'var(--text-muted)' }}>
+              Timeline Gantt chart requires filtering by a specific project. Use the filter dropdown above.
+            </p>
+          </div>
+        ) : (() => {
+          // Timeline Gantt Chart implementation
+          const timelineTasks = filteredTasks.filter(t => t.startDate || t.endDate);
         const allDates = timelineTasks.flatMap(t => [t.startDate, t.endDate].filter(Boolean) as string[]);
         
         // Calculate date range
@@ -2762,7 +2765,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
             )}
           </div>
         );
-      })()}
+      })())}
 
       {/* CONDITIONAL SUBTAB RENDERING */}
       {activeSubTab === 'board' && (
@@ -2851,7 +2854,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                   sprintName={activeSprint.name}
                   sprintDates={
                     activeSprint.startDate && activeSprint.endDate
-                      ? `${activeSprint.startDate} - ${activeSprint.endDate}`
+                      ? `${formatToYYMMDD(activeSprint.startDate)} - ${formatToYYMMDD(activeSprint.endDate)}`
                       : undefined
                   }
                   sprintStatus="Active"
@@ -2949,7 +2952,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                   sprintName={sprint.name}
                   sprintDates={
                     sprint.startDate && sprint.endDate
-                      ? `${sprint.startDate} - ${sprint.endDate}`
+                      ? `${formatToYYMMDD(sprint.startDate)} - ${formatToYYMMDD(sprint.endDate)}`
                       : undefined
                   }
                   sprintStatus="Planned"

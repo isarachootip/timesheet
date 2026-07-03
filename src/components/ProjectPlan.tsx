@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import type { Project, Task, User, TaskPriority, TaskStatus, TaskTemplate, PermissionScheme } from '../types';
 import { Calendar, CheckCircle2, Check, Clock, ArrowRight, Plus, Edit, Trash2, X, Save, Zap, ChevronDown, ChevronRight, BarChart3 } from 'lucide-react';
+import { formatToYYMMDD } from '../utils';
 
 interface Baseline {
   id: string;
@@ -293,7 +294,7 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
   if (projDuration > 0) {
     for (let i = 0; i <= 4; i++) {
       const tickTime = projStart + (projDuration * i) / 4;
-      ticks.push(new Date(tickTime).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: '2-digit' }));
+      ticks.push(formatToYYMMDD(new Date(tickTime)));
     }
   }
 
@@ -760,7 +761,7 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
                 <p style={{ fontSize: '0.8rem', color: '#a5b4fc', marginBottom: '0.2rem' }}>Project Duration</p>
                 <h3 style={{ fontSize: '1.4rem', fontWeight: 700, color: 'white' }}>{totalDays} Days</h3>
                 <p style={{ fontSize: '0.75rem', color: '#c7d2fe', marginTop: '0.1rem' }}>
-                  {new Date(project.startDate).toLocaleDateString()} → {project.endDate ? new Date(project.endDate).toLocaleDateString() : 'Ongoing'}
+                  {formatToYYMMDD(project.startDate)} → {project.endDate ? formatToYYMMDD(project.endDate) : 'Ongoing'}
                 </p>
               </div>
             </div>
@@ -886,7 +887,7 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
                                 border: `2px solid ${progress === 100 ? '#10b981' : '#38bdf8'}`,
                                 borderRadius: '5px', overflow: 'hidden', display: 'flex', alignItems: 'center', padding: '0 6px',
                                 zIndex: 2
-                              }} title={`Comparison: ${compGeom.start ? new Date(compGeom.start).toLocaleDateString() : 'TBD'} → ${compGeom.end ? new Date(compGeom.end).toLocaleDateString() : 'TBD'}`}>
+                              }} title={`Comparison: ${compGeom.start ? formatToYYMMDD(compGeom.start) : 'TBD'} → ${compGeom.end ? formatToYYMMDD(compGeom.end) : 'TBD'}`}>
                                 <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${progress}%`, background: progress === 100 ? '#10b981' : '#38bdf8', opacity: 0.2 }} />
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', zIndex: 1 }}>
                                   {progress === 100 && (
@@ -910,7 +911,7 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
                                 background: 'rgba(255,255,255,0.03)', border: '2px dashed rgba(255,255,255,0.3)',
                                 borderRadius: '5px', display: 'flex', alignItems: 'center', padding: '0 6px',
                                 zIndex: 1
-                              }} title={`Baseline: ${baseGeom.start ? new Date(baseGeom.start).toLocaleDateString() : 'TBD'} → ${baseGeom.end ? new Date(baseGeom.end).toLocaleDateString() : 'TBD'}`}>
+                              }} title={`Baseline: ${baseGeom.start ? formatToYYMMDD(baseGeom.start) : 'TBD'} → ${baseGeom.end ? formatToYYMMDD(baseGeom.end) : 'TBD'}`}>
                                 <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>Base Plan</span>
                               </div>
                             ) : (
@@ -1033,9 +1034,9 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
                         <div style={{ fontSize: '0.9rem', color: '#d1d5db' }}>
                           {m.startDate && m.endDate ? (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                              <span>{new Date(m.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                              <span>{formatToYYMMDD(m.startDate)}</span>
                               <ArrowRight size={10} />
-                              <span>{new Date(m.endDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                              <span>{formatToYYMMDD(m.endDate)}</span>
                             </div>
                           ) : <span style={{ color: '#4b5563' }}>Not scheduled</span>}
                         </div>
@@ -1077,7 +1078,7 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
                                     <p style={{ fontSize: '0.8rem', color: '#9ca3af', marginTop: '0.1rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '260px' }}>{sub.description}</p>
                                   </div>
                                   <div style={{ fontSize: '0.85rem', color: '#9ca3af' }}>
-                                    {sub.startDate ? new Date(sub.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '—'}
+                                    {sub.startDate ? formatToYYMMDD(sub.startDate) : '—'}
                                   </div>
                                   <span style={{ fontSize: '0.92rem', color: '#e5e7eb' }}>{sub.estimatedHours}h</span>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
