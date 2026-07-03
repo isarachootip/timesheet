@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import type { Project, Task, User, TaskPriority, TaskStatus, TaskTemplate, PermissionScheme } from '../types';
-import { Calendar, CheckCircle2, Check, Clock, ArrowRight, Plus, Edit, Trash2, X, Save, Zap, ChevronDown, ChevronRight, BarChart3 } from 'lucide-react';
+import { Calendar, CheckCircle2, Check, Clock, ArrowRight, Plus, Edit, Trash2, X, Save, Zap, ChevronDown, ChevronRight, BarChart3, Search } from 'lucide-react';
 import { formatToYYMMDD } from '../utils';
 
 interface Baseline {
@@ -68,6 +68,7 @@ interface ProjectPlanProps {
 export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, permissionSchemes, currentUser, fetchInitialData }: ProjectPlanProps) => {
   const [selectedProjectId, setSelectedProjectId] = useState<string>(projects[0]?.id || '');
   const [expandedMilestones, setExpandedMilestones] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [defaultParentId, setDefaultParentId] = useState<string | undefined>(undefined);
@@ -240,6 +241,27 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
       const bTime = b.startDate ? new Date(b.startDate).getTime() : 0;
       return aTime - bTime;
     });
+
+  const filteredMilestones = projectMilestones.filter(m => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    
+    // Check if milestone title/description matches
+    const matchMilestone = 
+      m.title.toLowerCase().includes(q) || 
+      (m.description || '').toLowerCase().includes(q);
+    
+    if (matchMilestone) return true;
+    
+    // Check if any of its subtasks match
+    const subtasks = tasks.filter(t => t.parentId === m.id);
+    const matchSubtask = subtasks.some(sub => 
+      sub.title.toLowerCase().includes(q) || 
+      (sub.description || '').toLowerCase().includes(q)
+    );
+    
+    return matchSubtask;
+  });
 
   const getSubtasks = (milestoneId: string) =>
     tasks.filter(t => t.parentId === milestoneId);
@@ -581,6 +603,43 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
         </div>
       </div>
 
+      {/* ─── Search Bar ─── */}
+      {project && project.projectType !== 'support' && (
+        <div className="glass-panel" style={{ padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px' }}>
+          <Search size={18} style={{ color: 'var(--text-muted)' }} />
+          <input
+            type="text"
+            placeholder="Search milestones and subtasks..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-primary)',
+              outline: 'none',
+              width: '100%',
+              fontSize: '0.92rem'
+            }}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                padding: 0,
+                display: 'flex',
+                alignItems: 'center'
+              }}
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
+      )}
+
       {project ? (
         project.projectType === 'support' ? (
           <div className="glass-panel flex-center" style={{ padding: '4rem 2rem', flexDirection: 'column', gap: '1.5rem', textAlign: 'center', minHeight: '300px' }}>
@@ -833,7 +892,12 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
                 </div>
                 {/* Gantt rows */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: compareData ? '1.25rem' : '0.85rem' }}>
-                  {projectMilestones.map(m => {
+                  {filteredMilestones.length === 0 ? (
+                    <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                      No matching milestones found.
+                    </div>
+                  ) : (
+                    filteredMilestones.map(m => {
                     const subtasks = getSubtasks(m.id);
                     const progress = calculateMilestoneProgress(m.id, m.status);
 
@@ -991,7 +1055,7 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
                         </div>
                       );
                     }
-                  })}
+                  }))}
                 </div>
               </div>
             </div>
@@ -1008,16 +1072,29 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {projectMilestones.map(m => {
-                  const progress = calculateMilestoneProgress(m.id, m.status);
-                  const subtasks = getSubtasks(m.id);
-                  const isExpanded = expandedMilestones.has(m.id);
-                  const statusColors = getStatusColor(m.status);
+                {filteredMilestones.length === 0 ? (
+                  <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '10px' }}>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>No matching milestones or subtasks found</h3>
+                    <p style={{ marginTop: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>Try adjusting your search terms.</p>
+                  </div>
+                ) : (
+                  filteredMilestones.map(m => {
+                    const progress = calculateMilestoneProgress(m.id, m.status);
+                    const subtasks = getSubtasks(m.id);
+                    const visibleSubtasks = subtasks.filter(sub => {
+                      if (!searchQuery) return true;
+                      const q = searchQuery.toLowerCase();
+                      const milestoneMatches = m.title.toLowerCase().includes(q) || (m.description || '').toLowerCase().includes(q);
+                      if (milestoneMatches) return true;
+                      return sub.title.toLowerCase().includes(q) || (sub.description || '').toLowerCase().includes(q);
+                    });
+                    const isExpanded = searchQuery ? true : expandedMilestones.has(m.id);
+                    const statusColors = getStatusColor(m.status);
 
-                  return (
-                    <div key={m.id} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', overflow: 'hidden' }}>
-                      {/* Milestone row */}
-                      <div style={{ padding: '1rem 1.25rem', display: 'grid', gridTemplateColumns: '28px 2fr 1fr 1fr 1fr 1fr auto', gap: '0.75rem', alignItems: 'center', cursor: 'pointer' }} onClick={() => toggleMilestone(m.id)}>
+                    return (
+                      <div key={m.id} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', overflow: 'hidden' }}>
+                        {/* Milestone row */}
+                        <div style={{ padding: '1rem 1.25rem', display: 'grid', gridTemplateColumns: '28px 2fr 1fr 1fr 1fr 1fr auto', gap: '0.75rem', alignItems: 'center', cursor: 'pointer' }} onClick={() => toggleMilestone(m.id)}>
                         {/* Expand icon */}
                         <span style={{ color: '#6b7280' }}>
                           {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
@@ -1067,8 +1144,10 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
                         <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', background: 'rgba(0,0,0,0.15)' }}>
                           {subtasks.length === 0 ? (
                             <div style={{ padding: '0.75rem 1.5rem', fontSize: '0.85rem', color: '#4b5563', fontStyle: 'italic' }}>No subtasks yet — click ➕ to add one.</div>
+                          ) : visibleSubtasks.length === 0 ? (
+                            <div style={{ padding: '0.75rem 1.5rem', fontSize: '0.85rem', color: '#4b5563', fontStyle: 'italic' }}>No subtasks match your search query.</div>
                           ) : (
-                            subtasks.map(sub => {
+                            visibleSubtasks.map(sub => {
                               const subColors = getStatusColor(sub.status);
                               return (
                                 <div key={sub.id} style={{ padding: '0.65rem 1.25rem 0.65rem 3rem', display: 'grid', gridTemplateColumns: '28px 2fr 1fr 1fr 1fr 1fr auto', gap: '0.75rem', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
@@ -1103,7 +1182,7 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
                       )}
                     </div>
                   );
-                })}
+                }))}
               </div>
             </div>
           )}
