@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { Calendar, Users, DollarSign, Plus, X, Edit, Trash2, GitBranch, MessageSquare } from 'lucide-react';
 import type { User, Project, ProjectStatus, ProjectRole, Task, PermissionScheme, ProjectWorkflow } from '../types';
-import { formatToYYMMDD } from '../utils';
+import { formatToDDMMYY } from '../utils';
 
 interface ProjectsProps {
   projects: Project[];
@@ -406,7 +406,7 @@ export const Projects = ({
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
                   <Calendar size={16} />
-                  <span>{formatToYYMMDD(project.startDate)} - {project.endDate ? formatToYYMMDD(project.endDate) : 'Ongoing'}</span>
+                  <span>{formatToDDMMYY(project.startDate)} - {project.endDate ? formatToDDMMYY(project.endDate) : 'Ongoing'}</span>
                 </div>
                 {project.budget && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
@@ -461,7 +461,7 @@ export const Projects = ({
                               {t.title}
                             </span>
                             <span style={{ color: 'var(--text-secondary)' }}>
-                              {t.startDate ? `${formatToYYMMDD(t.startDate)} - ${t.endDate ? formatToYYMMDD(t.endDate) : ''}` : ''}
+                              {t.startDate ? `${formatToDDMMYY(t.startDate)} - ${t.endDate ? formatToDDMMYY(t.endDate) : ''}` : ''}
                             </span>
                           </div>
                         ))}
