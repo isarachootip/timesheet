@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { Project, Task, User, TaskPriority, TaskStatus, TaskTemplate, PermissionScheme } from '../types';
 import { Calendar, CheckCircle2, Check, Clock, ArrowRight, Plus, Edit, Trash2, X, Save, Zap, ChevronDown, ChevronRight, BarChart3, Search } from 'lucide-react';
 import { formatToDDMMYYYY } from '../utils';
+import { CustomDateInput } from './CustomDateInput';
 
 interface Baseline {
   id: string;
@@ -1284,12 +1285,12 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
                 {/* Start Date */}
                 <div>
                   <label style={labelStyle}>Start Date</label>
-                  <input type="date" value={formStartDate} onChange={e => setFormStartDate(e.target.value)} style={inputStyle} />
+                  <CustomDateInput value={formStartDate} onChange={e => setFormStartDate(e.target.value)} style={inputStyle} />
                 </div>
                 {/* End Date */}
                 <div>
                   <label style={labelStyle}>End Date</label>
-                  <input type="date" value={formEndDate} onChange={e => setFormEndDate(e.target.value)} style={inputStyle} />
+                  <CustomDateInput value={formEndDate} onChange={e => setFormEndDate(e.target.value)} style={inputStyle} />
                 </div>
               </div>
 

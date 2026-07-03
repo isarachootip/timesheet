@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { TimesheetEntry, User, GlobalRole, Project, ProjectRole } from '../types';
 import { Check, X, Clock, Award, Users, Plus, Edit, Trash2, Calendar, Home } from 'lucide-react';
 import { formatToDDMMYYYY } from '../utils';
+import { CustomDateInput } from './CustomDateInput';
 
 interface TeamApprovalsProps {
   users: User[];
@@ -931,8 +932,7 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                   <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Birthday</label>
-                  <input 
-                    type="date" 
+                  <CustomDateInput 
                     value={birthday} 
                     onChange={e => setBirthday(e.target.value)} 
                     style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.45rem 0.75rem', color: 'var(--text-primary)', outline: 'none' }}

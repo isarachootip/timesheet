@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Task, TaskStatus, TaskPriority, Project, User, Sprint, Release, TaskCommit } from '../types';
 import { formatToDDMMYYYY } from '../utils';
+import { CustomDateInput } from './CustomDateInput';
 import { Plus, Filter, Clock, X, Edit, Trash2, GripVertical, Calendar, Bug, FileText, CheckSquare, Layers, GitBranch, GitCommit, ChevronRight, ChevronDown, BarChart3, CalendarRange } from 'lucide-react';
 import {
   DndContext,
@@ -4040,8 +4041,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                   <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
                     Start Date
                   </label>
-                  <input
-                    type="date"
+                  <CustomDateInput
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
                     style={{
@@ -4059,8 +4059,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                   <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
                     End Date
                   </label>
-                  <input
-                    type="date"
+                  <CustomDateInput
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
                     style={{

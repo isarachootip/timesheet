@@ -3,6 +3,7 @@ import { useLocation, Link } from 'react-router-dom';
 import { Calendar, Users, DollarSign, Plus, X, Edit, Trash2, GitBranch, MessageSquare } from 'lucide-react';
 import type { User, Project, ProjectStatus, ProjectRole, Task, PermissionScheme, ProjectWorkflow } from '../types';
 import { formatToDDMMYYYY } from '../utils';
+import { CustomDateInput } from './CustomDateInput';
 
 interface ProjectsProps {
   projects: Project[];
@@ -608,27 +609,25 @@ export const Projects = ({
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                  <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Start Date *</label>
-                  <input 
-                    type="date" 
-                    value={startDate} 
-                    onChange={e => setStartDate(e.target.value)} 
-                    style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none' }}
-                    required
-                  />
-                </div>
+                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                   <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Start Date *</label>
+                   <CustomDateInput 
+                     value={startDate} 
+                     onChange={e => setStartDate(e.target.value)} 
+                     style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none' }}
+                     required
+                   />
+                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                  <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>End Date</label>
-                  <input 
-                    type="date" 
-                    value={endDate} 
-                    onChange={e => setEndDate(e.target.value)} 
-                    style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none' }}
-                  />
-                </div>
-              </div>
+                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                   <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>End Date</label>
+                   <CustomDateInput 
+                     value={endDate} 
+                     onChange={e => setEndDate(e.target.value)} 
+                     style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem 1rem', color: 'var(--text-primary)', outline: 'none' }}
+                   />
+                 </div>
+               </div>
 
               {/* Members Setup */}
               <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>

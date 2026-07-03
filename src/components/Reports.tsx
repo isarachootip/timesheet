@@ -3,6 +3,7 @@ import { BarChart3, TrendingUp, Download, Printer, ChevronLeft, ChevronRight, Ca
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import type { User, Project, TimesheetEntry, Task, CostRate, Sprint } from '../types';
 import { formatToDDMMYYYY } from '../utils';
+import { CustomDateInput } from './CustomDateInput';
 
 interface ReportsProps {
   timesheets: TimesheetEntry[];
@@ -736,15 +737,13 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
 
               <div className="glass-panel" style={{ padding: '0.4rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>From:</span>
-                <input
-                  type="date"
+                <CustomDateInput
                   value={startDate}
                   onChange={e => setStartDate(e.target.value)}
                   style={inputStyle}
                 />
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>To:</span>
-                <input
-                  type="date"
+                <CustomDateInput
                   value={endDate}
                   onChange={e => setEndDate(e.target.value)}
                   style={inputStyle}
@@ -1343,8 +1342,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                     {costReportType === 'daily' ? 'Date:' : costReportType === 'weekly' ? 'Week:' : costReportType === 'monthly' ? 'Month:' : 'Year:'}
                   </span>
                 {costReportType === 'daily' && (
-                  <input
-                    type="date"
+                  <CustomDateInput
                     value={costDate}
                     onChange={e => setCostDate(e.target.value)}
                     style={inputStyle}
