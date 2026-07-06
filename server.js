@@ -1395,10 +1395,10 @@ app.get('/api/initial-data', async (req, res) => {
 // Users REST API
 app.post('/api/users', async (req, res) => {
   const { id, name, email, avatar, globalRole, department, gender, birthday, skills, password, wfhDays } = req.body;
+  let pwHash = null;
   try {
     // Check if user already exists to preserve their password_hash, or set default ('password123' hashed)
     const existingUser = await pool.query('SELECT password_hash FROM users WHERE id = $1 OR email = $2', [id, email]);
-    let pwHash = null;
     if (password && password.trim() !== '') {
       pwHash = crypto.createHash('sha256').update(password).digest('hex');
     } else if (existingUser.rows.length > 0 && existingUser.rows[0].password_hash) {
