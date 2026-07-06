@@ -1,16 +1,13 @@
-import { useState } from 'react';
-import { Clock, CheckSquare, Briefcase, AlertTriangle, TrendingUp, Users, ChevronRight, Calendar, X } from 'lucide-react';
+import { Clock, CheckSquare, Briefcase, AlertTriangle, TrendingUp, Users, ChevronRight, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { User, Project, Task, TimesheetEntry } from '../types';
 import { formatToDDMMYYYY } from '../utils';
-import { CustomDateInput } from './CustomDateInput';
 
 interface DashboardProps {
   projects: Project[];
   tasks: Task[];
   timesheets: TimesheetEntry[];
   currentUser: User;
-  setTimesheets: React.Dispatch<React.SetStateAction<TimesheetEntry[]>>;
 }
 
 const getGreeting = (): string => {
@@ -60,56 +57,10 @@ const Badge = ({ label, color }: { label: string; color: string }) => (
   </span>
 );
 
-export const Dashboard = ({ projects, tasks, timesheets, currentUser, setTimesheets }: DashboardProps) => {
+export const Dashboard = ({ projects, tasks, timesheets, currentUser }: DashboardProps) => {
   const navigate = useNavigate();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-
-  const [logModalOpen, setLogModalOpen] = useState(false);
-  const [selectedTaskForLog, setSelectedTaskForLog] = useState<Task | null>(null);
-  const [logHours, setLogHours] = useState('8');
-  const [logDescription, setLogDescription] = useState('');
-  const [logDate, setLogDate] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  });
-  const [logWorkResults, setLogWorkResults] = useState('');
-  const [toastMsg, setToastMsg] = useState<string | null>(null);
-
-  const handleQuickLog = (task: Task) => {
-    setSelectedTaskForLog(task);
-    setLogDescription(task.title);
-    setLogHours('8');
-    setLogWorkResults('');
-    const d = new Date();
-    setLogDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
-    setLogModalOpen(true);
-  };
-
-  const handleSaveQuickLog = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedTaskForLog) return;
-    if (!logHours || !logDescription) return alert('Hours and Description are required');
-
-    const newEntry: TimesheetEntry = {
-      id: 'ts_' + Date.now(),
-      userId: currentUser.id,
-      projectId: selectedTaskForLog.projectId,
-      taskId: selectedTaskForLog.id,
-      date: logDate,
-      hours: Number(logHours),
-      description: logDescription,
-      workResults: logWorkResults || undefined,
-      status: 'Pending'
-    };
-
-    setTimesheets(prev => [...prev, newEntry]);
-    setLogModalOpen(false);
-    
-    // Show toast
-    setToastMsg('⚡ Logged time successfully!');
-    setTimeout(() => setToastMsg(null), 3000);
-  };
 
   // --- Hero stats ---
   const activeProjects = projects.filter(
@@ -434,7 +385,7 @@ export const Dashboard = ({ projects, tasks, timesheets, currentUser, setTimeshe
                         <Badge label={task.status} color={statusColors[task.status] || 'rgba(107,114,128,0.8)'} />
                       </div>
                       <button 
-                        onClick={() => handleQuickLog(task)}
+                        onClick={() => navigate('/timesheet', { state: { autoOpenLog: true, projectId: task.projectId, taskId: task.id, taskTitle: task.title } })}
                         style={{
                           background: 'linear-gradient(135deg, var(--accent-primary), #7c3aed)',
                           color: 'white',
@@ -537,129 +488,6 @@ export const Dashboard = ({ projects, tasks, timesheets, currentUser, setTimeshe
           )}
         </div>
       </div>
-      {toastMsg && (
-        <div style={{
-          position: 'fixed', top: '1.25rem', right: '1.25rem', zIndex: 9999,
-          background: 'linear-gradient(135deg,#10b981,#059669)',
-          color: 'white', padding: '0.85rem 1.5rem', borderRadius: 'var(--radius-md)',
-          boxShadow: 'var(--shadow-lg)', display: 'flex', alignItems: 'center', gap: '0.5rem',
-          fontWeight: 600, animation: 'slideIn 0.3s ease'
-        }}>
-          <span>{toastMsg}</span>
-        </div>
-      )}
-
-      {logModalOpen && selectedTaskForLog && (
-        <div className="modal-backdrop" style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
-        }}>
-          <div className="glass-panel" style={{
-            width: '450px', padding: '1.75rem', display: 'flex', flexDirection: 'column', gap: '1.25rem',
-            background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)'
-          }}>
-            <div className="flex-between" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Clock size={18} color="var(--accent-primary)" />
-                Quick Log Timesheet
-              </h3>
-              <button onClick={() => setLogModalOpen(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveQuickLog} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Task</label>
-                <div style={{
-                  padding: '0.65rem 0.85rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)',
-                  fontSize: '0.875rem', border: '1px solid var(--border-color)', color: 'var(--text-primary)', fontWeight: 500
-                }}>
-                  {selectedTaskForLog.title}
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Date *</label>
-                  <CustomDateInput
-                    value={logDate}
-                    onChange={e => setLogDate(e.target.value)}
-                    style={{
-                      background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)',
-                      padding: '0.5rem 0.75rem', color: 'var(--text-primary)', outline: 'none'
-                    }}
-                    required
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Hours *</label>
-                  <input
-                    type="number"
-                    value={logHours}
-                    onChange={e => setLogHours(e.target.value)}
-                    style={{
-                      width: '100%',
-                      background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)',
-                      padding: '0.5rem 0.75rem', color: 'var(--text-primary)', outline: 'none'
-                    }}
-                    min="0.5"
-                    max="24"
-                    step="0.5"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Description *</label>
-                <input
-                  type="text"
-                  value={logDescription}
-                  onChange={e => setLogDescription(e.target.value)}
-                  style={{
-                    width: '100%',
-                    background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)',
-                    padding: '0.5rem 0.75rem', color: 'var(--text-primary)', outline: 'none'
-                  }}
-                  required
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Work Results (Optional)</label>
-                <textarea
-                  value={logWorkResults}
-                  onChange={e => setLogWorkResults(e.target.value)}
-                  style={{
-                    width: '100%', height: '60px', resize: 'none',
-                    background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)',
-                    padding: '0.5rem 0.75rem', color: 'var(--text-primary)', outline: 'none', fontSize: '0.85rem'
-                  }}
-                  placeholder="What did you achieve?"
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button type="button" onClick={() => setLogModalOpen(false)} style={{
-                  flex: 1, padding: '0.65rem', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)',
-                  background: 'transparent', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 600
-                }}>
-                  Cancel
-                </button>
-                <button type="submit" style={{
-                  flex: 1, padding: '0.65rem', border: 'none', borderRadius: 'var(--radius-md)',
-                  background: 'linear-gradient(135deg, var(--accent-primary), #7c3aed)', color: 'white', cursor: 'pointer', fontWeight: 600,
-                  boxShadow: '0 4px 6px rgba(124, 58, 237, 0.2)'
-                }}>
-                  Log Time
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

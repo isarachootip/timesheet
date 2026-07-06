@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Clock, Plus, CheckCircle2, Calendar as CalendarIcon, X, Trash2, ChevronLeft, ChevronRight, XCircle, Edit, Paperclip, ImageIcon } from 'lucide-react';
 import { format, isSameDay, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, isSameMonth } from 'date-fns';
 import type { TimesheetEntry, Project, Task, User, TimesheetStatus } from '../types';
@@ -32,6 +33,22 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
   const [isUploading, setIsUploading] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+
+  const location = useLocation();
+  const hasAutoOpened = useRef(false);
+
+  useEffect(() => {
+    if (location.state?.autoOpenLog && !hasAutoOpened.current) {
+      hasAutoOpened.current = true;
+      const { projectId: sProjId, taskId: sTaskId, taskTitle } = location.state;
+      setIsModalOpen(true);
+      setProjectId(sProjId || '');
+      setTaskId(sTaskId || '');
+      setDescription(taskTitle || '');
+      // Clear location state to avoid reopening on reload
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   // Filter project-specific tasks. Employees/Users only see tasks assigned to them or unassigned.
   const projectTasks = tasks.filter(t => {
