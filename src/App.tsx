@@ -521,6 +521,34 @@ function App() {
                 const err = await res.json();
                 alert(err.error || 'Failed to save task');
                 fetchInitialData();
+              } else {
+                // If status transitioned to 'In Progress'
+                const prevStatus = prevTask?.status?.toLowerCase() || '';
+                const newStatus = nTask.status?.toLowerCase() || '';
+                if (newStatus === 'in progress' && prevStatus !== 'in progress') {
+                  const tsDate = nTask.startDate || new Date().toISOString().split('T')[0];
+                  const tsHours = nTask.estimatedHours && nTask.estimatedHours > 0 ? nTask.estimatedHours : 8;
+                  
+                  const newTs: TimesheetEntry = {
+                    id: 'ts_' + Date.now(),
+                    userId: nTask.assigneeId || currentUser?.id || '',
+                    projectId: nTask.projectId,
+                    taskId: nTask.id,
+                    date: tsDate,
+                    hours: tsHours,
+                    description: `Started work on: ${nTask.title}`,
+                    status: 'Pending'
+                  };
+                  
+                  handleSetTimesheets(prevTs => {
+                    // Prevent duplicate timesheet entries for the same task on the same date
+                    const isDuplicate = prevTs.some(t => t.taskId === newTs.taskId && t.date === newTs.date);
+                    if (isDuplicate) return prevTs;
+                    return [...prevTs, newTs];
+                  });
+                  
+                  alert(`⚡ System has automatically logged a timesheet entry for task:\n"${nTask.title}"\nDate: ${tsDate.split('-').reverse().join('/')}\nHours: ${tsHours}h`);
+                }
               }
             });
           }
