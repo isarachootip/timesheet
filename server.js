@@ -20,8 +20,18 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json({ limit: '50mb' })); // Support base64 image uploads
 
-// Serve React build static assets
-app.use(express.static(path.join(__dirname, 'dist')));
+// Serve React build static assets (no-cache so browsers always load latest build)
+app.use(express.static(path.join(__dirname, 'dist'), {
+  etag: false,
+  lastModified: false,
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-store');
+    } else {
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    }
+  }
+}));
 // Serve Uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 

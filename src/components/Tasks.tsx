@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { Task, TaskStatus, TaskPriority, Project, User, Sprint, Release, TaskCommit } from '../types';
 import { formatToDDMMYYYY } from '../utils';
 import { CustomDateInput } from './CustomDateInput';
@@ -1168,7 +1168,29 @@ function DroppableBacklogSection({
 // ── Main Tasks Component ───────────────────────────────────────────────────────
 export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, releases, setReleases, projectWorkflows, setProjectWorkflows: _setProjectWorkflows, permissionSchemes, currentUser }: TasksProps) => {
   const [selectedProject, setSelectedProject] = useState<string>('all');
+  const [selectedSprint, setSelectedSprint] = useState<string>('all');
   const [activeSubTab, setActiveSubTab] = useState<'summary' | 'backlog' | 'board' | 'timeline' | 'releases' | 'grooming'>('summary');
+
+  const prevProjectRef = useRef(selectedProject);
+  useEffect(() => {
+    const projectChanged = prevProjectRef.current !== selectedProject;
+    prevProjectRef.current = selectedProject;
+
+    if (selectedProject === 'all') {
+      setSelectedSprint('all');
+    } else {
+      const projSprints = sprints.filter((s) => s.projectId === selectedProject);
+      const active = projSprints.find((s) => s.status === 'Active');
+      
+      if (projectChanged || (selectedSprint === 'all' && active)) {
+        if (active) {
+          setSelectedSprint(active.id);
+        } else {
+          setSelectedSprint('all');
+        }
+      }
+    }
+  }, [selectedProject, sprints, selectedSprint]);
   const [moreDropdownOpen, setMoreDropdownOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -1457,6 +1479,25 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
       ? tasks.filter(t => myProjectIds.has(t.projectId))
       : tasks.filter((t) => t.projectId === selectedProject && myProjectIds.has(t.projectId));
 
+  const getSortedSprints = () => {
+    const projSprints = selectedProject === 'all'
+      ? sprints
+      : sprints.filter((s) => s.projectId === selectedProject);
+
+    const statusOrder: Record<string, number> = { 'Active': 1, 'Planned': 2, 'Completed': 3 };
+    
+    return [...projSprints].sort((a, b) => {
+      const orderA = statusOrder[a.status] || 99;
+      const orderB = statusOrder[b.status] || 99;
+      if (orderA !== orderB) return orderA - orderB;
+      return a.name.localeCompare(b.name);
+    });
+  };
+
+  const sprintFilteredTasks = selectedSprint === 'all'
+    ? filteredTasks
+    : filteredTasks.filter((t) => t.sprintId === selectedSprint);
+
   const getProjectName = (id: string) =>
     projects.find((p) => p.id === id)?.name || 'Unknown Project';
 
@@ -1492,12 +1533,27 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
     setPriority('Medium');
     setEstimatedHours('');
     setAssigneeId('');
-    setProjectId(selectedProject !== 'all' ? selectedProject : projects[0]?.id || '');
+    const defaultProjId = selectedProject !== 'all' ? selectedProject : projects[0]?.id || '';
+    setProjectId(defaultProjId);
     setTaskCategory('Main');
     setParentId('');
     setStartDate('');
     setEndDate('');
-    setSprintId('');
+    
+    // Intelligent Sprint pre-selection
+    if (selectedSprint !== 'all') {
+      const activeSprintOfProject = sprints.find(s => s.id === selectedSprint);
+      if (activeSprintOfProject && activeSprintOfProject.projectId === defaultProjId) {
+        setSprintId(selectedSprint);
+      } else {
+        const activeSprintOfProj = sprints.find(s => s.projectId === defaultProjId && s.status === 'Active');
+        setSprintId(activeSprintOfProj ? activeSprintOfProj.id : '');
+      }
+    } else {
+      const activeSprintOfProj = sprints.find(s => s.projectId === defaultProjId && s.status === 'Active');
+      setSprintId(activeSprintOfProj ? activeSprintOfProj.id : '');
+    }
+
     setReleaseId('');
     setStoryPoints('');
     setIssueType('Task');
@@ -1946,6 +2002,41 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                 ))}
             </select>
           </div>
+
+          {(activeSubTab === 'board' || activeSubTab === 'timeline') && (
+            <div
+              className="glass-panel"
+              style={{
+                padding: '0.25rem 0.75rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+              }}
+            >
+              <Layers size={16} color="var(--text-secondary)" />
+              <select
+                value={selectedSprint}
+                onChange={(e) => setSelectedSprint(e.target.value)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-primary)',
+                  outline: 'none',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                }}
+              >
+                <option value="all" style={{ background: 'var(--bg-secondary)' }}>
+                  All Sprints
+                </option>
+                {getSortedSprints().map((s) => (
+                  <option key={s.id} value={s.id} style={{ background: 'var(--bg-secondary)' }}>
+                    {s.name} {selectedProject === 'all' ? `(${getProjectName(s.projectId)})` : `(${s.status})`}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <button
             onClick={openAddModal}
             style={{
@@ -2345,7 +2436,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
           </div>
         ) : (() => {
           // Timeline Gantt Chart implementation
-          const timelineTasks = filteredTasks.filter(t => t.startDate || t.endDate);
+          const timelineTasks = sprintFilteredTasks.filter(t => t.startDate || t.endDate);
         const allDates = timelineTasks.flatMap(t => [t.startDate, t.endDate].filter(Boolean) as string[]);
         
         // Calculate date range
@@ -2790,7 +2881,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
             }}
           >
             {activeColumns.map((colStatus) => {
-              const statusTasks = filteredTasks.filter((t) => t.status === colStatus);
+              const statusTasks = sprintFilteredTasks.filter((t) => t.status === colStatus);
               return (
                 <DroppableColumn
                   key={colStatus}
