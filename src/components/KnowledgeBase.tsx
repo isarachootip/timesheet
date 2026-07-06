@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { HelpCircle, ChevronDown, ChevronRight, BookOpen, Database, BarChart3, Clock, Languages, CalendarRange, Users, Star, Shield, MessageSquare, Zap } from 'lucide-react';
+import { HelpCircle, ChevronDown, ChevronRight, BookOpen, Database, BarChart3, Clock, Languages, CalendarRange, Users, Star, Shield, MessageSquare, Zap, Layers } from 'lucide-react';
 import { marked } from 'marked';
 import type { User } from '../types';
 
@@ -320,6 +320,38 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
               </ul>
             </div>
           )
+        },
+        {
+          id: 'q18',
+          question: 'How do I filter tasks by Sprint on the Board and Timeline views?',
+          icon: Layers,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>The <strong>Sprint Filter</strong> dropdown lets you focus on tasks belonging to a specific sprint on the Kanban Board and Timeline (Gantt chart):</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Where to find it:</strong> When you are on the <strong>Board</strong> or <strong>Timeline</strong> tab, a Sprint dropdown (stacked-layers icon) appears in the top-right header, right next to the Project filter.</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Auto-selection:</strong> When you select a project, the system automatically selects the <strong>current Active Sprint</strong> so you see only the tasks in progress right now.</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>All Sprints:</strong> Choose <em>"All Sprints"</em> to display tasks from every sprint (Planned, Active, and Completed) at once.</li>
+                <li><strong>Backlog &amp; Grooming tabs are unaffected:</strong> The filter is intentionally not applied there so you can still manage all unassigned tasks regardless of sprint.</li>
+              </ul>
+            </div>
+          )
+        },
+        {
+          id: 'q19',
+          question: 'How does Auto-Generate Timesheet work when a task is moved to "In Progress"?',
+          icon: Zap,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>NexTime has a smart automation that <strong>automatically creates a draft Timesheet record</strong> when a task is moved to <em>"In Progress"</em>:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Trigger:</strong> Moving a task to <strong>"In Progress"</strong> on the Board (drag-and-drop or dropdown) triggers the automation.</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>What it creates:</strong> A new Timesheet entry pre-filled with — the task's Start Date, Estimated Hours, the linked project, and your user account — saved in <strong>Draft</strong> status.</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Why Draft?</strong> The entry is created as Draft so you can review, adjust hours or description, and then submit for approval. Nothing is auto-submitted.</li>
+                <li><strong>Where to find it:</strong> Go to the <strong>Timesheet</strong> page. The auto-generated entry appears in your log list with status <em>"Draft"</em>, ready to edit and submit.</li>
+              </ul>
+            </div>
+          )
         }
       ]
     },
@@ -601,6 +633,38 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
                 <li>
                   <strong>ไม่ได้ระบุ End Date ในตอนแรก:</strong> ระบบหลังบ้านจะสร้างแผนงานอัตโนมัติเฉพาะตอนที่ระบุทั้ง **Start Date** และ **End Date** พร้อมกันตั้งแต่สร้างโปรเจกต์ หากคุณแก้ไขเพื่อเพิ่ม End Date ทีหลัง แผนงานจะไม่ถูกสร้างอัตโนมัติ ให้ไปที่แท็บ **Project Plan** เลือกโปรเจกต์ และกดปุ่ม **🚀 Generate Milestones from Templates** เพื่อสั่งสร้างแผนงานด้วยตนเองครับ
                 </li>
+              </ul>
+            </div>
+          )
+        },
+        {
+          id: 'q18',
+          question: 'กรองงานตาม Sprint บนหน้า Board และ Timeline ทำอย่างไร?',
+          icon: Layers,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>ระบบมี <strong>Sprint Filter Dropdown</strong> ให้คุณโฟกัสเฉพาะงานของ Sprint ที่ต้องการบนหน้า Kanban Board และ Timeline (Gantt chart) ครับ:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>ตำแหน่งที่อยู่:</strong> เมื่ออยู่ที่แท็บ <strong>Board</strong> หรือ <strong>Timeline</strong> จะมี Dropdown Sprint (ไอคอนสี่เหลี่ยมซ้อนกัน) ปรากฏขึ้นบริเวณมุมขวาบน ถัดจากตัวกรองโปรเจกต์</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>เลือก Sprint อัตโนมัติ:</strong> เมื่อคุณเลือกโปรเจกต์ ระบบจะ <strong>เลือก Active Sprint ปัจจุบันให้โดยอัตโนมัติ</strong> เพื่อให้เห็นเฉพาะงานที่กำลังทำในช่วงนี้ทันที</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>ดูทุก Sprint:</strong> เลือก <em>"All Sprints"</em> เพื่อดูงานจากทุก Sprint (Planned, Active, Completed) พร้อมกันในมุมมองเดียว</li>
+                <li><strong>แท็บ Backlog / Grooming ไม่ได้รับผล:</strong> Sprint Filter จะไม่ถูกนำไปใช้กับแท็บ Backlog และ Grooming โดยตั้งใจ เพื่อให้คุณยังสามารถจัดการงานทุกชิ้นใน Backlog ได้อยู่ครับ</li>
+              </ul>
+            </div>
+          )
+        },
+        {
+          id: 'q19',
+          question: 'ระบบสร้าง Timesheet อัตโนมัติเมื่อ mark งานเป็น "In Progress" ได้อย่างไร?',
+          icon: Zap,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>NexTime มีระบบ Automation ที่ <strong>สร้าง Timesheet record แบบร่าง (Draft) ให้อัตโนมัติ</strong> เมื่อคุณเลื่อน task ไปที่ status <em>"In Progress"</em> ครับ:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}><strong>เงื่อนไขที่ trigger:</strong> การย้าย task จาก status ใดก็ตาม ไปที่ <strong>"In Progress"</strong> บนหน้า Board (ลาก-วาง หรือเปลี่ยนจาก dropdown) จะเป็น trigger ของระบบนี้</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>ข้อมูลที่สร้าง:</strong> Timesheet entry ถูกสร้างขึ้นพร้อมข้อมูล — วันที่เริ่มงาน (Start Date ของ task), ชั่วโมงประมาณการ (Estimated Hours), โปรเจกต์ที่ task สังกัด และบัญชีผู้ใช้ของคุณ — โดยบันทึกในสถานะ <strong>Draft</strong></li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>ทำไมถึงเป็น Draft?</strong> Timesheet ถูกสร้างเป็น Draft เพื่อให้คุณมีโอกาสตรวจสอบ, แก้ไขชั่วโมง หรือเพิ่มรายละเอียด ก่อนส่งขออนุมัติจริง ไม่มีการส่งอัตโนมัติครับ</li>
+                <li><strong>ดูได้ที่ไหน:</strong> ไปที่เมนู <strong>Timesheet</strong> — รายการที่ถูกสร้างอัตโนมัติจะปรากฏในรายการ Log ของคุณ พร้อมสถานะ <em>"Draft"</em> รอให้คุณแก้ไขและส่งได้ทันทีครับ</li>
               </ul>
             </div>
           )
