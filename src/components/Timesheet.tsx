@@ -1191,9 +1191,10 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                             flex: 1, 
                             textAlign: 'center', 
                             fontSize: '0.55rem', 
-                            color: 'var(--text-muted)',
+                            color: 'rgba(255,255,255,0.85)',
                             borderLeft: i > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none',
                             paddingTop: 3,
+                            fontWeight: 600,
                           }}>
                             {String(BAR_START + i).padStart(2, '0')}
                           </div>
