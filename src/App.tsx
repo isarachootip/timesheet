@@ -339,10 +339,14 @@ interface ActualHoursModalProps {
 }
 const ActualHoursModal = ({ task, onConfirm, onCancel }: ActualHoursModalProps) => {
   const planned = task.estimatedHours && task.estimatedHours > 0 ? task.estimatedHours : 8;
-  const isMultiDay = planned > 16;
-  const [hours, setHours] = useState(String(planned));
-  const [startTime, setStartTime] = useState('');
-  const [endTime, setEndTime] = useState('');
+  const defaultHours = planned > 8 ? 8 : planned;
+
+  const [hours, setHours] = useState(String(defaultHours));
+  
+  // Pre-fill start and end times for common default hours to show active selection
+  const [startTime, setStartTime] = useState(defaultHours === 8 ? '09:00' : defaultHours === 4 ? '09:00' : '');
+  const [endTime, setEndTime] = useState(defaultHours === 8 ? '17:00' : defaultHours === 4 ? '13:00' : '');
+
   const BAR_START = 6, BAR_END = 22, SLOTS = (BAR_END - BAR_START) * 2;
   const slotToTime = (slot: number) => `${String(BAR_START + Math.floor(slot / 2)).padStart(2, '0')}:${String((slot % 2) * 30).padStart(2, '0')}`;
   const timeToSlot = (t: string) => { if (!t) return -1; const [h, m] = t.split(':').map(Number); return (h - BAR_START) * 2 + Math.round(m / 30); };
@@ -363,45 +367,36 @@ const ActualHoursModal = ({ task, onConfirm, onCancel }: ActualHoursModalProps) 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Planned:</span>
             <strong style={{ color: 'var(--accent-warning)' }}>{planned}h</strong>
-            {isMultiDay && <span style={{ fontSize: '0.7rem', background: 'rgba(245,158,11,0.15)', color: 'var(--accent-warning)', padding: '0.1rem 0.4rem', borderRadius: 4, fontWeight: 600 }}>Multi-day task</span>}
           </div>
         </div>
         <form onSubmit={handleSubmit}>
-          {isMultiDay ? (
-            <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', display: 'block' }}>⚠️ Task มีหลายวัน — ระบุ actual hours ที่ทำวันนี้:</label>
-              <input type="number" min="0.5" max="24" step="0.5" value={hours} onChange={e => setHours(e.target.value)} autoFocus
-                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255,255,255,0.12)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', fontSize: '1.25rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }} />
+          <div style={{ marginBottom: '1.25rem' }}>
+            <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', display: 'block' }}>Work Period — Drag to select time range</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                {startTime && endTime ? (<><span style={{ background: 'rgba(0,206,209,0.15)', border: '1px solid rgba(0,206,209,0.3)', padding: '0.3rem 0.75rem', borderRadius: 'var(--radius-md)', fontWeight: 600, color: 'var(--accent-primary)' }}>{startTime}</span><span style={{ color: 'var(--text-muted)' }}>→</span><span style={{ background: 'rgba(0,206,209,0.15)', border: '1px solid rgba(0,206,209,0.3)', padding: '0.3rem 0.75rem', borderRadius: 'var(--radius-md)', fontWeight: 600, color: 'var(--accent-primary)' }}>{endTime}</span></>) : (<span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Click and drag on the bar below</span>)}
+              </div>
+              {hours && <span style={{ background: 'linear-gradient(135deg,rgba(0,206,209,0.2),rgba(124,58,237,0.2))', padding: '0.3rem 0.75rem', borderRadius: 'var(--radius-md)', fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-primary)' }}>{hours}h</span>}
             </div>
-          ) : (
-            <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', display: 'block' }}>Work Period — Drag to select time range</label>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  {startTime && endTime ? (<><span style={{ background: 'rgba(0,206,209,0.15)', border: '1px solid rgba(0,206,209,0.3)', padding: '0.3rem 0.75rem', borderRadius: 'var(--radius-md)', fontWeight: 600, color: 'var(--accent-primary)' }}>{startTime}</span><span style={{ color: 'var(--text-muted)' }}>→</span><span style={{ background: 'rgba(0,206,209,0.15)', border: '1px solid rgba(0,206,209,0.3)', padding: '0.3rem 0.75rem', borderRadius: 'var(--radius-md)', fontWeight: 600, color: 'var(--accent-primary)' }}>{endTime}</span></>) : (<span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Click and drag on the bar below</span>)}
-                </div>
-                {hours && <span style={{ background: 'linear-gradient(135deg,rgba(0,206,209,0.2),rgba(124,58,237,0.2))', padding: '0.3rem 0.75rem', borderRadius: 'var(--radius-md)', fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-primary)' }}>{hours}h</span>}
-              </div>
-              <div style={{ position: 'relative', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', overflow: 'hidden', userSelect: 'none', cursor: 'crosshair' }}
-                onMouseDown={e => {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  const slot = Math.max(0, Math.min(SLOTS, Math.round(((e.clientX - rect.left) / rect.width) * SLOTS)));
-                  setStartTime(slotToTime(slot)); setEndTime(''); setHours('');
-                  const mv = (ev: MouseEvent) => { const ms = Math.max(0, Math.min(SLOTS, Math.round(((ev.clientX - rect.left) / rect.width) * SLOTS))); if (ms !== slot) { const s = Math.min(slot,ms), en = Math.max(slot,ms); setStartTime(slotToTime(s)); setEndTime(slotToTime(en)); const d=(en-s)*0.5; if(d>0) setHours(String(d)); } };
-                  const up = () => { document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); };
-                  document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up);
-                }}>
-                <div style={{ display: 'flex', height: 20 }}>{Array.from({ length: BAR_END - BAR_START }, (_, i) => <div key={i} style={{ flex: 1, textAlign: 'center', fontSize: '0.55rem', color: 'rgba(255,255,255,0.85)', fontWeight: 600, borderLeft: i > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none', paddingTop: 3 }}>{String(BAR_START + i).padStart(2, '0')}</div>)}</div>
-                <div style={{ display: 'flex', height: 32 }}>{Array.from({ length: SLOTS }, (_, i) => { const sel = startSlot >= 0 && endSlot > startSlot && i >= startSlot && i < endSlot; return (<div key={i} style={{ flex: 1, background: sel ? 'linear-gradient(180deg,rgba(0,206,209,0.4),rgba(0,206,209,0.2))' : 'transparent', borderLeft: i%2===0 ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(255,255,255,0.02)', position: 'relative' }}>{sel && i===startSlot && <div style={{ position:'absolute',left:0,top:0,bottom:0,width:2,background:'var(--accent-primary)',borderRadius:1 }} />}{sel && i===endSlot-1 && <div style={{ position:'absolute',right:0,top:0,bottom:0,width:2,background:'var(--accent-primary)',borderRadius:1 }} />}</div>); })}</div>
-                <div style={{ display: 'flex', height: 6 }}>{Array.from({ length: BAR_END - BAR_START }, (_, i) => <div key={i} style={{ flex: 1, borderLeft: i > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none' }} />)}</div>
-              </div>
-              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.4rem' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Start</span><input type="time" value={startTime} onChange={e => handleStartChange(e.target.value)} style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.25rem 0.4rem', color: 'var(--text-primary)', outline: 'none', fontSize: '0.75rem', flex: 1 }} /></div>
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.4rem' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>End</span><input type="time" value={endTime} onChange={e => handleEndChange(e.target.value)} style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.25rem 0.4rem', color: 'var(--text-primary)', outline: 'none', fontSize: '0.75rem', flex: 1 }} /></div>
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.4rem' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Hours</span><input type="number" step="0.5" min="0.5" max="16" value={hours} onChange={e => setHours(e.target.value)} style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.25rem 0.4rem', color: 'var(--text-primary)', outline: 'none', fontSize: '0.75rem', flex: 1 }} /></div>
-              </div>
+            <div style={{ position: 'relative', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', overflow: 'hidden', userSelect: 'none', cursor: 'crosshair' }}
+              onMouseDown={e => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const slot = Math.max(0, Math.min(SLOTS, Math.round(((e.clientX - rect.left) / rect.width) * SLOTS)));
+                setStartTime(slotToTime(slot)); setEndTime(''); setHours('');
+                const mv = (ev: MouseEvent) => { const ms = Math.max(0, Math.min(SLOTS, Math.round(((ev.clientX - rect.left) / rect.width) * SLOTS))); if (ms !== slot) { const s = Math.min(slot,ms), en = Math.max(slot,ms); setStartTime(slotToTime(s)); setEndTime(slotToTime(en)); const d=(en-s)*0.5; if(d>0) setHours(String(d)); } };
+                const up = () => { document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); };
+                document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up);
+              }}>
+              <div style={{ display: 'flex', height: 20 }}>{Array.from({ length: BAR_END - BAR_START }, (_, i) => <div key={i} style={{ flex: 1, textAlign: 'center', fontSize: '0.55rem', color: 'rgba(255,255,255,0.85)', fontWeight: 600, borderLeft: i > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none', paddingTop: 3 }}>{String(BAR_START + i).padStart(2, '0')}</div>)}</div>
+              <div style={{ display: 'flex', height: 32 }}>{Array.from({ length: SLOTS }, (_, i) => { const sel = startSlot >= 0 && endSlot > startSlot && i >= startSlot && i < endSlot; return (<div key={i} style={{ flex: 1, background: sel ? 'linear-gradient(180deg,rgba(0,206,209,0.4),rgba(0,206,209,0.2))' : 'transparent', borderLeft: i%2===0 ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(255,255,255,0.02)', position: 'relative' }}>{sel && i===startSlot && <div style={{ position:'absolute',left:0,top:0,bottom:0,width:2,background:'var(--accent-primary)',borderRadius:1 }} />}{sel && i===endSlot-1 && <div style={{ position:'absolute',right:0,top:0,bottom:0,width:2,background:'var(--accent-primary)',borderRadius:1 }} />}</div>); })}</div>
+              <div style={{ display: 'flex', height: 6 }}>{Array.from({ length: BAR_END - BAR_START }, (_, i) => <div key={i} style={{ flex: 1, borderLeft: i > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none' }} />)}</div>
             </div>
-          )}
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.4rem' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Start</span><input type="time" value={startTime} onChange={e => handleStartChange(e.target.value)} style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.25rem 0.4rem', color: 'var(--text-primary)', outline: 'none', fontSize: '0.75rem', flex: 1 }} /></div>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.4rem' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>End</span><input type="time" value={endTime} onChange={e => handleEndChange(e.target.value)} style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.25rem 0.4rem', color: 'var(--text-primary)', outline: 'none', fontSize: '0.75rem', flex: 1 }} /></div>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.4rem' }}><span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Hours</span><input type="number" step="0.5" min="0.5" max="24" value={hours} onChange={e => setHours(e.target.value)} style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.25rem 0.4rem', color: 'var(--text-primary)', outline: 'none', fontSize: '0.75rem', flex: 1 }} /></div>
+            </div>
+          </div>
           <div style={{ display: 'flex', gap: '0.75rem' }}>
             <button type="button" onClick={onCancel} style={{ flex: 1, padding: '0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255,255,255,0.12)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', fontWeight: 500 }}>Cancel</button>
             <button type="submit" style={{ flex: 2, padding: '0.75rem', borderRadius: 'var(--radius-md)', border: 'none', background: 'var(--accent-primary)', color: 'white', cursor: 'pointer', fontWeight: 700, fontSize: '0.95rem' }}>✓ Submit Timesheet</button>
@@ -411,6 +406,8 @@ const ActualHoursModal = ({ task, onConfirm, onCancel }: ActualHoursModalProps) 
     </div>
   );
 };
+
+
 
 
 
