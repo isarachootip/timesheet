@@ -352,6 +352,27 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
               </ul>
             </div>
           )
+        },
+        {
+          id: 'q20',
+          question: 'What is the "Work Period" time bar, and what happens with 40h (multi-day) tasks?',
+          icon: Clock,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>When you move a task to <strong>"In Progress"</strong>, the <strong>Log Actual Hours</strong> modal appears. The way it behaves depends on the task\'s planned (estimated) hours:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}>
+                  <strong>Single-day task (≤ 16h planned):</strong> Shows a <strong>draggable "Work Period" time bar</strong> (06:00–22:00). Click and drag to select your work window — Start time, End time, and Hours are filled in automatically. You can also fine-tune them manually.
+                </li>
+                <li style={{ marginBottom: '0.25rem' }}>
+                  <strong>Multi-day task (&gt; 16h planned, e.g. 40h):</strong> The time bar is hidden because a 40h task spans multiple days and can\'t fit on a single-day timeline. Instead, you\'ll see a plain <strong>hours input field</strong> labelled <em>"Enter actual hours worked today"</em> — just type how many hours you worked on that particular day.
+                </li>
+                <li>
+                  <strong>Planned vs Actual:</strong> The <em>planned hours</em> come from the task\'s Estimated Hours. After you submit, managers can see both figures (Actual / Plan) side-by-side in the <strong>Pending Approvals</strong> screen with a variance badge.
+                </li>
+              </ul>
+            </div>
+          )
         }
       ]
     },
@@ -665,6 +686,27 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
                 <li style={{ marginBottom: '0.25rem' }}><strong>ข้อมูลที่สร้าง:</strong> Timesheet entry ถูกสร้างขึ้นพร้อมข้อมูล — วันที่เริ่มงาน (Start Date ของ task), ชั่วโมงประมาณการ (Estimated Hours), โปรเจกต์ที่ task สังกัด และบัญชีผู้ใช้ของคุณ — โดยบันทึกในสถานะ <strong>Draft</strong></li>
                 <li style={{ marginBottom: '0.25rem' }}><strong>ทำไมถึงเป็น Draft?</strong> Timesheet ถูกสร้างเป็น Draft เพื่อให้คุณมีโอกาสตรวจสอบ, แก้ไขชั่วโมง หรือเพิ่มรายละเอียด ก่อนส่งขออนุมัติจริง ไม่มีการส่งอัตโนมัติครับ</li>
                 <li><strong>ดูได้ที่ไหน:</strong> ไปที่เมนู <strong>Timesheet</strong> — รายการที่ถูกสร้างอัตโนมัติจะปรากฏในรายการ Log ของคุณ พร้อมสถานะ <em>"Draft"</em> รอให้คุณแก้ไขและส่งได้ทันทีครับ</li>
+              </ul>
+            </div>
+          )
+        },
+        {
+          id: 'q20',
+          question: '"Work Period" time bar คืออะไร และงาน 40h (หลายวัน) จะแสดงอย่างไร?',
+          icon: Clock,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>เมื่อคุณย้าย task ไปที่ <strong>"In Progress"</strong> ระบบจะแสดง modal <strong>Log Actual Hours</strong> ขึ้นมา โดยหน้าตา modal จะต่างกันตาม <strong>Planned Hours</strong> ของ task นั้นๆ ครับ:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}>
+                  <strong>Task วันเดียว (Planned ≤ 16h):</strong> แสดง <strong>Time bar แบบลาก (Drag)</strong> ในช่วง 06:00–22:00 — คลิกแล้วลากเพื่อเลือกช่วงเวลา ระบบจะคำนวณ Start, End และ Hours ให้อัตโนมัติ สามารถปรับละเอียดได้ด้วยตนเอง
+                </li>
+                <li style={{ marginBottom: '0.25rem' }}>
+                  <strong>Task หลายวัน (Planned &gt; 16h เช่น 40h):</strong> Time bar จะถูกซ่อน เพราะงาน 40h ไม่สามารถแสดงบน timeline แค่วันเดียวได้ ระบบจะแสดง <strong>badge "Multi-day task"</strong> พร้อม <em>ช่องกรอก hours</em> ธรรมดา ให้ระบุว่าวันนี้ทำงานไปกี่ชั่วโมง
+                </li>
+                <li>
+                  <strong>Planned vs Actual:</strong> Manager จะเห็นทั้งสองค่าคู่กันในหน้า <strong>Pending Approvals</strong> พร้อม badge แสดงส่วนต่าง (Variance) เช่น +2h หรือ -4h เพื่อให้ approve ได้อย่างมีข้อมูล
+                </li>
               </ul>
             </div>
           )
