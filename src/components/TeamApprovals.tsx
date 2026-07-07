@@ -651,7 +651,35 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 700, marginRight: '1rem' }}>{entry.hours}h</div>
+                    <div style={{ textAlign: 'right' }}>
+                      {/* Actual hours logged */}
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.3rem', justifyContent: 'flex-end' }}>
+                        <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>{entry.hours}h</span>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 500 }}>actual</span>
+                      </div>
+                      {/* Planned hours row — only shown when plannedHours is stored */}
+                      {entry.plannedHours != null && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', justifyContent: 'flex-end', marginTop: '0.2rem' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Plan: {entry.plannedHours}h</span>
+                          {entry.hours !== entry.plannedHours && (
+                            <span style={{
+                              fontSize: '0.7rem',
+                              fontWeight: 700,
+                              padding: '0.1rem 0.35rem',
+                              borderRadius: '4px',
+                              background: entry.hours > entry.plannedHours
+                                ? 'rgba(239,68,68,0.15)'
+                                : 'rgba(16,185,129,0.15)',
+                              color: entry.hours > entry.plannedHours
+                                ? 'var(--accent-danger)'
+                                : 'var(--accent-secondary)'
+                            }}>
+                              {entry.hours > entry.plannedHours ? '+' : ''}{(entry.hours - entry.plannedHours).toFixed(1)}h
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                       <button 
                         onClick={() => handleApprove(entry.id)}

@@ -331,6 +331,80 @@ const AppLayout = ({ children, currentUser, tasks, onLogout }: { children: React
   );
 };
 
+// ─── Actual Hours Modal ───
+interface ActualHoursModalProps {
+  task: Task;
+  onConfirm: (actualHours: number) => void;
+  onCancel: () => void;
+}
+const ActualHoursModal = ({ task, onConfirm, onCancel }: ActualHoursModalProps) => {
+  const [hours, setHours] = useState(String(task.estimatedHours && task.estimatedHours > 0 ? task.estimatedHours : 8));
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const val = parseFloat(hours);
+    if (!val || val <= 0) return;
+    onConfirm(val);
+  };
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9999,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
+    }}>
+      <div className="glass-panel" style={{
+        background: 'var(--bg-secondary)', borderRadius: 'var(--radius-lg)',
+        padding: '2rem', maxWidth: '440px', width: '100%',
+        border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 24px 80px rgba(0,0,0,0.5)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+          <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(59,130,246,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Clock size={18} color="var(--accent-primary)" />
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '1rem' }}>Log Actual Hours</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Task moved to In Progress</div>
+          </div>
+        </div>
+        <div style={{ background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', padding: '0.75rem 1rem', marginBottom: '1.25rem', fontSize: '0.875rem' }}>
+          <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>{task.title}</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Planned: <strong style={{ color: 'var(--accent-warning)' }}>{task.estimatedHours || 8}h</strong></div>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', display: 'block' }}>
+            Actual hours you will log for this task:
+          </label>
+          <input
+            type="number"
+            min="0.5"
+            max="999"
+            step="0.5"
+            value={hours}
+            onChange={e => setHours(e.target.value)}
+            autoFocus
+            style={{
+              width: '100%', padding: '0.75rem 1rem', borderRadius: 'var(--radius-md)',
+              border: '1px solid rgba(255,255,255,0.12)', background: 'var(--bg-tertiary)',
+              color: 'var(--text-primary)', fontSize: '1.25rem', fontWeight: 700,
+              marginBottom: '1.25rem', outline: 'none', boxSizing: 'border-box'
+            }}
+          />
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button type="button" onClick={onCancel} style={{
+              flex: 1, padding: '0.75rem', borderRadius: 'var(--radius-md)',
+              border: '1px solid rgba(255,255,255,0.12)', background: 'transparent',
+              color: 'var(--text-secondary)', cursor: 'pointer', fontWeight: 500
+            }}>Cancel</button>
+            <button type="submit" style={{
+              flex: 2, padding: '0.75rem', borderRadius: 'var(--radius-md)',
+              border: 'none', background: 'var(--accent-primary)',
+              color: 'white', cursor: 'pointer', fontWeight: 700, fontSize: '0.95rem'
+            }}>✓ Submit Timesheet</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 function App() {
   const [users, setUsers] = useState<User[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -345,6 +419,8 @@ function App() {
   const [systemSettings, setSystemSettings] = useState<Record<string, any>>({});
   const [currentUser, setCurrentUser] = useState<User | null>(() => getLocalStorage<User | null>('nt_current_user', null));
   const [loading, setLoading] = useState(true);
+  // Actual-hours modal state
+  const [pendingTsTask, setPendingTsTask] = useState<Task | null>(null);
 
   // Check if we just redirected from successful LINE login
   useEffect(() => {
@@ -526,28 +602,8 @@ function App() {
                 const prevStatus = prevTask?.status?.toLowerCase() || '';
                 const newStatus = nTask.status?.toLowerCase() || '';
                 if (newStatus === 'in progress' && prevStatus !== 'in progress') {
-                  const tsDate = nTask.startDate || new Date().toISOString().split('T')[0];
-                  const tsHours = nTask.estimatedHours && nTask.estimatedHours > 0 ? nTask.estimatedHours : 8;
-                  
-                  const newTs: TimesheetEntry = {
-                    id: 'ts_' + Date.now(),
-                    userId: nTask.assigneeId || currentUser?.id || '',
-                    projectId: nTask.projectId,
-                    taskId: nTask.id,
-                    date: tsDate,
-                    hours: tsHours,
-                    description: `Started work on: ${nTask.title}`,
-                    status: 'Pending'
-                  };
-                  
-                  handleSetTimesheets(prevTs => {
-                    // Prevent duplicate timesheet entries for the same task on the same date
-                    const isDuplicate = prevTs.some(t => t.taskId === newTs.taskId && t.date === newTs.date);
-                    if (isDuplicate) return prevTs;
-                    return [...prevTs, newTs];
-                  });
-                  
-                  alert(`⚡ System has automatically logged a timesheet entry for task:\n"${nTask.title}"\nDate: ${tsDate.split('-').reverse().join('/')}\nHours: ${tsHours}h`);
+                  // Show modal to let user enter actual hours instead of auto-using estimated hours
+                  setPendingTsTask(nTask);
                 }
               }
             });
@@ -843,8 +899,39 @@ function App() {
     );
   }
 
+  const handleActualHoursConfirm = (actualHours: number) => {
+    if (!pendingTsTask) return;
+    const nTask = pendingTsTask;
+    const tsDate = nTask.startDate || new Date().toISOString().split('T')[0];
+    const plannedHours = nTask.estimatedHours && nTask.estimatedHours > 0 ? nTask.estimatedHours : 8;
+    const newTs: TimesheetEntry = {
+      id: 'ts_' + Date.now(),
+      userId: nTask.assigneeId || currentUser?.id || '',
+      projectId: nTask.projectId,
+      taskId: nTask.id,
+      date: tsDate,
+      hours: actualHours,
+      plannedHours: plannedHours,
+      description: `Started work on: ${nTask.title}`,
+      status: 'Pending'
+    };
+    handleSetTimesheets(prevTs => {
+      const isDuplicate = prevTs.some(t => t.taskId === newTs.taskId && t.date === newTs.date);
+      if (isDuplicate) return prevTs;
+      return [...prevTs, newTs];
+    });
+    setPendingTsTask(null);
+  };
+
   return (
     <Router>
+      {pendingTsTask && (
+        <ActualHoursModal
+          task={pendingTsTask}
+          onConfirm={handleActualHoursConfirm}
+          onCancel={() => setPendingTsTask(null)}
+        />
+      )}
       <AppLayout currentUser={currentUser} tasks={tasks} onLogout={handleLogout}>
         <Routes>
           <Route path="/" element={<Dashboard projects={projects} tasks={tasks} timesheets={timesheets} currentUser={currentUser} />} />

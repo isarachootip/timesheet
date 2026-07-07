@@ -115,6 +115,7 @@ export interface TimesheetEntry {
   taskId?: string;
   date: string;
   hours: number;
+  plannedHours?: number;
   startTime?: string;
   endTime?: string;
   description: string;
