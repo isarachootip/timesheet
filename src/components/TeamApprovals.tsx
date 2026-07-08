@@ -647,6 +647,19 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                       <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                         <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{getProjectName(entry.projectId)}</span> ({getTaskName(entry.taskId)}): {entry.description}
                       </div>
+                      {entry.startTime && entry.endTime && (
+                        <div style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '0.25rem', 
+                          fontSize: '0.75rem', 
+                          color: 'var(--text-muted)',
+                          marginTop: '0.35rem'
+                        }}>
+                          <Clock size={11} style={{ color: 'var(--accent-primary)', verticalAlign: 'middle' }} />
+                          <span>{entry.startTime} – {entry.endTime}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
