@@ -110,7 +110,23 @@ export const Dashboard = ({ projects, tasks, timesheets, currentUser }: Dashboar
   
   // Get unique statuses of tasks matching the current project filter
   const filteredForStatusList = myTasksAll.filter(t => projectFilter === 'All' || t.projectId === projectFilter);
-  const uniqueStatuses = Array.from(new Set(filteredForStatusList.map(t => t.status)));
+  const taskStatuses = filteredForStatusList.map(t => t.status);
+  const standardStatuses = ['To Do', 'In Progress', 'Review', 'Done'];
+  const uniqueStatuses = Array.from(new Set([
+    ...standardStatuses,
+    ...taskStatuses
+  ])).filter(status => {
+    if (standardStatuses.includes(status)) return true;
+    return taskStatuses.includes(status);
+  });
+  
+  const statusOrder: Record<string, number> = { 'To Do': 1, 'In Progress': 2, 'Review': 3, 'Done': 4 };
+  uniqueStatuses.sort((a, b) => {
+    const orderA = statusOrder[a] || 99;
+    const orderB = statusOrder[b] || 99;
+    if (orderA !== orderB) return orderA - orderB;
+    return a.localeCompare(b);
+  });
 
   const myTasks = myTasksAll
     .filter(t => projectFilter === 'All' || t.projectId === projectFilter)
@@ -127,6 +143,23 @@ export const Dashboard = ({ projects, tasks, timesheets, currentUser }: Dashboar
     end.setHours(0, 0, 0, 0);
     const diff = (end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
     return diff >= 0 && diff <= 3;
+  };
+
+  const shouldShowLogTime = (task: Task): boolean => {
+    const proj = projects.find(p => p.id === task.projectId);
+    const columns = proj?.customColumns && proj.customColumns.length > 0
+      ? proj.customColumns
+      : ['To Do', 'In Progress', 'Review', 'Done'];
+
+    const statusIndex = columns.findIndex(col => col.toLowerCase() === task.status.toLowerCase());
+    const inProgressIndex = columns.findIndex(col => col.toLowerCase().includes('progress'));
+
+    if (statusIndex !== -1 && inProgressIndex !== -1) {
+      return statusIndex <= inProgressIndex;
+    }
+
+    const s = task.status.toLowerCase();
+    return !(s === 'review' || s === 'done' || s === 'pending' || s === 'completed' || s === 'approved');
   };
 
   // --- Project health ---
@@ -443,27 +476,29 @@ export const Dashboard = ({ projects, tasks, timesheets, currentUser }: Dashboar
                         <Badge label={task.priority} color={priorityColors[task.priority] || 'rgba(107,114,128,0.8)'} />
                         <Badge label={task.status} color={statusColors[task.status] || 'rgba(107,114,128,0.8)'} />
                       </div>
-                      <button 
-                        onClick={() => navigate('/timesheet', { state: { autoOpenLog: true, projectId: task.projectId, taskId: task.id, taskTitle: task.title } })}
-                        style={{
-                          background: 'linear-gradient(135deg, var(--accent-primary), #7c3aed)',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '0.35rem',
-                          padding: '0.2rem 0.5rem',
-                          fontSize: '0.7rem',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.25rem',
-                          boxShadow: '0 2px 4px rgba(124, 58, 237, 0.2)',
-                          transition: 'all 0.15s ease'
-                        }}
-                        className="hover-lift"
-                      >
-                        <Clock size={10} /> + Log Time
-                      </button>
+                       {shouldShowLogTime(task) && (
+                        <button 
+                          onClick={() => navigate('/timesheet', { state: { autoOpenLog: true, projectId: task.projectId, taskId: task.id, taskTitle: task.title } })}
+                          style={{
+                            background: 'linear-gradient(135deg, var(--accent-primary), #7c3aed)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '0.35rem',
+                            padding: '0.2rem 0.5rem',
+                            fontSize: '0.7rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                            boxShadow: '0 2px 4px rgba(124, 58, 237, 0.2)',
+                            transition: 'all 0.15s ease'
+                          }}
+                          className="hover-lift"
+                        >
+                          <Clock size={10} /> + Log Time
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
