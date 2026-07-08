@@ -96,6 +96,7 @@ export interface Task {
   releaseId?: string;
   storyPoints?: number;
   issueType?: 'Bug' | 'Story' | 'Task' | 'Sub-task';
+  updatedAt?: string;
 }
 
 export interface TaskTemplate {

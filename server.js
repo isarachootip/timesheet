@@ -172,6 +172,10 @@ const initDB = async () => {
       ALTER TABLE tasks ADD COLUMN IF NOT EXISTS release_id VARCHAR(50);
       ALTER TABLE tasks ADD COLUMN IF NOT EXISTS story_points INTEGER DEFAULT 0;
       ALTER TABLE tasks ADD COLUMN IF NOT EXISTS issue_type VARCHAR(50) DEFAULT 'Task';
+      ALTER TABLE tasks ADD COLUMN IF NOT EXISTS updated_at VARCHAR(50);
+    `);
+    await client.query(`
+      UPDATE tasks SET updated_at = created_at WHERE updated_at IS NULL;
     `);
 
     // Create Task Templates Table
@@ -1328,7 +1332,8 @@ app.get('/api/initial-data', async (req, res) => {
       sprintId: t.sprint_id,
       releaseId: t.release_id,
       storyPoints: t.story_points || 0,
-      issueType: t.issue_type || 'Task'
+      issueType: t.issue_type || 'Task',
+      updatedAt: t.updated_at || t.created_at
     }));
 
     const timesheets = timesheetsRes.rows.map(ts => ({
@@ -1846,9 +1851,11 @@ app.post('/api/tasks', async (req, res) => {
       }
     }
 
+    const updatedAt = req.body.updatedAt || new Date().toISOString();
+
     await pool.query(
-      `INSERT INTO tasks (id, project_id, assignee_id, title, description, status, priority, estimated_hours, created_at, parent_id, start_date, end_date, sprint_id, release_id, story_points, issue_type)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+      `INSERT INTO tasks (id, project_id, assignee_id, title, description, status, priority, estimated_hours, created_at, parent_id, start_date, end_date, sprint_id, release_id, story_points, issue_type, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
        ON CONFLICT (id) DO UPDATE SET
          project_id = EXCLUDED.project_id,
          assignee_id = EXCLUDED.assignee_id,
@@ -1864,7 +1871,8 @@ app.post('/api/tasks', async (req, res) => {
          sprint_id = EXCLUDED.sprint_id,
          release_id = EXCLUDED.release_id,
          story_points = EXCLUDED.story_points,
-         issue_type = EXCLUDED.issue_type`,
+         issue_type = EXCLUDED.issue_type,
+         updated_at = EXCLUDED.updated_at`,
       [
         id, 
         projectId, 
@@ -1881,7 +1889,8 @@ app.post('/api/tasks', async (req, res) => {
         sprintId || null,
         releaseId || null,
         storyPoints || 0,
-        issueType || 'Task'
+        issueType || 'Task',
+        updatedAt
       ]
     );
     res.json({ success: true });

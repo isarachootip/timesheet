@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Clock, CheckSquare, Briefcase, AlertTriangle, TrendingUp, Users, ChevronRight, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { User, Project, Task, TimesheetEntry } from '../types';
@@ -59,6 +60,7 @@ const Badge = ({ label, color }: { label: string; color: string }) => (
 
 export const Dashboard = ({ projects, tasks, timesheets, currentUser }: DashboardProps) => {
   const navigate = useNavigate();
+  const [statusFilter, setStatusFilter] = useState<string>('All');
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -101,14 +103,16 @@ export const Dashboard = ({ projects, tasks, timesheets, currentUser }: Dashboar
     })
     .reduce((sum, ts) => sum + ts.hours, 0);
 
-  // --- My tasks (sorted by endDate asc) ---
-  const myTasks = tasks
-    .filter(t => t.assigneeId === currentUser.id)
+  // --- My tasks ---
+  const myTasksAll = tasks.filter(t => t.assigneeId === currentUser.id);
+  const uniqueStatuses = Array.from(new Set(myTasksAll.map(t => t.status)));
+
+  const myTasks = myTasksAll
+    .filter(t => statusFilter === 'All' || t.status === statusFilter)
     .sort((a, b) => {
-      if (!a.endDate && !b.endDate) return 0;
-      if (!a.endDate) return 1;
-      if (!b.endDate) return -1;
-      return new Date(a.endDate).getTime() - new Date(b.endDate).getTime();
+      const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+      const timeB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+      return timeB - timeA; // Descending (latest first)
     });
 
   const isDueSoon = (endDate?: string): boolean => {
@@ -319,12 +323,37 @@ export const Dashboard = ({ projects, tasks, timesheets, currentUser }: Dashboar
               <CheckSquare size={16} color="var(--accent-primary)" />
               My Tasks
             </h3>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>sorted by due date</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>sorted by latest update</span>
+          </div>
+
+          {/* Status filter tabs */}
+          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.25rem' }}>
+            {['All', ...uniqueStatuses].map(status => (
+              <button
+                key={status}
+                onClick={() => setStatusFilter(status)}
+                style={{
+                  padding: '0.25rem 0.65rem',
+                  borderRadius: '999px',
+                  fontSize: '0.7rem',
+                  fontWeight: 600,
+                  background: statusFilter === status ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
+                  color: statusFilter === status ? 'white' : 'var(--text-secondary)',
+                  border: statusFilter === status ? 'none' : '1px solid var(--border-color)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  boxShadow: statusFilter === status ? '0 2px 4px rgba(56, 189, 248, 0.2)' : 'none'
+                }}
+                className="hover-lift"
+              >
+                {status}
+              </button>
+            ))}
           </div>
 
           {myTasks.length === 0 ? (
             <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-              🎉 No tasks assigned to you
+              {statusFilter === 'All' ? '🎉 No tasks assigned to you' : `🎉 No ${statusFilter} tasks`}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', overflowY: 'auto', maxHeight: '520px' }}>

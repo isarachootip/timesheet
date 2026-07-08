@@ -594,6 +594,7 @@ function App() {
         nextTasks.forEach(nTask => {
           const prevTask = prev.find(pTask => pTask.id === nTask.id);
           if (JSON.stringify(prevTask) !== JSON.stringify(nTask)) {
+            nTask.updatedAt = new Date().toISOString();
             fetch('/api/tasks', {
               method: 'POST',
               headers,
