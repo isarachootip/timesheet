@@ -61,6 +61,7 @@ const Badge = ({ label, color }: { label: string; color: string }) => (
 export const Dashboard = ({ projects, tasks, timesheets, currentUser }: DashboardProps) => {
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<string>('All');
+  const [projectFilter, setProjectFilter] = useState<string>('All');
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -105,9 +106,14 @@ export const Dashboard = ({ projects, tasks, timesheets, currentUser }: Dashboar
 
   // --- My tasks ---
   const myTasksAll = tasks.filter(t => t.assigneeId === currentUser.id);
-  const uniqueStatuses = Array.from(new Set(myTasksAll.map(t => t.status)));
+  const myProjects = projects.filter(p => myTasksAll.some(t => t.projectId === p.id));
+  
+  // Get unique statuses of tasks matching the current project filter
+  const filteredForStatusList = myTasksAll.filter(t => projectFilter === 'All' || t.projectId === projectFilter);
+  const uniqueStatuses = Array.from(new Set(filteredForStatusList.map(t => t.status)));
 
   const myTasks = myTasksAll
+    .filter(t => projectFilter === 'All' || t.projectId === projectFilter)
     .filter(t => statusFilter === 'All' || t.status === statusFilter)
     .sort((a, b) => {
       const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime();
@@ -318,12 +324,36 @@ export const Dashboard = ({ projects, tasks, timesheets, currentUser }: Dashboar
 
         {/* LEFT — My Tasks */}
         <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
             <h3 style={{ fontSize: '1.05rem', fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <CheckSquare size={16} color="var(--accent-primary)" />
               My Tasks
             </h3>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>sorted by latest update</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <select
+                value={projectFilter}
+                onChange={e => {
+                  setProjectFilter(e.target.value);
+                  setStatusFilter('All');
+                }}
+                style={{
+                  background: 'var(--bg-tertiary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '0.2rem 0.5rem',
+                  fontSize: '0.75rem',
+                  color: 'var(--text-secondary)',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="All">All Projects</option>
+                {myProjects.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>sorted by latest update</span>
+            </div>
           </div>
 
           {/* Status filter tabs */}
@@ -353,7 +383,7 @@ export const Dashboard = ({ projects, tasks, timesheets, currentUser }: Dashboar
 
           {myTasks.length === 0 ? (
             <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-              {statusFilter === 'All' ? '🎉 No tasks assigned to you' : `🎉 No ${statusFilter} tasks`}
+              {projectFilter !== 'All' || statusFilter !== 'All' ? '🎉 No tasks match the filters' : '🎉 No tasks assigned to you'}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', overflowY: 'auto', maxHeight: '520px' }}>
