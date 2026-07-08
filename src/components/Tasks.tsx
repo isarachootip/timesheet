@@ -1170,9 +1170,11 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
   const [selectedProject, setSelectedProject] = useState<string>('all');
   const [selectedSprint, setSelectedSprint] = useState<string>('all');
   const [activeSubTab, setActiveSubTab] = useState<'summary' | 'backlog' | 'board' | 'timeline' | 'releases' | 'grooming'>('summary');
+  const [assigneeFilter, setAssigneeFilter] = useState<string | null>(null);
 
   const prevProjectRef = useRef(selectedProject);
   useEffect(() => {
+    setAssigneeFilter(null);
     const projectChanged = prevProjectRef.current !== selectedProject;
     prevProjectRef.current = selectedProject;
 
@@ -1474,10 +1476,11 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
       .map(p => p.id)
   );
 
-  const filteredTasks =
+  const filteredTasks = (
     selectedProject === 'all'
       ? tasks.filter(t => myProjectIds.has(t.projectId))
-      : tasks.filter((t) => t.projectId === selectedProject && myProjectIds.has(t.projectId));
+      : tasks.filter((t) => t.projectId === selectedProject && myProjectIds.has(t.projectId))
+  ).filter(t => !assigneeFilter || t.assigneeId === assigneeFilter);
 
   const getSortedSprints = () => {
     const projSprints = selectedProject === 'all'
@@ -2202,13 +2205,63 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
             </div>
           )}
         </div>
+
+        {/* Project members filter */}
+        {selectedProject !== 'all' && (
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.35rem', paddingRight: '0.5rem' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginRight: '0.25rem' }}>Assignee:</span>
+            {projects.find(p => p.id === selectedProject)?.members?.map(m => {
+              const u = users.find(user => user.id === m.userId);
+              if (!u) return null;
+              const isSelected = assigneeFilter === u.id;
+              return (
+                <img
+                  key={u.id}
+                  src={u.avatar}
+                  alt={u.name}
+                  title={u.name}
+                  onClick={() => setAssigneeFilter(isSelected ? null : u.id)}
+                  style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '50%',
+                    cursor: 'pointer',
+                    border: isSelected ? '2px solid var(--accent-primary)' : '2px solid transparent',
+                    boxShadow: isSelected ? '0 0 8px rgba(56, 189, 248, 0.4)' : 'none',
+                    opacity: assigneeFilter && !isSelected ? 0.4 : 1,
+                    transition: 'all 0.15s ease'
+                  }}
+                  className="hover-lift"
+                />
+              );
+            })}
+            {assigneeFilter && (
+              <button
+                onClick={() => setAssigneeFilter(null)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  fontSize: '0.7rem',
+                  cursor: 'pointer',
+                  padding: '0.2rem',
+                  marginLeft: '0.25rem'
+                }}
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── SUMMARY TAB ────────────────────────────────────────────────────────── */}
       {activeSubTab === 'summary' && (() => {
-        const summaryTasks = selectedProject === 'all'
-          ? tasks.filter(t => myProjectIds.has(t.projectId))
-          : tasks.filter(t => t.projectId === selectedProject && myProjectIds.has(t.projectId));
+        const summaryTasks = (
+          selectedProject === 'all'
+            ? tasks.filter(t => myProjectIds.has(t.projectId))
+            : tasks.filter(t => t.projectId === selectedProject && myProjectIds.has(t.projectId))
+        ).filter(t => !assigneeFilter || t.assigneeId === assigneeFilter);
         const columns = activeColumns;
         const doneCol = columns[columns.length - 1] || 'Done';
         const todoCol = columns[0] || 'To Do';
