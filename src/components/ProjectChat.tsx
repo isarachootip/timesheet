@@ -169,7 +169,7 @@ export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, curre
     }
   };
 
-  const renderMessageText = (text: string) => {
+  const renderMessageText = (text: string, isMine?: boolean) => {
     if (!text) return '';
     
     const sortedUsers = [...users].sort((a, b) => b.name.length - a.name.length);
@@ -198,12 +198,12 @@ export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, curre
             <span 
               key={`${user.id}-${index}`} 
               style={{ 
-                color: 'var(--accent-primary, #3b82f6)', 
+                color: isMine ? '#ffffff' : 'var(--accent-primary, #3b82f6)', 
                 fontWeight: 600, 
-                background: 'rgba(59, 130, 246, 0.15)',
+                background: isMine ? 'rgba(255, 255, 255, 0.22)' : 'rgba(59, 130, 246, 0.15)',
                 padding: '0.1rem 0.3rem',
                 borderRadius: '4px',
-                border: '1px solid rgba(59, 130, 246, 0.25)',
+                border: isMine ? '1px solid rgba(255, 255, 255, 0.35)' : '1px solid rgba(59, 130, 246, 0.25)',
                 display: 'inline-block'
               }}
             >
@@ -488,7 +488,7 @@ export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, curre
                                 boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
                                 whiteSpace: 'pre-wrap'
                               }}>
-                                {msg.text.trim() ? renderMessageText(msg.text) : ''}
+                                {msg.text.trim() ? renderMessageText(msg.text, isMine) : ''}
                                 {msg.attachments && msg.attachments.length > 0 && (
                                   <div style={{ marginTop: msg.text.trim() ? '0.75rem' : '0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                     {msg.attachments.map((att, i) => {
