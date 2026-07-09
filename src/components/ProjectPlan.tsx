@@ -1067,8 +1067,23 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
             <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '1.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'white' }}>📋 Milestones & Subtasks</h3>
-                <button onClick={handleGenerateFromTemplates} disabled={isGenerating} className="hover-lift" style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)', padding: '0.4rem 1rem', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}>
-                  <Zap size={14} /> Re-generate Templates
+                <button 
+                  disabled={true} 
+                  style={{ 
+                    background: 'rgba(16, 185, 129, 0.15)', 
+                    color: '#10b981', 
+                    border: '1px solid rgba(16, 185, 129, 0.3)', 
+                    padding: '0.4rem 1rem', 
+                    borderRadius: '8px', 
+                    fontWeight: 600, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.4rem', 
+                    fontSize: '0.8rem',
+                    cursor: 'not-allowed'
+                  }}
+                >
+                  <Check size={14} /> Already
                 </button>
               </div>
 
