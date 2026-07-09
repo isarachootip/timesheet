@@ -620,6 +620,17 @@ const initDB = async () => {
       console.log('✅ One-time migration: updated default scheme to include Team Lead role.');
     }
 
+    // ONE-TIME: Normalize double spaces in usernames and messages
+    const migNormalizeSpaces = 'normalize_user_and_message_spaces_v1';
+    const migNormalizeSpacesDone = await client.query('SELECT id FROM migrations WHERE id = $1', [migNormalizeSpaces]);
+    if (migNormalizeSpacesDone.rows.length === 0) {
+      await client.query("UPDATE users SET name = regexp_replace(name, '\\s+', ' ', 'g')");
+      await client.query("UPDATE project_messages SET text = regexp_replace(text, 'Isara  chootip', 'Isara chootip', 'g')");
+      await client.query("UPDATE project_messages SET text = regexp_replace(text, 'Isara[\\s]{2,8}chootip', 'Isara chootip', 'g')");
+      await client.query('INSERT INTO migrations (id) VALUES ($1)', [migNormalizeSpaces]);
+      console.log('✅ One-time migration: normalized spaces in usernames and messages.');
+    }
+
     // Auto-create initial plan baseline for existing projects with tasks
     const projectsWithTasksRes = await client.query(`
       SELECT DISTINCT p.id, p.name FROM projects p 
@@ -1412,6 +1423,7 @@ app.get('/api/initial-data', async (req, res) => {
 // Users REST API
 app.post('/api/users', async (req, res) => {
   const { id, name, email, avatar, globalRole, department, gender, birthday, skills, password, wfhDays } = req.body;
+  const cleanName = name ? name.replace(/\s+/g, ' ').trim() : '';
   let pwHash = null;
   try {
     // Check if user already exists to preserve their password_hash, or set default ('password123' hashed)
@@ -1438,7 +1450,7 @@ app.post('/api/users', async (req, res) => {
          skills = EXCLUDED.skills,
          password_hash = EXCLUDED.password_hash,
          wfh_days = EXCLUDED.wfh_days`,
-      [id, name, email, avatar, globalRole, department, gender, birthday, skills, pwHash, wfhDays || []]
+      [id, cleanName, email, avatar, globalRole, department, gender, birthday, skills, pwHash, wfhDays || []]
     );
     res.json({ success: true });
   } catch (err) {
@@ -1452,7 +1464,7 @@ app.post('/api/users', async (req, res) => {
              gender = $6, birthday = $7, skills = $8,
              password_hash = $9, wfh_days = $10
            WHERE email = $11`,
-          [id, name, avatar, globalRole, department, gender, birthday, skills, pwHash, wfhDays || [], email]
+          [id, cleanName, avatar, globalRole, department, gender, birthday, skills, pwHash, wfhDays || [], email]
         );
         res.json({ success: true, note: 'merged by email' });
       } catch (updateErr) {
