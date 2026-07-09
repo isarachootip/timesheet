@@ -359,16 +359,40 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
           icon: Clock,
           answer: (
             <div>
-              <p style={{ marginBottom: '0.5rem' }}>When you move a task to <strong>"In Progress"</strong>, the <strong>Log Actual Hours</strong> modal appears. The way it behaves depends on the task\'s planned (estimated) hours:</p>
+              <p style={{ marginBottom: '0.5rem' }}>When you move a task to <strong>"In Progress"</strong>, the <strong>Log Actual Hours</strong> modal appears. The draggable "Work Period" time bar is shown for all tasks to let you log your work window for today:</p>
               <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
                 <li style={{ marginBottom: '0.25rem' }}>
-                  <strong>Single-day task (≤ 16h planned):</strong> Shows a <strong>draggable "Work Period" time bar</strong> (06:00–22:00). Click and drag to select your work window — Start time, End time, and Hours are filled in automatically. You can also fine-tune them manually.
+                  <strong>Interactive Time Bar:</strong> Shows a draggable timeline (06:00–22:00) where you can select your actual work window for today. Start time, End time, and Hours are automatically computed and can also be adjusted manually.
                 </li>
                 <li style={{ marginBottom: '0.25rem' }}>
-                  <strong>Multi-day task (&gt; 16h planned, e.g. 40h):</strong> The time bar is hidden because a 40h task spans multiple days and can\'t fit on a single-day timeline. Instead, you\'ll see a plain <strong>hours input field</strong> labelled <em>"Enter actual hours worked today"</em> — just type how many hours you worked on that particular day.
+                  <strong>Sensible Defaults:</strong> If a task is planned for 8h or more, the time bar defaults to 09:00 - 17:00 (8h). If it is planned for 4h, it defaults to 09:00 - 13:00 (4h). For multi-day tasks (e.g. 40h), the bar is shown so you can log your actual work window for today.
                 </li>
                 <li>
-                  <strong>Planned vs Actual:</strong> The <em>planned hours</em> come from the task\'s Estimated Hours. After you submit, managers can see both figures (Actual / Plan) side-by-side in the <strong>Pending Approvals</strong> screen with a variance badge.
+                  <strong>Planned vs Actual:</strong> Planned hours come from the task's Estimated Hours. Actual hours logged are submitted. Managers can see both figures and the work period on the <strong>Pending Approvals</strong> screen.
+                </li>
+              </ul>
+            </div>
+          )
+        },
+        {
+          id: 'q21',
+          question: 'What are the recent updates to Projects, Tasks, and Dashboard widgets?',
+          icon: Zap,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>Recent productivity enhancements include:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}>
+                  <strong>Project Plan Milestone Duplication Protection:</strong> When you generate milestones from templates in the <em>Project Plan</em>, once they are generated, the button changes to a disabled green <strong>Already</strong> badge. This prevents duplicate milestone creation.
+                </li>
+                <li style={{ marginBottom: '0.25rem' }}>
+                  <strong>Dashboard My Tasks Filters & sorting:</strong> The "My Tasks" widget now includes a <strong>Project Selector</strong> and <strong>Status Tabs</strong> (always displaying To Do, In Progress, Review, and Done). Tasks are sorted by the latest update/activity first.
+                </li>
+                <li style={{ marginBottom: '0.25rem' }}>
+                  <strong>Tasks Assignee Filter:</strong> In the <em>Tasks & Agile Planner</em> board, you can click on any project member's avatar on the right side of the sub-navbar to filter the active view to only show tasks assigned to them.
+                </li>
+                <li>
+                  <strong>Smart Log Time Button:</strong> In the Dashboard task list, the <em>"+ Log Time"</em> button is automatically hidden if a task is moved past the "In Progress" status (e.g. Done, Review, pending).
                 </li>
               </ul>
             </div>
@@ -692,20 +716,44 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
         },
         {
           id: 'q20',
-          question: '"Work Period" time bar คืออะไร และงาน 40h (หลายวัน) จะแสดงอย่างไร?',
+          question: '"Work Period" time bar คืออะไร และสำหรับงาน 40h (หลายวัน) จะบันทึกเวลาอย่างไร?',
           icon: Clock,
           answer: (
             <div>
-              <p style={{ marginBottom: '0.5rem' }}>เมื่อคุณย้าย task ไปที่ <strong>"In Progress"</strong> ระบบจะแสดง modal <strong>Log Actual Hours</strong> ขึ้นมา โดยหน้าตา modal จะต่างกันตาม <strong>Planned Hours</strong> ของ task นั้นๆ ครับ:</p>
+              <p style={{ marginBottom: '0.5rem' }}>เมื่อคุณย้าย task ไปที่ <strong>"In Progress"</strong> ระบบจะแสดง modal <strong>Log Actual Hours</strong> โดยแถบลากจะถูกแสดงสำหรับทุกงานเสมอเพื่อความยืดหยุ่นในการบันทึกเวลาจริงในแต่ละวัน:</p>
               <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
                 <li style={{ marginBottom: '0.25rem' }}>
-                  <strong>Task วันเดียว (Planned ≤ 16h):</strong> แสดง <strong>Time bar แบบลาก (Drag)</strong> ในช่วง 06:00–22:00 — คลิกแล้วลากเพื่อเลือกช่วงเวลา ระบบจะคำนวณ Start, End และ Hours ให้อัตโนมัติ สามารถปรับละเอียดได้ด้วยตนเอง
+                  <strong>แถบเลือกเวลาแบบลาก (Interactive Time Bar):</strong> แสดงช่วงเวลา 06:00–22:00 สามารถคลิกลากเพื่อบันทึกช่วงเวลาที่เข้าทำงานจริงในวันนี้ โดยระบบจะคำนวณ Start, End และ Hours ให้ตามสัดส่วนการลากโดยอัตโนมัติ
                 </li>
                 <li style={{ marginBottom: '0.25rem' }}>
-                  <strong>Task หลายวัน (Planned &gt; 16h เช่น 40h):</strong> Time bar จะถูกซ่อน เพราะงาน 40h ไม่สามารถแสดงบน timeline แค่วันเดียวได้ ระบบจะแสดง <strong>badge "Multi-day task"</strong> พร้อม <em>ช่องกรอก hours</em> ธรรมดา ให้ระบุว่าวันนี้ทำงานไปกี่ชั่วโมง
+                  <strong>ค่าเริ่มต้นอัตโนมัติ:</strong> เพื่อความสะดวกรวดเร็ว หากงานมีชั่วโมงตามแผนตั้งแต่ 8h ขึ้นไป แถบเวลาจะเลือกช่วง 09:00 - 17:00 (8h) ไว้ให้ก่อนโดยอัตโนมัติ และหากแผนงานคือ 4h จะเลือกช่วง 09:00 - 13:00 (4h) ให้โดยอัตโนมัติ
                 </li>
                 <li>
-                  <strong>Planned vs Actual:</strong> Manager จะเห็นทั้งสองค่าคู่กันในหน้า <strong>Pending Approvals</strong> พร้อม badge แสดงส่วนต่าง (Variance) เช่น +2h หรือ -4h เพื่อให้ approve ได้อย่างมีข้อมูล
+                  <strong>การบันทึกงานหลายวัน:</strong> สำหรับงานระยะยาว (เช่น 40h) แถบลากจะปรากฏตามปกติเพื่อให้คุณสามารถระบุช่วงเวลาที่คุณลงมือทำงานดังกล่าวสำหรับวันนี้ได้เลยครับ
+                </li>
+              </ul>
+            </div>
+          )
+        },
+        {
+          id: 'q21',
+          question: 'ฟีเจอร์ใหม่ที่อัปเดตเพิ่มเติมในส่วน Projects, Tasks และ Dashboard มีอะไรบ้าง?',
+          icon: Zap,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>ระบบได้เพิ่มการอำนวยความสะดวกในส่วนต่างๆ ดังนี้ครับ:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}>
+                  <strong>ป้องกันการสร้างแผนงานซ้ำ (Milestone Protection):</strong> ในหน้า <em>Project Plan</em> เมื่อกดปุ่ม Generate Milestones ไปเรียบร้อยแล้ว ปุ่มสีส้มเดิมจะเปลี่ยนเป็นปุ่มสีเขียว <strong>Already</strong> และอยู่ในสถานะ Disabled เพื่อแจ้งเตือนและป้องกันการกดซ้ำซ้อน
+                </li>
+                <li style={{ marginBottom: '0.25rem' }}>
+                  <strong>ตัวกรองและเรียงลำดับใหม่ใน Dashboard:</strong> ในกล่อง "My Tasks" หน้าแรกสุด ได้เพิ่ม <strong>Dropdown ค้นหาตาม Project</strong> และ <strong>แถบปุ่มสถานะ</strong> (มี To Do, In Progress, Review, Done แสดงไว้ตลอดเวลา) พร้อมทั้งจัดเรียงลำดับงานตามความเคลื่อนไหวล่าสุดขึ้นก่อนเสมอ
+                </li>
+                <li style={{ marginBottom: '0.25rem' }}>
+                  <strong>กรองงานตามผู้รับผิดชอบ (Assignee Filter):</strong> ในหน้า <em>Tasks</em> (หน้าคัมบังบอร์ด) คุณสามารถคลิกที่รูปโปรไฟล์ (Avatar) ของสมาชิกแต่ละคนในโปรเจกต์ได้เลยเพื่อเลือกดูเฉพาะงานของคนนั้นในหน้าบอร์ด, แบ็กล็อก, ไทม์ไลน์ ฯลฯ
+                </li>
+                <li>
+                  <strong>ซ่อนปุ่มบันทึกเวลาตามสถานะงาน (Smart Log Time):</strong> ในหน้า Dashboard ปุ่ม <em>"+ Log Time"</em> จะถูกซ่อนอัตโนมัติเมื่องานถูกย้ายเลยสถานะ In Progress ไปแล้ว (เช่น เมื่อขึ้น Review, Done หรือ pending) เพื่อลดความผิดพลาดในการลงเวลาการทำงานครับ
                 </li>
               </ul>
             </div>
