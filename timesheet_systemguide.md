@@ -98,3 +98,5 @@ Advanced data visualization tools for project metrics and costs:
     *กราฟสถิติผู้ใช้งาน*: แสดงทิศทางชั่วโมงทำงานของพนักงานแต่ละคนตามตัวกรอง รายวัน รายเดือน และรายปี
 *   **Subtasks Overview in Summary tab**: A dedicated analytics card on the Tasks Summary tab showing overall subtask completion percentages and status counts.
     *ภาพรวมงานย่อยในแดชบอร์ด*: แดชบอร์ดสรุปความคืบหน้ารวมของ Subtask ทั้งหมดในโปรเจกต์ในหน้า Tasks Summary
+*   **PM Portfolio Dashboard**: A unified view for PMs and Admins showing all managed projects, resource count, logged hours, actual cost, and budget utilization charts in one screen.
+    *พอร์ตโฟลิโอ PM (PM Portfolio)*: แดชบอร์ดสรุปรวมโครงการทั้งหมดที่ PM บริหารจัดการ รวมถึงจำนวนพนักงาน ชั่วโมงการลงเวลา ต้นทุนสะสม และสัดส่วนการใช้งบประมาณในหน้าจอเดียว

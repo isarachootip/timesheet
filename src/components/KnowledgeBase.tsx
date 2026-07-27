@@ -262,13 +262,119 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
           icon: Shield,
           answer: (
             <div>
-              <p style={{ marginBottom: '0.5rem' }}>NexTime supports four user roles, which determine their system permissions:</p>
-              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+              <p style={{ marginBottom: '0.5rem' }}>NexTime manages access via two levels of roles: <strong>Global Roles</strong> (system level) and <strong>Project Roles</strong> (project level, such as PM, Dev, Tester, SA):</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.75rem' }}>
                 <li style={{ marginBottom: '0.25rem' }}><strong>Admin:</strong> Full system access, including editing system configurations, managing all projects, tasks, timesheets, and permissions.</li>
-                <li style={{ marginBottom: '0.25rem' }}><strong>Manager:</strong> Administrative access to manage all projects, tasks, baselines, and approve/delete timesheets. Cannot edit core system settings.</li>
-                <li style={{ marginBottom: '0.25rem' }}><strong>Employee (Internal Staff):</strong> Access to assigned projects. Can log hours, create tasks/subtasks, and transition task statuses. Cannot modify project baselines or delete approved timesheets.</li>
-                <li><strong>User (External / Client):</strong> Restricted visibility. Can only view projects they are assigned to as members and join project chats. Has no editing or administration rights over project plans.</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Manager:</strong> Administrative access to manage all projects, tasks, baselines, and approve/delete timesheets across the system. Cannot edit core system settings.</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Employee / Tester / Member:</strong> Restricted strictly to projects where they are added as <strong>Project Members</strong>. Can log daily hours, create tasks/bugs, and update their assigned tasks. Cannot approve team timesheets, manage members, or alter project baselines.</li>
+                <li><strong>User (External / Client):</strong> Read-only access restricted strictly to assigned projects. Can view project details and participate in Team Chat.</li>
               </ul>
+
+              <h4 style={{ margin: '1rem 0 0.5rem 0', fontSize: '0.95rem', fontWeight: 600 }}>Role & Permission Matrix</h4>
+              <div style={{ overflowX: 'auto', borderRadius: '8px', border: '1px solid var(--border-color, #334155)' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ background: 'rgba(255,255,255,0.05)', borderBottom: '1px solid var(--border-color, #334155)' }}>
+                      <th style={{ padding: '0.6rem 0.8rem' }}>Permissions & Features</th>
+                      <th style={{ padding: '0.6rem 0.8rem' }}>Admin</th>
+                      <th style={{ padding: '0.6rem 0.8rem' }}>Manager</th>
+                      <th style={{ padding: '0.6rem 0.8rem' }}>PM (Project)</th>
+                      <th style={{ padding: '0.6rem 0.8rem' }}>Employee / Tester</th>
+                      <th style={{ padding: '0.6rem 0.8rem' }}>User (External)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr style={{ borderBottom: '1px solid var(--border-color, #334155)' }}>
+                      <td style={{ padding: '0.5rem 0.8rem', fontWeight: 600 }}>Project Visibility Scope</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>All Projects</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>All Projects</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#3b82f6' }}>Member Projects Only</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#f59e0b' }}>Member Projects Only</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>Member Projects Only</td>
+                    </tr>
+                    <tr style={{ borderBottom: '1px solid var(--border-color, #334155)' }}>
+                      <td style={{ padding: '0.5rem 0.8rem', fontWeight: 600 }}>Create Tasks / Bugs / Sub-tasks</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓ (Member Projects)</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                    </tr>
+                    <tr style={{ borderBottom: '1px solid var(--border-color, #334155)' }}>
+                      <td style={{ padding: '0.5rem 0.8rem', fontWeight: 600 }}>Edit & Transition Own Tasks</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                    </tr>
+                    <tr style={{ borderBottom: '1px solid var(--border-color, #334155)' }}>
+                      <td style={{ padding: '0.5rem 0.8rem', fontWeight: 600 }}>Edit / Delete Other People's Tasks</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓ (Project Tasks)</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                    </tr>
+                    <tr style={{ borderBottom: '1px solid var(--border-color, #334155)' }}>
+                      <td style={{ padding: '0.5rem 0.8rem', fontWeight: 600 }}>Log Daily Timesheets</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                    </tr>
+                    <tr style={{ borderBottom: '1px solid var(--border-color, #334155)' }}>
+                      <td style={{ padding: '0.5rem 0.8rem', fontWeight: 600 }}>Approve / Reject Team Timesheets</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓ (Project Team)</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                    </tr>
+                    <tr style={{ borderBottom: '1px solid var(--border-color, #334155)' }}>
+                      <td style={{ padding: '0.5rem 0.8rem', fontWeight: 600 }}>Delete Approved Timesheets</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                    </tr>
+                    <tr style={{ borderBottom: '1px solid var(--border-color, #334155)' }}>
+                      <td style={{ padding: '0.5rem 0.8rem', fontWeight: 600 }}>Manage Project Members & Roles</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                    </tr>
+                    <tr style={{ borderBottom: '1px solid var(--border-color, #334155)' }}>
+                      <td style={{ padding: '0.5rem 0.8rem', fontWeight: 600 }}>Manage Sprints, Releases & Baselines</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                    </tr>
+                    <tr style={{ borderBottom: '1px solid var(--border-color, #334155)' }}>
+                      <td style={{ padding: '0.5rem 0.8rem', fontWeight: 600 }}>Project Team Chat</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓ (All Rooms)</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓ (All Rooms)</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓ (Member Rooms)</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓ (Member Rooms)</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓ (Member Rooms)</td>
+                    </tr>
+                    <tr>
+                      <td style={{ padding: '0.5rem 0.8rem', fontWeight: 600 }}>System Settings & User Approvals</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           )
         },
@@ -393,6 +499,27 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
                 </li>
                 <li>
                   <strong>Smart Log Time Button:</strong> In the Dashboard task list, the <em>"+ Log Time"</em> button is automatically hidden if a task is moved past the "In Progress" status (e.g. Done, Review, pending).
+                </li>
+              </ul>
+            </div>
+          )
+        },
+        {
+          id: 'q22',
+          question: 'How does Project Permission Control work for Project & Sprint Filters?',
+          icon: Shield,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>The system strictly enforces Role-Based Access Control (RBAC) across all Project & Sprint filter dropdowns:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}>
+                  <strong>Project-Scoped Visibility:</strong> Users who only belong to specific projects will only see their permitted projects in the Project selector dropdown (in Tasks, Project Plan, Reports, and Timesheet).
+                </li>
+                <li style={{ marginBottom: '0.25rem' }}>
+                  <strong>Sprint Dropdown Protection:</strong> When "All Projects" is selected, the Sprint filter dropdown will only list sprints from projects the user is authorized to view. Sprints from unauthorized projects are completely hidden.
+                </li>
+                <li style={{ marginBottom: '0.25rem' }}>
+                  <strong>Smart Project Defaulting:</strong> If a user has permission to only 1 project, the system automatically defaults to that project and hides the redundant "All Projects" option.
                 </li>
               </ul>
             </div>
@@ -619,17 +746,123 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
         },
         {
           id: 'q14',
-          question: 'ผู้ใช้งานในระบบมีกี่ประเภท และมีสิทธิ์แตกต่างกันอย่างไร?',
+          question: 'ผู้ใช้งานในระบบมีกี่ประเภท และมีสิทธิ์แตกต่างกันอย่างไร? (พร้อมตารางเปรียบเทียบ)',
           icon: Shield,
           answer: (
             <div>
-              <p style={{ marginBottom: '0.5rem' }}>ระบบ NexTime แบ่งผู้ใช้งานออกเป็น 4 ประเภท (Roles) เพื่อควบคุมสิทธิ์การเข้าถึงข้อมูลดังนี้ครับ:</p>
-              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+              <p style={{ marginBottom: '0.5rem' }}>ระบบ NexTime แบ่งบทบาทออกเป็น 2 ระดับ คือ <strong>Global Role (สิทธิ์ระดับระบบ)</strong> และ <strong>Project Role (บทบาทในโครงการ เช่น PM, Dev, Tester, SA)</strong> เพื่อควบคุมสิทธิ์ดังนี้ครับ:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.75rem' }}>
                 <li style={{ marginBottom: '0.25rem' }}><strong>Admin (ผู้ดูแลระบบสูงสุด):</strong> สามารถเข้าถึงและจัดการข้อมูลทุกอย่างในระบบ ตั้งค่าการทำงาน จัดการโครงการ งาน ใบลงเวลา และสิทธิ์สมาชิกได้ทั้งหมด</li>
                 <li style={{ marginBottom: '0.25rem' }}><strong>Manager (ผู้จัดการระบบ):</strong> มีสิทธิ์จัดการโครงการ แผนงาน (Baselines) งาน และสปรินต์ รวมถึงอนุมัติหรือลบใบลงเวลาได้ทั้งหมด แต่ไม่สามารถแก้ไขส่วนตั้งค่าหลักของระบบ (System Config) ได้</li>
-                <li style={{ marginBottom: '0.25rem' }}><strong>Employee (พนักงานปฏิบัติงาน):</strong> มองเห็นเฉพาะโครงการที่ตนมีชื่อเข้าร่วม สามารถบันทึกเวลาทำงาน (Timesheet) สร้างงานหรือเปลี่ยนสถานะงานได้ แต่ไม่มีสิทธิ์จัดการ Baseline หรือลบใบลงเวลาที่อนุมัติแล้ว</li>
-                <li><strong>User (ผู้ใช้ทั่วไป / บุคคลภายนอก):</strong> สิทธิ์การเข้าดูแบบจำกัดเป็นพิเศษ สามารถมองเห็นได้เฉพาะโปรเจกต์ที่ได้รับมอบหมาย และมีส่วนร่วมในแชทคุยของโปรเจกต์นั้นได้เท่านั้น ไม่มีสิทธิ์ในการแก้ไขงานหรือจัดการแผนงานใด ๆ ครับ</li>
+                <li style={{ marginBottom: '0.25rem' }}><strong>Employee / Tester / Member (พนักงานและผู้ปฏิบัติงาน):</strong> <u>มองเห็นและเข้าถึงได้เฉพาะโครงการที่ตนเองมีชื่อเป็นสมาชิกเท่านั้น</u> สามารถลงเวลา (Timesheet) สร้างงาน/Bug และแก้ไขงานที่รับผิดชอบได้ แต่ไม่มีสิทธิ์อนุมัติเวลาทีม จัดการสมาชิก หรือแก้ไขแผนงานหลัก</li>
+                <li><strong>User (ผู้ใช้ทั่วไป / บุคคลภายนอก):</strong> สิทธิ์จำกัดเป็นพิเศษ มองเห็นเฉพาะโครงการที่ตนมีชื่อเป็นสมาชิก เข้าร่วมแชทคุยงานได้ แต่ไม่มีสิทธิ์สร้างหรือแก้ไขงานใด ๆ</li>
               </ul>
+
+              <h4 style={{ margin: '1rem 0 0.5rem 0', fontSize: '0.95rem', fontWeight: 600 }}>ตารางเปรียบเทียบสิทธิ์การใช้งาน (Role & Permission Matrix)</h4>
+              <div style={{ overflowX: 'auto', borderRadius: '8px', border: '1px solid var(--border-color, #334155)' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ background: 'rgba(255,255,255,0.05)', borderBottom: '1px solid var(--border-color, #334155)' }}>
+                      <th style={{ padding: '0.6rem 0.8rem' }}>สิทธิ์ / ฟีเจอร์ (Permissions)</th>
+                      <th style={{ padding: '0.6rem 0.8rem' }}>Admin</th>
+                      <th style={{ padding: '0.6rem 0.8rem' }}>Manager</th>
+                      <th style={{ padding: '0.6rem 0.8rem' }}>PM (Project)</th>
+                      <th style={{ padding: '0.6rem 0.8rem' }}>Employee / Tester</th>
+                      <th style={{ padding: '0.6rem 0.8rem' }}>User (External)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr style={{ borderBottom: '1px solid var(--border-color, #334155)' }}>
+                      <td style={{ padding: '0.5rem 0.8rem', fontWeight: 600 }}>ขอบเขตโครงการที่มองเห็น (Project Scope)</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>ทุกโครงการ</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>ทุกโครงการ</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#3b82f6' }}>เฉพาะโครงการที่เป็นสมาชิก</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#f59e0b' }}>เฉพาะโครงการที่เป็นสมาชิก</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>เฉพาะโครงการที่เป็นสมาชิก</td>
+                    </tr>
+                    <tr style={{ borderBottom: '1px solid var(--border-color, #334155)' }}>
+                      <td style={{ padding: '0.5rem 0.8rem', fontWeight: 600 }}>สร้าง Task / Bug / Sub-task</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓ (ในโครงการตนเอง)</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                    </tr>
+                    <tr style={{ borderBottom: '1px solid var(--border-color, #334155)' }}>
+                      <td style={{ padding: '0.5rem 0.8rem', fontWeight: 600 }}>แก้ไข/เปลี่ยนสถานะ Task ของตนเอง</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                    </tr>
+                    <tr style={{ borderBottom: '1px solid var(--border-color, #334155)' }}>
+                      <td style={{ padding: '0.5rem 0.8rem', fontWeight: 600 }}>แก้ไข/ลบ Task ของผู้อื่น</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓ (ในโครงการตนเอง)</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                    </tr>
+                    <tr style={{ borderBottom: '1px solid var(--border-color, #334155)' }}>
+                      <td style={{ padding: '0.5rem 0.8rem', fontWeight: 600 }}>บันทึก Timesheet ประจำวัน</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                    </tr>
+                    <tr style={{ borderBottom: '1px solid var(--border-color, #334155)' }}>
+                      <td style={{ padding: '0.5rem 0.8rem', fontWeight: 600 }}>อนุมัติ/ปฏิเสธ Timesheet ของทีม</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓ (ลูกทีมในโครงการ)</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                    </tr>
+                    <tr style={{ borderBottom: '1px solid var(--border-color, #334155)' }}>
+                      <td style={{ padding: '0.5rem 0.8rem', fontWeight: 600 }}>ลบ/แก้ไข Timesheet ที่อนุมัติแล้ว</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                    </tr>
+                    <tr style={{ borderBottom: '1px solid var(--border-color, #334155)' }}>
+                      <td style={{ padding: '0.5rem 0.8rem', fontWeight: 600 }}>จัดการสมาชิกโครงการ (Add/Remove Members)</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                    </tr>
+                    <tr style={{ borderBottom: '1px solid var(--border-color, #334155)' }}>
+                      <td style={{ padding: '0.5rem 0.8rem', fontWeight: 600 }}>จัดการ Sprints, Releases & Baselines</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                    </tr>
+                    <tr style={{ borderBottom: '1px solid var(--border-color, #334155)' }}>
+                      <td style={{ padding: '0.5rem 0.8rem', fontWeight: 600 }}>แชทคุยงานในโครงการ (Team Chat)</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓ (ทุกห้อง)</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓ (ทุกห้อง)</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓ (ห้องโครงการตนเอง)</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓ (ห้องโครงการตนเอง)</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓ (ห้องโครงการตนเอง)</td>
+                    </tr>
+                    <tr>
+                      <td style={{ padding: '0.5rem 0.8rem', fontWeight: 600 }}>ตั้งค่าระบบ & จัดการผู้ใช้ (Settings & Approvals)</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#10b981' }}>✓</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                      <td style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}>✗</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           )
         },
@@ -758,6 +991,27 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
               </ul>
             </div>
           )
+        },
+        {
+          id: 'q22',
+          question: 'ระบบจำกัดสิทธิ์การมองเห็น Project และ Sprint ตามสมาชิกโครงการอย่างไร?',
+          icon: Shield,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>ระบบใช้การควบคุมสิทธิ์ตามบทบาท (Role-Based Access Control) ในทุกตัวกรอง Project และ Sprint อย่างเข้มงวด:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}>
+                  <strong>จำกัดขอบเขต Project:</strong> ผู้ใช้งานทั่วไปจะเห็นเฉพาะ Project ที่ตนเองเป็นสมาชิกในตัวกรอง (ทั้งในหน้า Tasks, Project Plan, Reports และ Timesheet)
+                </li>
+                <li style={{ marginBottom: '0.25rem' }}>
+                  <strong>ป้องกันข้อมูล Sprint รั่วไหล (Sprint Filter Security):</strong> เมื่อเลือก "All Projects" ตัวกรอง Sprint จะแสดงเฉพาะ Sprint ของ Project ที่ผู้ใช้มีสิทธิ์เข้าถึงเท่านั้น โดย Sprint จาก Project ที่ไม่มีสิทธิ์จะถูกซ่อนไว้โดยสมบูรณ์
+                </li>
+                <li style={{ marginBottom: '0.25rem' }}>
+                  <strong>เลือก Project ให้อัตโนมัติ:</strong> หากผู้ใช้งานมีสิทธิ์เพียง 1 Project ระบบจะเลือก Project นั้นให้อัตโนมัติ และซ่อนตัวเลือก "All Projects" เพื่อความสะดวกและไม่สับสน
+                </li>
+              </ul>
+            </div>
+          )
         }
       ]
     }
@@ -880,6 +1134,54 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
               </ul>
             </div>
           )
+        },
+        {
+          id: 'f7',
+          question: 'How to monitor multiple projects and view current progress as a PM?',
+          icon: BarChart3,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>Project Managers (PMs) and Administrators can monitor multiple projects and their current live progress using the following features:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}>
+                  <strong>Project Health (Dashboard):</strong> Located on the right side of the main Dashboard. It displays a list of projects with their overall <strong>Progress Bar</strong> (calculated as the percentage of "Done" tasks out of total tasks), current status (Planning, Active, Completed, On Hold), number of team members, and remaining or overdue days.
+                </li>
+                <li style={{ marginBottom: '0.25rem' }}>
+                  <strong>PM Portfolio Tab (Reports):</strong> In the "Reports" page, access the <strong>PM Portfolio</strong> tab. It features the <em>Project Portfolios & Budgets</em> table, displaying:
+                  <ul style={{ listStyleType: 'circle', paddingLeft: '1.25rem', marginTop: '0.25rem' }}>
+                    <li>Project timeline (Start Date & End Date).</li>
+                    <li>Completion progress bar based on finished tasks.</li>
+                    <li>Total logged hours (timesheets) and actual labor costs.</li>
+                    <li>Budget utilization percentage with warning bars if it exceeds the budgeted amount.</li>
+                  </ul>
+                </li>
+                <li>
+                  <strong>Projects Directory:</strong> Displays all active projects you have access to, complete with dates, budget, team member avatars, and an expandable <strong>Auto-Generated Plan</strong> list showing the project's milestones and timeline.
+                </li>
+              </ul>
+            </div>
+          )
+        },
+        {
+          id: 'f8',
+          question: 'Strict Project & Sprint Scope Access Control (RBAC Filtering)',
+          icon: Shield,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>Enhanced security and scope isolation across all project management modules:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}>
+                  <strong>Role-Based Filtering:</strong> Non-admin users are strictly restricted to projects where they are assigned as members. All project filter dropdowns (Tasks, Project Plan, Reports, Timesheet) automatically restrict available choices.
+                </li>
+                <li style={{ marginBottom: '0.25rem' }}>
+                  <strong>All Projects Sprint Privacy:</strong> Selecting "All Projects" filters tasks and sprints strictly by the user's permitted project IDs, eliminating cross-project data leaks.
+                </li>
+                <li style={{ marginBottom: '0.25rem' }}>
+                  <strong>Auto Project Selection:</strong> For single-project members, the system bypasses "All Projects" to land directly on their active project context.
+                </li>
+              </ul>
+            </div>
+          )
         }
       ]
     },
@@ -992,6 +1294,48 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
                     <li><em>Category-based Tasks:</em> สร้างถังงานแยกประเภทหลัก 3 รายการ ได้แก่ <code>User Support & Helpdesk</code>, <code>System Maintenance & Operations</code> และ <code>Bug Fixing & Enhancement Support</code> เพื่อให้พนักงานเข้ามาเลือกกรอกเวลาสะสมได้ตามระบบหรือหน่วยธุรกิจ (BU)</li>
                     <li><em>Monthly Tasks:</em> สร้างถังงานอิงตามเดือนปฏิทินตลอดระยะสัญญาซัพพอร์ต (เช่น <code>[2026-01] Support & Maintenance</code>) ช่วยแยกชั่วโมงทำงานออกเป็นรายเดือนอย่างมีระเบียบ</li>
                   </ul>
+                </li>
+              </ul>
+            </div>
+          )
+        },
+        {
+          id: 'f7',
+          question: 'Project Monitor สำหรับดูหลายๆ Project และดูความคืบหน้า (Current Progress) ดูได้อย่างไร?',
+          icon: BarChart3,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>ผู้จัดการโครงการ (PM) และผู้ดูแลระบบ (Manager/Admin) สามารถตรวจสอบความคืบหน้าของหลายๆ โครงการพร้อมกันได้ผ่านฟีเจอร์ต่างๆ ดังนี้ครับ:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}>
+                  <strong>แผง Project Health (หน้า Dashboard):</strong> อยู่ทางด้านขวาของหน้าหลัก Dashboard แสดงรายการโครงการ, สถานะโครงการ, จำนวนสมาชิก, จำนวนวันที่เหลือหรือเลยกำหนด (Overdue) และมี <strong>Progress Bar</strong> แสดงความคืบหน้าโครงการเป็นเปอร์เซ็นต์ (คำนวณจากจำนวนงานที่อยู่ในสถานะ Done เทียบกับงานทั้งหมด)
+                </li>
+                <li style={{ marginBottom: '0.25rem' }}>
+                  <strong>แท็บ PM Portfolio (หน้า Reports):</strong> สำหรับ PM และ Admin โดยเฉพาะ ในหน้านี้จะมีตาราง <em>Project Portfolios & Budgets</em> ที่รวบรวมทุกโครงการมาเปรียบเทียบข้อมูลระยะเวลาเริ่มต้นและสิ้นสุดของโครงการ (Start Date & End Date), ความคืบหน้าการทำงาน (Completion Progress), จำนวนทีมงาน, ชั่วโมงการทำงานสะสม (Logged Hours), ต้นทุนจริงตามชั่วโมงสะสม (Actual Cost) และอัตราการใช้งบประมาณ (Budget Utilization) ซึ่งจะแสดงแถบสีแดงแจ้งเตือนหากต้นทุนเกินงบที่ตั้งไว้
+                </li>
+                <li>
+                  <strong>หน้า Projects (เมนูหลัก):</strong> แสดงการ์ดข้อมูลโปรเจกต์ทั้งหมดที่มีสิทธิ์เข้าถึง พร้อมข้อมูลระยะเวลา งบประมาณ รายชื่อทีมงาน และมีส่วนของ <strong>Auto-Generated Plan</strong> ที่สามารถกดคลี่เปิดดู Milestone แผนงานย่อยและกำหนดเวลาของแต่ละโครงการได้ทันที
+                </li>
+              </ul>
+            </div>
+          )
+        },
+        {
+          id: 'f8',
+          question: 'ระบบควบคุมสิทธิ์และขอบเขต Project & Sprint ตามสมาชิกโครงการ (Project Security & RBAC)',
+          icon: Shield,
+          answer: (
+            <div>
+              <p style={{ marginBottom: '0.5rem' }}>เพิ่มความปลอดภัยและการปกป้องความเป็นส่วนตัวของข้อมูลในทุกโมดูลการทำงาน:</p>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
+                <li style={{ marginBottom: '0.25rem' }}>
+                  <strong>การจำกัดสิทธิ์ในตัวกรอง Project:</strong> ผู้ใช้งานทั่วไปที่ไม่ใช่ Admin/Manager จะเห็นและเลือกได้เฉพาะ Project ที่ตนเองเป็นสมาชิกเท่านั้น (มีผลครอบคลุมหน้า Tasks, Project Plan, Reports และ Timesheet)
+                </li>
+                <li style={{ marginBottom: '0.25rem' }}>
+                  <strong>การกรอง Sprint ป้องกันข้อมูลรั่วไหล:</strong> เมื่อผู้ใช้เลือก "All Projects" ระบบจะกรองรายการ Sprint ให้เห็นเฉพาะงวดงานใน Project ที่ตนมีสิทธิ์เท่านั้น ป้องกันการมองเห็นชื่อ Sprint หรือโครงสร้างงานจาก Project อื่น
+                </li>
+                <li style={{ marginBottom: '0.25rem' }}>
+                  <strong>เลือก Project ให้อัตโนมัติ:</strong> สำหรับสมาชิกที่มีสิทธิ์ 1 โครงการ ระบบจะเลือกโครงการนั้นให้อัตโนมัติและซ่อนตัวเลือก "All Projects" เพื่อความเรียบง่ายและลดความผิดพลาด
                 </li>
               </ul>
             </div>

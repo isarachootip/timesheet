@@ -67,7 +67,27 @@ interface ProjectPlanProps {
 }
 
 export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, permissionSchemes, currentUser, fetchInitialData }: ProjectPlanProps) => {
-  const [selectedProjectId, setSelectedProjectId] = useState<string>(projects[0]?.id || '');
+  const myProjects = projects.filter(p => 
+    currentUser?.globalRole === 'Admin' || 
+    currentUser?.globalRole === 'Manager' || 
+    p.members?.some(m => m.userId === currentUser?.id)
+  );
+
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(() => {
+    const allowed = projects.filter(p => 
+      currentUser?.globalRole === 'Admin' || 
+      currentUser?.globalRole === 'Manager' || 
+      p.members?.some(m => m.userId === currentUser?.id)
+    );
+    return allowed[0]?.id || '';
+  });
+
+  useEffect(() => {
+    if (myProjects.length > 0 && !myProjects.some(p => p.id === selectedProjectId)) {
+      setSelectedProjectId(myProjects[0].id);
+    }
+  }, [myProjects, selectedProjectId]);
+
   const [expandedMilestones, setExpandedMilestones] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -522,15 +542,9 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
               onChange={e => setSelectedProjectId(e.target.value)}
               style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', outline: 'none', cursor: 'pointer', fontSize: '0.95rem', fontWeight: 600 }}
             >
-              {projects
-                .filter(p => 
-                  currentUser?.globalRole === 'Admin' || 
-                  currentUser?.globalRole === 'Manager' || 
-                  p.members?.some(m => m.userId === currentUser?.id)
-                )
-                .map(p => (
-                  <option key={p.id} value={p.id} style={{ background: 'var(--bg-secondary)' }}>{p.name}</option>
-                ))}
+              {myProjects.map(p => (
+                <option key={p.id} value={p.id} style={{ background: 'var(--bg-secondary)' }}>{p.name}</option>
+              ))}
             </select>
           </div>
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { TimesheetEntry, User, GlobalRole, Project, ProjectRole } from '../types';
 import { Check, X, Clock, Award, Users, Plus, Edit, Trash2, Calendar, Home } from 'lucide-react';
-import { formatToDDMMYYYY } from '../utils';
+import { formatToDDMMYYYY, sortTimesheetsByLastUpdate } from '../utils';
 import { CustomDateInput } from './CustomDateInput';
 
 interface TeamApprovalsProps {
@@ -203,7 +203,7 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
   };
 
   // Filter pending timesheets
-  const pendingEntries = timesheets.filter(ts => ts.status === 'Pending');
+  const pendingEntries = sortTimesheetsByLastUpdate(timesheets.filter(ts => ts.status === 'Pending'));
 
   const calculateAge = (birthdayStr?: string) => {
     if (!birthdayStr) return null;

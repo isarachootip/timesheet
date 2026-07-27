@@ -1,3 +1,5 @@
+import type { TimesheetEntry } from './types';
+
 export const formatToDDMMYYYY = (dateStr?: string | Date | number | null): string => {
   if (!dateStr) return '';
   try {
@@ -16,3 +18,25 @@ export const formatToDDMMYYYY = (dateStr?: string | Date | number | null): strin
     return typeof dateStr === 'string' ? dateStr : '';
   }
 };
+
+export const sortTimesheetsByLastUpdate = (timesheets: TimesheetEntry[]): TimesheetEntry[] => {
+  return [...timesheets].sort((a, b) => {
+    const getTimesheetTime = (ts: TimesheetEntry) => {
+      if (ts.updatedAt) {
+        const t = new Date(ts.updatedAt).getTime();
+        if (!isNaN(t)) return t;
+      }
+      if (ts.id && ts.id.startsWith('ts_')) {
+        const t = parseInt(ts.id.substring(3));
+        if (!isNaN(t)) return t;
+      }
+      if (ts.date) {
+        const t = new Date(ts.date).getTime();
+        if (!isNaN(t)) return t;
+      }
+      return 0;
+    };
+    return getTimesheetTime(b) - getTimesheetTime(a);
+  });
+};
+

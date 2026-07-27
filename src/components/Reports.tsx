@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { BarChart3, TrendingUp, Download, Printer, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Briefcase, Clock, Activity, LineChart as LineChartIcon, PieChart as PieChartIcon } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { BarChart3, TrendingUp, Download, Printer, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Briefcase, Clock, Activity, LineChart as LineChartIcon, PieChart as PieChartIcon, FileSpreadsheet } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import * as XLSX from 'xlsx';
 import type { User, Project, TimesheetEntry, Task, CostRate, Sprint } from '../types';
-import { formatToDDMMYYYY } from '../utils';
+import { formatToDDMMYYYY, sortTimesheetsByLastUpdate } from '../utils';
 import { CustomDateInput } from './CustomDateInput';
 
 interface ReportsProps {
@@ -24,6 +25,26 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
   const [selectedUser, setSelectedUser] = useState<string>('all');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+
+  const myProjects = useMemo(() => {
+    return projects.filter(p => 
+      currentUser?.globalRole === 'Admin' || 
+      currentUser?.globalRole === 'Manager' || 
+      p.members?.some(m => m.userId === currentUser?.id)
+    );
+  }, [projects, currentUser]);
+
+  useEffect(() => {
+    if (myProjects.length === 1) {
+      if (selectedProject !== myProjects[0].id) {
+        setSelectedProject(myProjects[0].id);
+      }
+    } else if (selectedProject !== 'all' && !myProjects.some(p => p.id === selectedProject)) {
+      if (myProjects.length > 0) {
+        setSelectedProject('all');
+      }
+    }
+  }, [myProjects, selectedProject]);
   
   // Selected Month (for Personal and Project dashboards)
   const [selectedMonth, setSelectedMonth] = useState<string>(() => {
@@ -106,6 +127,8 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
     return true;
   });
 
+  const sortedTimesheets = sortTimesheetsByLastUpdate(filteredTimesheets);
+
   const totalHours = filteredTimesheets.reduce((sum, entry) => sum + entry.hours, 0);
   const approvedHours = filteredTimesheets
     .filter(ts => ts.status === 'Approved')
@@ -116,14 +139,14 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
   // ── Cost & Budget Calculations ──
   const totalCost = filteredTimesheets.reduce((sum, ts) => sum + getEntryCost(ts), 0);
   const relevantProjects = selectedProject === 'all' 
-    ? projects 
-    : projects.filter(p => p.id === selectedProject);
+    ? myProjects 
+    : myProjects.filter(p => p.id === selectedProject);
   const totalBudget = relevantProjects.reduce((sum, p) => sum + (p.budget || 0), 0);
   const budgetUsedPct = totalBudget > 0 ? Math.round((totalCost / totalBudget) * 100) : 0;
   const isOverBudget = totalCost > totalBudget && totalBudget > 0;
 
   const totalAllHours = visibleTimesheets.reduce((s, t) => s + t.hours, 0);
-  const projectStats = projects.map(project => {
+  const projectStats = myProjects.map(project => {
     const hours = filteredTimesheets
       .filter(ts => ts.projectId === project.id)
       .reduce((sum, ts) => sum + ts.hours, 0);
@@ -493,7 +516,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
   // ── Export CSV ──
   const exportCSV = () => {
     const headers = ['Date', 'User', 'Project', 'Hours', 'Cost (THB)', 'Description', 'Status'];
-    const rows = filteredTimesheets.map(ts => [
+    const rows = sortedTimesheets.map(ts => [
       ts.date,
       users.find(u => u.id === ts.userId)?.name || '',
       projects.find(p => p.id === ts.projectId)?.name || '',
@@ -515,6 +538,137 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
   // ── Export PDF (print) ──
   const exportPDF = () => {
     window.print();
+  };
+
+  // ── Export Daily Timesheet to Excel (Personal Performance) ──
+  const exportPersonalDailyExcel = () => {
+    const targetUser = users.find(u => u.id === activePersonalUser);
+    const userName = targetUser?.name || currentUser?.name || 'Employee';
+    
+    // Sort timesheets by date ascending then start time
+    const sortedPersonalTimesheets = [...personalTimesheets].sort((a, b) => {
+      if (a.date !== b.date) return a.date.localeCompare(b.date);
+      return (a.startTime || '').localeCompare(b.startTime || '');
+    });
+
+    // 1. Detailed Entries Sheet
+    const detailHeaders = [
+      'Date',
+      'Day of Week',
+      'Employee Name',
+      'Project',
+      'Task / Activity',
+      'Start Time',
+      'End Time',
+      'Hours Logged',
+      'Work Description',
+      'Work Results',
+      'Status'
+    ];
+
+    const detailRows = sortedPersonalTimesheets.map(ts => {
+      const proj = projects.find(p => p.id === ts.projectId);
+      const tsk = tasks.find(t => t.id === ts.taskId);
+      const d = new Date(ts.date);
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const dayOfWeek = isNaN(d.getTime()) ? '' : dayNames[d.getDay()];
+
+      return [
+        ts.date,
+        dayOfWeek,
+        userName,
+        proj?.name || ts.projectId,
+        tsk?.title || ts.taskId || '-',
+        ts.startTime || '-',
+        ts.endTime || '-',
+        ts.hours,
+        ts.description || '',
+        ts.workResults || '',
+        ts.status
+      ];
+    });
+
+    if (detailRows.length > 0) {
+      detailRows.push([
+        'TOTAL',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        personalTotalHours,
+        `${detailRows.length} entry(ies)`,
+        '',
+        ''
+      ]);
+    }
+
+    // 2. Daily Summary Sheet (Day 1..31 of month)
+    const summaryHeaders = ['Date', 'Day of Week', 'Total Hours Logged', 'Projects Worked On', 'Entries Count', 'Status Summary'];
+    const summaryRows = daysInMonthArray.map(day => {
+      const dateStr = `${selectedMonth}-${String(day).padStart(2, '0')}`;
+      const d = new Date(dateStr);
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const dayOfWeek = isNaN(d.getTime()) ? '' : dayNames[d.getDay()];
+      
+      const dayEntries = personalTimesheets.filter(ts => ts.date === dateStr);
+      const dayHours = dayEntries.reduce((s, ts) => s + ts.hours, 0);
+      const dayProjects = Array.from(new Set(dayEntries.map(ts => projects.find(p => p.id === ts.projectId)?.name || ts.projectId))).join(', ');
+      const statuses = Array.from(new Set(dayEntries.map(ts => ts.status))).join(', ');
+
+      return [
+        dateStr,
+        dayOfWeek,
+        dayHours,
+        dayProjects || '-',
+        dayEntries.length,
+        statuses || (dayHours > 0 ? '-' : 'No Log')
+      ];
+    });
+
+    summaryRows.push([
+      'MONTH TOTAL',
+      '',
+      personalTotalHours,
+      `${uniqueLoggedDays.length} active days`,
+      sortedPersonalTimesheets.length,
+      ''
+    ]);
+
+    // Create XLSX workbook
+    const wb = XLSX.utils.book_new();
+
+    const wsDetails = XLSX.utils.aoa_to_sheet([detailHeaders, ...detailRows]);
+    wsDetails['!cols'] = [
+      { wch: 12 }, // Date
+      { wch: 12 }, // Day of Week
+      { wch: 20 }, // Employee Name
+      { wch: 22 }, // Project
+      { wch: 25 }, // Task
+      { wch: 10 }, // Start Time
+      { wch: 10 }, // End Time
+      { wch: 14 }, // Hours Logged
+      { wch: 35 }, // Description
+      { wch: 30 }, // Work Results
+      { wch: 12 }  // Status
+    ];
+
+    const wsSummary = XLSX.utils.aoa_to_sheet([summaryHeaders, ...summaryRows]);
+    wsSummary['!cols'] = [
+      { wch: 14 }, // Date
+      { wch: 14 }, // Day of Week
+      { wch: 18 }, // Total Hours
+      { wch: 35 }, // Projects Worked On
+      { wch: 14 }, // Entries Count
+      { wch: 20 }  // Status
+    ];
+
+    XLSX.utils.book_append_sheet(wb, wsDetails, 'Daily Entries Detail');
+    XLSX.utils.book_append_sheet(wb, wsSummary, 'Daily Month Summary');
+
+    const cleanUserName = userName.replace(/[^a-zA-Z0-9_\-]/g, '_');
+    XLSX.writeFile(wb, `Daily_Timesheet_${cleanUserName}_${selectedMonth}.xlsx`);
   };
 
   const inputStyle: React.CSSProperties = {
@@ -574,6 +728,28 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
             <p style={{ color: 'var(--text-secondary)' }}>Analytical dashboards detailing work allocation, personal metrics, and project financial effort.</p>
           </div>
           <div className="no-print" style={{ display: 'flex', gap: '0.5rem' }}>
+            {activeTab === 'personal' && (
+              <button
+                style={{
+                  background: '#10B981',
+                  color: 'white',
+                  border: 'none',
+                  padding: '0.75rem 1.25rem',
+                  borderRadius: 'var(--radius-md)',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  fontSize: '0.875rem',
+                }}
+                className="hover-lift"
+                onClick={exportPersonalDailyExcel}
+                title="Export Daily Timesheet to Excel"
+              >
+                <FileSpreadsheet size={16} /> Export Excel (.xlsx)
+              </button>
+            )}
             <button
               style={{
                 background: 'var(--accent-secondary)',
@@ -712,8 +888,10 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                   onChange={e => setSelectedProject(e.target.value)}
                   style={{ ...selectStyle, border: 'none', background: 'transparent' }}
                 >
-                  <option value="all" style={{ background: 'var(--bg-secondary)' }}>All Projects</option>
-                  {projects.map(p => (
+                  {(currentUser?.globalRole === 'Admin' || currentUser?.globalRole === 'Manager' || myProjects.length > 1) && (
+                    <option value="all" style={{ background: 'var(--bg-secondary)' }}>All Projects</option>
+                  )}
+                  {myProjects.map(p => (
                     <option key={p.id} value={p.id} style={{ background: 'var(--bg-secondary)' }}>{p.name}</option>
                   ))}
                 </select>
@@ -1020,7 +1198,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <h3 style={{ fontSize: '1.125rem', margin: 0 }}>Timesheet Details</h3>
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-                    {filteredTimesheets.slice(0, 50).length} of {filteredTimesheets.length} entries
+                    {sortedTimesheets.slice(0, 50).length} of {sortedTimesheets.length} entries
                   </span>
                 </div>
 
@@ -1039,14 +1217,14 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredTimesheets.length === 0 ? (
+                      {sortedTimesheets.length === 0 ? (
                         <tr>
                           <td colSpan={isAdmin ? 6 : 5} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
                             No timesheet entries match the current filters.
                           </td>
                         </tr>
                       ) : (
-                        filteredTimesheets.slice(0, 50).map((ts, idx) => {
+                        sortedTimesheets.slice(0, 50).map((ts, idx) => {
                           const user = users.find(u => u.id === ts.userId);
                           const project = projects.find(p => p.id === ts.projectId);
                           const statusColor: Record<string, string> = {
@@ -1134,6 +1312,28 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                   style={inputStyle}
                 />
               </div>
+
+              <button
+                style={{
+                  background: '#10B981',
+                  color: 'white',
+                  border: 'none',
+                  padding: '0.45rem 1rem',
+                  borderRadius: 'var(--radius-md)',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  fontSize: '0.85rem',
+                  marginLeft: 'auto'
+                }}
+                className="hover-lift"
+                onClick={exportPersonalDailyExcel}
+                title="Export Daily Timesheet for selected month to Excel"
+              >
+                <FileSpreadsheet size={16} /> Export Daily Timesheet (.xlsx)
+              </button>
             </div>
 
             {/* KPI Cards */}
@@ -1284,6 +1484,119 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                 </div>
               </div>
             </div>
+
+            {/* Daily Timesheet Detail Table */}
+            <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <CalendarIcon size={18} color="var(--accent-primary)" /> Daily Timesheet Log ({selectedMonth})
+                  </h3>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
+                    Detailed breakdown of daily logged work entries for {users.find(u => u.id === activePersonalUser)?.name || 'Employee'}.
+                  </p>
+                </div>
+                <button
+                  style={{
+                    background: '#10B981',
+                    color: 'white',
+                    border: 'none',
+                    padding: '0.5rem 1rem',
+                    borderRadius: 'var(--radius-sm)',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    fontSize: '0.82rem',
+                  }}
+                  className="hover-lift"
+                  onClick={exportPersonalDailyExcel}
+                >
+                  <FileSpreadsheet size={15} /> Export to Excel (.xlsx)
+                </button>
+              </div>
+
+              <div style={{ overflowX: 'auto', maxHeight: '450px', overflowY: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border-color)', position: 'sticky', top: 0, background: 'var(--bg-secondary)', zIndex: 10 }}>
+                      <th style={{ padding: '0.6rem 0.75rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Date</th>
+                      <th style={{ padding: '0.6rem 0.75rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Project</th>
+                      <th style={{ padding: '0.6rem 0.75rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Task</th>
+                      <th style={{ padding: '0.6rem 0.75rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Time</th>
+                      <th style={{ padding: '0.6rem 0.75rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Hours</th>
+                      <th style={{ padding: '0.6rem 0.75rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Work Description</th>
+                      <th style={{ padding: '0.6rem 0.75rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {personalTimesheets.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                          No timesheet entries recorded for this employee in {selectedMonth}.
+                        </td>
+                      </tr>
+                    ) : (
+                      [...personalTimesheets]
+                        .sort((a, b) => b.date.localeCompare(a.date))
+                        .map((ts, idx) => {
+                          const project = projects.find(p => p.id === ts.projectId);
+                          const task = tasks.find(t => t.id === ts.taskId);
+                          const statusColor: Record<string, string> = {
+                            Draft: 'rgba(107,114,128,0.7)',
+                            Pending: 'rgba(245,158,11,0.8)',
+                            Approved: 'rgba(16,185,129,0.8)',
+                            Rejected: 'rgba(239,68,68,0.8)',
+                          };
+                          return (
+                            <tr
+                              key={ts.id}
+                              style={{
+                                borderBottom: '1px solid rgba(255,255,255,0.03)',
+                                background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)',
+                              }}
+                            >
+                              <td style={{ padding: '0.5rem 0.75rem', whiteSpace: 'nowrap', fontWeight: 500 }}>
+                                {formatToDDMMYYYY(ts.date)}
+                              </td>
+                              <td style={{ padding: '0.5rem 0.75rem', whiteSpace: 'nowrap' }}>
+                                <span style={{ padding: '0.2rem 0.5rem', borderRadius: '4px', background: 'rgba(99,102,241,0.1)', color: 'var(--accent-primary)', fontSize: '0.78rem', fontWeight: 500 }}>
+                                  {project?.name || ts.projectId}
+                                </span>
+                              </td>
+                              <td style={{ padding: '0.5rem 0.75rem', whiteSpace: 'nowrap', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                                {task?.title || '-'}
+                              </td>
+                              <td style={{ padding: '0.5rem 0.75rem', whiteSpace: 'nowrap', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                                {ts.startTime && ts.endTime ? `${ts.startTime} - ${ts.endTime}` : '-'}
+                              </td>
+                              <td style={{ padding: '0.5rem 0.75rem', fontWeight: 600, color: 'var(--accent-info)' }}>
+                                {ts.hours}h
+                              </td>
+                              <td style={{ padding: '0.5rem 0.75rem', color: 'var(--text-secondary)', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={ts.description}>
+                                {ts.description || '—'}
+                              </td>
+                              <td style={{ padding: '0.5rem 0.75rem' }}>
+                                <span style={{
+                                  fontSize: '0.68rem',
+                                  fontWeight: 600,
+                                  padding: '0.15rem 0.45rem',
+                                  borderRadius: '999px',
+                                  background: statusColor[ts.status] || 'rgba(107,114,128,0.7)',
+                                  color: 'white',
+                                }}>
+                                  {ts.status}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         )}
 
@@ -1299,8 +1612,10 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                   onChange={e => setSelectedProject(e.target.value)}
                   style={{ ...selectStyle, border: 'none', background: 'transparent' }}
                 >
-                  <option value="all" style={{ background: 'var(--bg-secondary)' }}>All Projects</option>
-                  {projects.map(p => (
+                  {(currentUser?.globalRole === 'Admin' || currentUser?.globalRole === 'Manager' || myProjects.length > 1) && (
+                    <option value="all" style={{ background: 'var(--bg-secondary)' }}>All Projects</option>
+                  )}
+                  {myProjects.map(p => (
                     <option key={p.id} value={p.id} style={{ background: 'var(--bg-secondary)' }}>{p.name}</option>
                   ))}
                 </select>
@@ -1848,10 +2163,12 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                           <Briefcase size={18} color="var(--accent-primary)" /> Project Portfolios & Budgets
                         </h3>
                         <div style={{ overflowX: 'auto', maxHeight: '400px', overflowY: 'auto' }}>
-                          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '950px' }}>
                             <thead>
                               <tr style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-tertiary)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                                 <th style={{ padding: '1rem' }}>Project Name</th>
+                                <th style={{ padding: '1rem', width: '120px' }}>Start Date</th>
+                                <th style={{ padding: '1rem', width: '120px' }}>End Date</th>
                                 <th style={{ padding: '1rem', width: '150px' }}>Completion Progress</th>
                                 <th style={{ padding: '1rem', width: '100px', textAlign: 'center' }}>Resources</th>
                                 <th style={{ padding: '1rem', width: '120px', textAlign: 'center' }}>Logged Hours</th>
@@ -1880,6 +2197,12 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                                         <span>{proj.name}</span>
                                         <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-muted)' }}>Status: {proj.status}</span>
                                       </div>
+                                    </td>
+                                    <td style={{ padding: '1rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                      {formatToDDMMYYYY(proj.startDate)}
+                                    </td>
+                                    <td style={{ padding: '1rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                      {proj.endDate ? formatToDDMMYYYY(proj.endDate) : 'Ongoing'}
                                     </td>
                                     <td style={{ padding: '1rem' }}>
                                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

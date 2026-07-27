@@ -1470,11 +1470,23 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
     })
   );
 
-  const myProjectIds = new Set(
-    projects
-      .filter(p => currentUser?.globalRole === 'Admin' || currentUser?.globalRole === 'Manager' || p.members?.some(m => m.userId === currentUser?.id))
-      .map(p => p.id)
+  const myProjects = projects.filter(
+    p => currentUser?.globalRole === 'Admin' || currentUser?.globalRole === 'Manager' || p.members?.some(m => m.userId === currentUser?.id)
   );
+
+  const myProjectIds = new Set(myProjects.map(p => p.id));
+
+  useEffect(() => {
+    if (myProjects.length === 1) {
+      if (selectedProject !== myProjects[0].id) {
+        setSelectedProject(myProjects[0].id);
+      }
+    } else if (selectedProject !== 'all' && !myProjectIds.has(selectedProject)) {
+      if (myProjects.length > 0) {
+        setSelectedProject(myProjects[0].id);
+      }
+    }
+  }, [myProjects, selectedProject]);
 
   const filteredTasks = (
     selectedProject === 'all'
@@ -1484,8 +1496,8 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
 
   const getSortedSprints = () => {
     const projSprints = selectedProject === 'all'
-      ? sprints
-      : sprints.filter((s) => s.projectId === selectedProject);
+      ? sprints.filter((s) => myProjectIds.has(s.projectId))
+      : sprints.filter((s) => s.projectId === selectedProject && myProjectIds.has(s.projectId));
 
     const statusOrder: Record<string, number> = { 'Active': 1, 'Planned': 2, 'Completed': 3 };
     
@@ -1760,8 +1772,8 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
   const activeTask = activeId ? tasks.find((t) => t.id === activeId) : null;
 
   // ── Agile View Helpers ──────────────────────────────────────────────────────
-  const projectSprints = sprints.filter((s) => s.projectId === selectedProject);
-  const projectReleases = releases.filter((r) => r.projectId === selectedProject);
+  const projectSprints = sprints.filter((s) => s.projectId === selectedProject && myProjectIds.has(s.projectId));
+  const projectReleases = releases.filter((r) => r.projectId === selectedProject && myProjectIds.has(r.projectId));
   const activeSprint = projectSprints.find((s) => s.status === 'Active');
   const plannedSprints = projectSprints.filter((s) => s.status === 'Planned');
   const backlogTasks = filteredTasks.filter((t) => !t.sprintId);
@@ -1989,20 +2001,16 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                 fontSize: '0.875rem',
               }}
             >
-              <option value="all" style={{ background: 'var(--bg-secondary)' }}>
-                All Projects
-              </option>
-              {projects
-                .filter(p => 
-                  currentUser?.globalRole === 'Admin' || 
-                  currentUser?.globalRole === 'Manager' || 
-                  p.members?.some(m => m.userId === currentUser?.id)
-                )
-                .map((p) => (
-                  <option key={p.id} value={p.id} style={{ background: 'var(--bg-secondary)' }}>
-                    {p.name}
-                  </option>
-                ))}
+              {(currentUser?.globalRole === 'Admin' || currentUser?.globalRole === 'Manager' || myProjects.length > 1) && (
+                <option value="all" style={{ background: 'var(--bg-secondary)' }}>
+                  All Projects
+                </option>
+              )}
+              {myProjects.map((p) => (
+                <option key={p.id} value={p.id} style={{ background: 'var(--bg-secondary)' }}>
+                  {p.name}
+                </option>
+              ))}
             </select>
           </div>
 

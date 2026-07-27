@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Clock, Plus, CheckCircle2, Calendar as CalendarIcon, X, Trash2, ChevronLeft, ChevronRight, XCircle, Edit, Paperclip, ImageIcon } from 'lucide-react';
 import { format, isSameDay, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, isSameMonth } from 'date-fns';
 import type { TimesheetEntry, Project, Task, User, TimesheetStatus } from '../types';
+import { sortTimesheetsByLastUpdate } from '../utils';
 
 interface TimesheetProps {
   timesheets: TimesheetEntry[];
@@ -19,6 +20,26 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'personal' | 'team' | 'project'>('personal');
   const [selectedReportProject, setSelectedReportProject] = useState<string>('all');
+
+  const myProjects = useMemo(() => {
+    return projects.filter((p: Project) => 
+      currentUser?.globalRole === 'Admin' || 
+      currentUser?.globalRole === 'Manager' || 
+      p.members?.some(m => m.userId === currentUser?.id)
+    );
+  }, [projects, currentUser]);
+
+  useEffect(() => {
+    if (myProjects.length === 1) {
+      if (selectedReportProject !== myProjects[0].id) {
+        setSelectedReportProject(myProjects[0].id);
+      }
+    } else if (selectedReportProject !== 'all' && !myProjects.some((p: Project) => p.id === selectedReportProject)) {
+      if (myProjects.length > 0) {
+        setSelectedReportProject('all');
+      }
+    }
+  }, [myProjects, selectedReportProject]);
 
   // Form states
   const [projectId, setProjectId] = useState('');
@@ -76,7 +97,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
 
   // Filter entries
   const userEntries = timesheets.filter(ts => ts.userId === currentUser.id);
-  const todaysEntries = userEntries.filter(ts => isSameDay(new Date(ts.date), selectedDate));
+  const todaysEntries = sortTimesheetsByLastUpdate(userEntries.filter(ts => isSameDay(new Date(ts.date), selectedDate)));
   const totalHoursToday = todaysEntries.reduce((sum, entry) => sum + entry.hours, 0);
 
   const teamTodaysEntries = timesheets.filter(ts => isSameDay(new Date(ts.date), selectedDate));
@@ -492,8 +513,10 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                       outline: 'none'
                     }}
                   >
-                    <option value="all" style={{ background: 'var(--bg-secondary)' }}>All Projects</option>
-                    {projects.map(p => (
+                    {(currentUser?.globalRole === 'Admin' || currentUser?.globalRole === 'Manager' || myProjects.length > 1) && (
+                      <option value="all" style={{ background: 'var(--bg-secondary)' }}>All Projects</option>
+                    )}
+                    {myProjects.map((p: Project) => (
                       <option key={p.id} value={p.id} style={{ background: 'var(--bg-secondary)' }}>{p.name}</option>
                     ))}
                   </select>
@@ -524,7 +547,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
               {/* Employee Log Cards - Internally scrollable */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxHeight: 'calc(100vh - 430px)', overflowY: 'auto', paddingRight: '4px' }}>
                 {allUsers.map(user => {
-                  const uEntries = projectTodaysEntries.filter(ts => ts.userId === user.id);
+                  const uEntries = sortTimesheetsByLastUpdate(projectTodaysEntries.filter(ts => ts.userId === user.id));
                   if (selectedReportProject !== 'all' && uEntries.length === 0) return null; // Hide users with no entries for this project
                   const userTotalHours = uEntries.reduce((sum, e) => sum + e.hours, 0);
 
