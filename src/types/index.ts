@@ -126,6 +126,7 @@ export interface TimesheetEntry {
   imageUrl?: string;
   workResults?: string;
   updatedAt?: string;
+  isWfh?: boolean;
 }
 
 export interface PermissionScheme {

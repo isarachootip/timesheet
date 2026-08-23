@@ -50,6 +50,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
   const [description, setDescription] = useState('');
   const [workResults, setWorkResults] = useState('');
   const [entryStatus, setEntryStatus] = useState<TimesheetStatus>('Pending');
+  const [isWfh, setIsWfh] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
@@ -188,6 +189,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
     setDescription('');
     setWorkResults('');
     setEntryStatus('Pending');
+    setIsWfh(false);
     setImageUrl('');
     setEditingEntryId(null);
   };
@@ -209,6 +211,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
     setDescription(entry.description);
     setWorkResults(entry.workResults || '');
     setEntryStatus(entry.status);
+    setIsWfh(entry.isWfh || false);
     setImageUrl(entry.imageUrl || '');
     setSelectedDate(new Date(entry.date));
     setEditingEntryId(entry.id);
@@ -295,6 +298,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
         description,
         workResults: workResults || undefined,
         status: existing ? existing.status : 'Pending',
+        isWfh,
         imageUrl: imageUrl || undefined
       };
       setTimesheets(prev => prev.map(ts => ts.id === editingEntryId ? updatedEntry : ts));
@@ -311,6 +315,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
         description,
         workResults: workResults || undefined,
         status: entryStatus,
+        isWfh,
         imageUrl: imageUrl || undefined
       };
       setTimesheets(prev => [...prev, newEntry]);
@@ -599,6 +604,11 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                               <div style={{ flex: 1 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.35rem' }}>
                                   <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9rem' }}>{getProjectName(entry.projectId)}</span>
+                                  {entry.isWfh && (
+                                    <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', background: 'rgba(16, 185, 129, 0.15)', borderRadius: 'var(--radius-sm)', color: '#10B981', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                                      🏠 WFH
+                                    </span>
+                                  )}
                                   <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-sm)', color: 'var(--text-secondary)' }}>
                                     {getTaskName(entry.taskId)}
                                   </span>
@@ -775,6 +785,11 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                               <div style={{ flex: 1 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.35rem' }}>
                                   <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9rem' }}>{getProjectName(entry.projectId)}</span>
+                                  {entry.isWfh && (
+                                    <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', background: 'rgba(16, 185, 129, 0.15)', borderRadius: 'var(--radius-sm)', color: '#10B981', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                                      🏠 WFH
+                                    </span>
+                                  )}
                                   <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-sm)', color: 'var(--text-secondary)' }}>
                                     {getTaskName(entry.taskId)}
                                   </span>
@@ -907,6 +922,11 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
                           <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{getProjectName(entry.projectId)}</span>
+                          {entry.isWfh && (
+                            <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', background: 'rgba(16, 185, 129, 0.15)', borderRadius: 'var(--radius-sm)', color: '#10B981', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                              🏠 WFH
+                            </span>
+                          )}
 <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-sm)', color: 'var(--text-secondary)' }}>
                             {getTaskName(entry.taskId)}
                           </span>
@@ -1375,6 +1395,13 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                     </label>
                   </div>
                 )}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginBottom: '0.5rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                  <input type="checkbox" checked={isWfh} onChange={e => setIsWfh(e.target.checked)} style={{ accentColor: 'var(--accent-primary)', width: '16px', height: '16px' }} />
+                  Work from home (WFH)
+                </label>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>

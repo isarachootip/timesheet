@@ -109,7 +109,8 @@ CREATE TABLE IF NOT EXISTS timesheets (
     status VARCHAR(50) NOT NULL,
     approved_by VARCHAR(50),
     approved_at VARCHAR(50),
-    image_url TEXT
+    image_url TEXT,
+    is_wfh BOOLEAN DEFAULT FALSE
 );
 
 -- 8. Task Commits (Git Integration)

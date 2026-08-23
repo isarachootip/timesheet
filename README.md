@@ -1,73 +1,49 @@
-# React + TypeScript + Vite
+# ⏱️ NexTime — Project & Timesheet Management System
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+> **NexTime** เป็นระบบเว็บแอปพลิเคชันระดับองค์กรสำหรับบริหารจัดการโครงการ (Project Management), บันทึกเวลาทำงาน (Timesheet Logging), วางแผนการทำงานแบบอไจล์ (Agile Kanban Board, Sprints & Releases), และการตรวจสอบอนุมัติเวลางานของทีมงานอย่างมีประสิทธิภาพ มาพร้อมระบบ **Chatbot** ผู้ช่วยอัจฉริยะ, **Permission Schemes** สำหรับปรับแต่งสิทธิ์การใช้งานแบบยืดหยุ่น, **Cost Rates** สำหรับคำนวณต้นทุนโครงการ, **Project Baselines** สำหรับเปรียบเทียบแผนงาน และ **Notification Bell** สำหรับแจ้งเตือนงานที่ครบกำหนด พร้อมดีไซน์สุดพรีเมียมในรูปแบบ Dark Mode และ Glassmorphism
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 📚 เอกสารคู่มือระบบ (Documentation & Manuals)
 
-## React Compiler
+| เอกสาร | สำหรับกลุ่มผู้ใช้งาน | รายละเอียดและลิงก์ |
+|---|---|---|
+| 📘 **[SA System & Architecture Guide](docs/SA_SYSTEM_GUIDE.md)** | System Analysts, Developers, DevOps, DBA | สถาปัตยกรรมระบบ, โครงสร้างฐานข้อมูล (ERD/Data Dictionary), REST API Spec, Security & Permission Schemes, ตรรกะการคำนวณเชิงลึก, การ Deploy บน Nixpacks/Coolify |
+| 🎓 **[Trainer & Training Courseware Manual](docs/TRAINER_MANUAL.md)** | Trainers, PMs, Team Leads, Users | แผนการสอน (Curriculum), การอบรมแบ่งตาม Role (Employee, PM, Executive, Admin), แบบฝึกหัดภาคปฏิบัติ (Labs 1-4), สรุปขั้นตอนและเทคนิคสำหรับวิทยากร |
+| 📖 **[User Manual (End-User)](user_manual.md)** | พนักงานและผู้ใช้งานทั่วไปทุกคน | คู่มือการใช้งานระบบฉบับเต็มทีละขั้นตอนพร้อมภาพประกอบ |
+| ⚙️ **[System Setup Guide](system_setup.md)** | ผู้ดูแลระบบและผู้พัฒนาระบบ | การรันระบบในเครื่อง Development, การตั้งค่า `.env`, การเชื่อมต่อ PostgreSQL |
+| 🗄️ **[Database Setup Guide](database_setup_guide.md)** | DBA & System Administrators | การตั้งค่าและสร้างฐานข้อมูล PostgreSQL บน VPS |
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## 🚀 การเริ่มต้นใช้งานในสภาพแวดล้อม Development
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 1. ติดตั้ง Dependencies
+```powershell
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 2. กำหนดค่าไฟล์ `.env`
+สร้างไฟล์ `.env` ใน Root Directory:
+```env
+DATABASE_URL=postgresql://isara_admin:MySecretPass123!@187.77.147.16:5432/timesheet_db
+PORT=3000
 ```
+
+### 3. รันระบบ (ต้องเปิด 2 Terminals)
+```powershell
+# Terminal 1: Backend Express Server (Port 3000)
+npm run start
+
+# Terminal 2: Frontend Vite Server (Port 5173)
+npm run dev
+```
+
+---
+
+## 🛠️ เทคโนโลยีที่ใช้ (Tech Stack)
+
+- **Frontend:** React 18, TypeScript, Vite, TanStack React Query v5, Lucide React, Glassmorphism CSS
+- **Backend:** Node.js (ES Modules), Express.js, PostgreSQL (`pg` pool), Nodemailer, LINE Login API, Gemini AI
+- **Database:** PostgreSQL 15+ Hosted on VPS
+- **Deployment:** Nixpacks, Docker, Coolify

@@ -13,29 +13,27 @@ interface CustomDateInputProps {
 export const CustomDateInput = ({ value, onChange, style, required, min, max }: CustomDateInputProps) => {
   const formatted = value ? formatToDDMMYYYY(value) : 'dd/mm/yyyy';
   return (
-    <div style={{ position: 'relative', width: '100%' }}>
+    <div style={{ position: 'relative', display: 'inline-block' }}>
       <input
         type="date"
+        className="date-input-hidden-text"
         value={value}
         onChange={onChange}
         required={required}
         min={min}
         max={max}
         style={{
-          width: '100%',
           ...style,
-          color: 'transparent',
-          caretColor: 'transparent'
         }}
       />
       <span style={{
         position: 'absolute',
-        left: '1rem',
+        left: '0.6rem',
         top: '50%',
         transform: 'translateY(-50%)',
         color: value ? 'var(--text-primary)' : 'var(--text-muted)',
         pointerEvents: 'none',
-        fontSize: '0.9rem'
+        fontSize: '0.8rem'
       }}>
         {formatted}
       </span>

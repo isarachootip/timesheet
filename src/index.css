@@ -55,6 +55,38 @@
   --fs-4xl: 2.5rem;
 }
 
+[data-theme="light"] {
+  color-scheme: light;
+  
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f5f9;
+  --bg-glass: rgba(255, 255, 255, 0.75);
+  
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  
+  --accent-primary: #0284c7; /* Sky 600 */
+  --accent-primary-hover: #0369a1;
+  --accent-secondary: #c026d3;
+  --accent-danger: #dc2626;
+  --accent-warning: #d97706;
+  --accent-info: #2563eb;
+
+  --border-color: #e2e8f0;
+  --border-glass: rgba(2, 132, 199, 0.1);
+  
+  /* Glow Elements adjusted for Light Mode */
+  --border-glow: 1px solid rgba(2, 132, 199, 0.15);
+  --shadow-glow: 0 0 15px rgba(2, 132, 199, 0.05), 0 0 30px rgba(192, 38, 211, 0.02);
+  
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -1px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.1), 0 4px 6px -2px rgba(15, 23, 42, 0.05);
+  --shadow-glass: 0 8px 32px 0 rgba(15, 23, 42, 0.06);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -74,6 +106,12 @@ body {
     radial-gradient(circle at 85% 30%, rgba(217, 70, 239, 0.06), transparent 25%);
   background-attachment: fixed;
   min-height: 100vh;
+}
+
+[data-theme="light"] body {
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(2, 132, 199, 0.05), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(192, 38, 211, 0.04), transparent 25%);
 }
 
 a {
@@ -144,7 +182,7 @@ a:hover {
   height: 72px;
   padding: 0 2rem;
   border-bottom: 1px solid var(--border-color);
-  background: rgba(15, 17, 21, 0.8);
+  background: var(--bg-glass);
   backdrop-filter: blur(8px);
   z-index: 5;
   display: flex;
@@ -414,7 +452,7 @@ input, select, textarea {
 }
 .notif-item {
   padding: 0.875rem 1.25rem;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   gap: 0.75rem;
   align-items: flex-start;
@@ -422,7 +460,7 @@ input, select, textarea {
   cursor: default;
 }
 .notif-item:hover {
-  background: rgba(255,255,255,0.04);
+  background: var(--bg-tertiary);
 }
 .notif-item:last-child { border-bottom: none; }
 
@@ -434,8 +472,8 @@ input, select, textarea {
   cursor: grabbing !important;
 }
 .kanban-column-over {
-  border-color: rgba(0, 245, 255, 0.6) !important;
-  background: rgba(0, 245, 255, 0.06) !important;
+  border-color: var(--accent-primary) !important;
+  background: var(--border-glass) !important;
 }
 
 /* ─── Mobile Bottom Nav ─── */
@@ -446,7 +484,7 @@ input, select, textarea {
   left: 0;
   right: 0;
   height: 64px;
-  background: rgba(22, 26, 34, 0.95);
+  background: var(--bg-glass);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-top: 1px solid var(--border-glass);
@@ -470,7 +508,7 @@ input, select, textarea {
 .mobile-bottom-nav a.active,
 .mobile-bottom-nav a:hover {
   color: var(--accent-primary);
-  background: rgba(0, 245, 255, 0.1);
+  background: var(--border-glass);
 }
 
 /* ─── Print / PDF Export ─── */
@@ -518,5 +556,6 @@ thead th, thead td {
   background-color: var(--bg-tertiary) !important;
 }
 
-
-
+.date-input-hidden-text::-webkit-datetime-edit {
+  color: transparent;
+}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { Calendar, Users, DollarSign, Plus, X, Edit, Trash2, GitBranch, MessageSquare } from 'lucide-react';
+import { Users, Plus, X, Edit, Trash2, GitBranch, MessageSquare, LayoutGrid, List } from 'lucide-react';
 import type { User, Project, ProjectStatus, ProjectRole, Task, PermissionScheme, ProjectWorkflow } from '../types';
 import { formatToDDMMYYYY } from '../utils';
 import { CustomDateInput } from './CustomDateInput';
@@ -28,6 +28,7 @@ export const Projects = ({
 }: ProjectsProps) => {
   const location = useLocation();
   const [highlightedProjectId, setHighlightedProjectId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
 
   useEffect(() => {
     if (location.hash) {
@@ -303,180 +304,343 @@ export const Projects = ({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       {/* Top Header */}
-      <div className="flex-between">
+      <div className="flex-between" style={{ flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 className="text-gradient" style={{ marginBottom: '0.5rem' }}>Projects</h1>
           <p style={{ color: 'var(--text-secondary)' }}>Manage your active projects and team assignments.</p>
         </div>
-        {canCreateProject() && (
-          <button onClick={openAddModal} style={{ 
-            background: 'var(--accent-primary)', 
-            color: 'white', 
-            border: 'none', 
-            padding: '0.75rem 1.5rem', 
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          {/* View Switcher Toggle */}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            background: 'var(--bg-tertiary)', 
+            padding: '0.25rem', 
             borderRadius: 'var(--radius-md)', 
-            fontWeight: 500, 
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem'
-          }} className="hover-lift">
-            <Plus size={18} /> New Project
-          </button>
-        )}
+            border: '1px solid var(--border-color)' 
+          }}>
+            <button 
+              onClick={() => setViewMode('card')}
+              title="Card View (แบบ Card)"
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.4rem', 
+                padding: '0.5rem 0.85rem', 
+                borderRadius: 'calc(var(--radius-md) - 2px)', 
+                border: 'none', 
+                background: viewMode === 'card' ? 'var(--accent-primary)' : 'transparent', 
+                color: viewMode === 'card' ? '#ffffff' : 'var(--text-secondary)', 
+                fontWeight: viewMode === 'card' ? 600 : 400,
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <LayoutGrid size={16} />
+              <span>Card</span>
+            </button>
+
+            <button 
+              onClick={() => setViewMode('list')}
+              title="List View (แบบ List)"
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.4rem', 
+                padding: '0.5rem 0.85rem', 
+                borderRadius: 'calc(var(--radius-md) - 2px)', 
+                border: 'none', 
+                background: viewMode === 'list' ? 'var(--accent-primary)' : 'transparent', 
+                color: viewMode === 'list' ? '#ffffff' : 'var(--text-secondary)', 
+                fontWeight: viewMode === 'list' ? 600 : 400,
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <List size={16} />
+              <span>List</span>
+            </button>
+          </div>
+
+          {canCreateProject() && (
+            <button onClick={openAddModal} style={{ 
+              background: 'var(--accent-primary)', 
+              color: 'white', 
+              border: 'none', 
+              padding: '0.75rem 1.5rem', 
+              borderRadius: 'var(--radius-md)', 
+              fontWeight: 500, 
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }} className="hover-lift">
+              <Plus size={18} /> New Project
+            </button>
+          )}
+        </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1.5rem' }}>
-        {projects
-          .filter(project => 
-            currentUser?.globalRole === 'Admin' || 
-            currentUser?.globalRole === 'Manager' || 
-            project.members?.some(m => m.userId === currentUser?.id)
-          )
-          .map(project => {
-            const isHighlighted = highlightedProjectId === project.id;
-            return (
-              <div 
-                key={project.id} 
-                id={project.id}
-                className="glass-panel hover-lift" 
-                style={{ 
-                  padding: '1.5rem', 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  gap: '1.5rem',
-                  border: isHighlighted ? '2px solid var(--accent-primary)' : '1px solid transparent',
-                  boxShadow: isHighlighted ? '0 0 20px rgba(99, 102, 241, 0.4)' : undefined,
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                <div className="flex-between" style={{ alignItems: 'flex-start' }}>
-                  <div>
-                    <h3 style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>{project.name}</h3>
+      {viewMode === 'card' ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1.5rem' }}>
+          {projects
+            .filter(project => 
+              currentUser?.globalRole === 'Admin' || 
+              currentUser?.globalRole === 'Manager' || 
+              project.members?.some(m => m.userId === currentUser?.id)
+            )
+            .map(project => {
+              const isHighlighted = highlightedProjectId === project.id;
+              return (
+                <div 
+                  key={project.id} 
+                  id={project.id}
+                  className="glass-panel hover-lift" 
+                  style={{ 
+                    padding: '1.5rem', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: '1.5rem',
+                    border: isHighlighted ? '2px solid var(--accent-primary)' : '1px solid transparent',
+                    boxShadow: isHighlighted ? '0 0 20px rgba(99, 102, 241, 0.4)' : undefined,
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  <div className="flex-between" style={{ alignItems: 'flex-start' }}>
+                    <div>
+                      <h3 style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>{project.name}</h3>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <span style={{ 
+                          fontSize: '0.75rem', 
+                          padding: '0.25rem 0.75rem', 
+                          borderRadius: 'var(--radius-full)', 
+                          background: project.status === 'Active' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                          color: project.status === 'Active' ? 'var(--accent-secondary)' : 'var(--accent-warning)',
+                          fontWeight: 500
+                        }}>
+                          {project.status}
+                        </span>
+                        <span style={{ 
+                          fontSize: '0.75rem', 
+                          padding: '0.25rem 0.75rem', 
+                          borderRadius: 'var(--radius-full)', 
+                          background: project.projectType === 'support' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(139, 92, 246, 0.1)',
+                          color: project.projectType === 'support' ? '#3b82f6' : '#8b5cf6',
+                          fontWeight: 500
+                        }}>
+                          {project.projectType === 'support' ? 'Support' : 'Development'}
+                        </span>
+                      </div>
+                    </div>
                     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                      <span style={{ 
-                        fontSize: '0.75rem', 
-                        padding: '0.25rem 0.75rem', 
-                        borderRadius: 'var(--radius-full)', 
-                        background: project.status === 'Active' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                        color: project.status === 'Active' ? 'var(--accent-secondary)' : 'var(--accent-warning)',
-                        fontWeight: 500
-                      }}>
-                        {project.status}
-                      </span>
-                      <span style={{ 
-                        fontSize: '0.75rem', 
-                        padding: '0.25rem 0.75rem', 
-                        borderRadius: 'var(--radius-full)', 
-                        background: project.projectType === 'support' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(139, 92, 246, 0.1)',
-                        color: project.projectType === 'support' ? '#3b82f6' : '#8b5cf6',
-                        fontWeight: 500
-                      }}>
-                        {project.projectType === 'support' ? 'Support' : 'Development'}
-                      </span>
+                      {(currentUser?.globalRole === 'Admin' || currentUser?.globalRole === 'Manager' || project.members?.some(m => m.userId === currentUser?.id)) && (
+                        <Link to={`/chat?projectId=${project.id}`} title="Project Chat" style={{ color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.25rem' }} className="hover-lift">
+                          <MessageSquare size={16} />
+                        </Link>
+                      )}
+                      {canManageWorkflow(project) && (
+                        <>
+                          <button onClick={() => openWorkflowModal(project)} title="Configure Workflow" style={{ background: 'transparent', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                            <GitBranch size={16} />
+                          </button>
+                          <button onClick={() => openEditModal(project)} title="Edit Project" style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                            <Edit size={16} />
+                          </button>
+                        </>
+                      )}
+                      {(currentUser?.globalRole === 'Admin' || currentUser?.globalRole === 'Manager') && (
+                        <button onClick={() => handleDelete(project.id)} title="Delete Project" style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                          <Trash2 size={16} />
+                        </button>
+                      )}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    {(currentUser?.globalRole === 'Admin' || currentUser?.globalRole === 'Manager' || project.members?.some(m => m.userId === currentUser?.id)) && (
-                      <Link to={`/chat?projectId=${project.id}`} title="Project Chat" style={{ color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.25rem' }} className="hover-lift">
-                        <MessageSquare size={16} />
-                      </Link>
-                    )}
-                    {canManageWorkflow(project) && (
-                      <>
-                        <button onClick={() => openWorkflowModal(project)} title="Configure Workflow" style={{ background: 'transparent', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                          <GitBranch size={16} />
-                        </button>
-                        <button onClick={() => openEditModal(project)} title="Edit Project" style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                          <Edit size={16} />
-                        </button>
-                      </>
-                    )}
-                    {(currentUser?.globalRole === 'Admin' || currentUser?.globalRole === 'Manager') && (
-                      <button onClick={() => handleDelete(project.id)} title="Delete Project" style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                        <Trash2 size={16} />
-                      </button>
+
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.6 }}>
+                  {project.description}
+                </p>
+
+                <div style={{ marginTop: 'auto' }}>
+                  <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Users size={14} /> Team ({project.members.length})
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    {project.members.length === 0 ? (
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>No members added yet</span>
+                    ) : (
+                      project.members.map((member, index) => (
+                        <img 
+                          key={member.userId} 
+                          src={getUserAvatar(member.userId)} 
+                          alt="Team member" 
+                          title={`${getUserName(member.userId)} (${member.role})`}
+                          style={{ 
+                            width: '32px', 
+                            height: '32px', 
+                            borderRadius: '50%', 
+                            border: '2px solid var(--bg-tertiary)',
+                            marginLeft: index > 0 ? '-10px' : '0',
+                            zIndex: project.members.length - index
+                          }} 
+                        />
+                      ))
                     )}
                   </div>
                 </div>
 
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.6 }}>
-                {project.description}
-              </p>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                  <Calendar size={16} />
-                  <span>{formatToDDMMYYYY(project.startDate)} - {project.endDate ? formatToDDMMYYYY(project.endDate) : 'Ongoing'}</span>
-                </div>
-                {project.budget && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                    <DollarSign size={16} />
-                    <span>${project.budget.toLocaleString()} Budget</span>
-                  </div>
-                )}
+                {/* Collapsible Project Milestones Checklist */}
+                {(() => {
+                  const projectTasks = tasks ? tasks.filter(t => t.projectId === project.id && !t.parentId) : [];
+                  if (projectTasks.length === 0) return null;
+                  return (
+                    <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+                      <details style={{ cursor: 'pointer' }}>
+                        <summary style={{ fontSize: '0.85rem', color: 'var(--accent-secondary)', fontWeight: 500, outline: 'none' }}>
+                          📅 Auto-Generated Plan ({projectTasks.length} Milestones)
+                        </summary>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem', maxHeight: '150px', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                          {projectTasks.map(t => (
+                            <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', background: 'var(--bg-tertiary)', padding: '0.35rem 0.5rem', borderRadius: '4px' }}>
+                              <span style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px' }} title={t.title}>
+                                {t.title}
+                              </span>
+                              <span style={{ color: 'var(--text-secondary)' }}>
+                                {t.startDate ? `${formatToDDMMYYYY(t.startDate)} - ${t.endDate ? formatToDDMMYYYY(t.endDate) : ''}` : ''}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    </div>
+                  );
+                })()}
               </div>
-
-              <div style={{ marginTop: 'auto' }}>
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Users size={14} /> Team ({project.members.length})
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  {project.members.length === 0 ? (
-                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>No members added yet</span>
-                  ) : (
-                    project.members.map((member, index) => (
-                      <img 
-                        key={member.userId} 
-                        src={getUserAvatar(member.userId)} 
-                        alt="Team member" 
-                        title={`${getUserName(member.userId)} (${member.role})`}
-                        style={{ 
-                          width: '32px', 
-                          height: '32px', 
-                          borderRadius: '50%', 
-                          border: '2px solid var(--bg-tertiary)',
-                          marginLeft: index > 0 ? '-10px' : '0',
-                          zIndex: project.members.length - index
-                        }} 
-                      />
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {/* Collapsible Project Milestones Checklist */}
-              {(() => {
-                const projectTasks = tasks ? tasks.filter(t => t.projectId === project.id && !t.parentId) : [];
-                if (projectTasks.length === 0) return null;
-                return (
-                  <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-                    <details style={{ cursor: 'pointer' }}>
-                      <summary style={{ fontSize: '0.85rem', color: 'var(--accent-secondary)', fontWeight: 500, outline: 'none' }}>
-                        📅 Auto-Generated Plan ({projectTasks.length} Milestones)
-                      </summary>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem', maxHeight: '150px', overflowY: 'auto', paddingRight: '0.5rem' }}>
-                        {projectTasks.map(t => (
-                          <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', background: 'var(--bg-tertiary)', padding: '0.35rem 0.5rem', borderRadius: '4px' }}>
-                            <span style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px' }} title={t.title}>
-                              {t.title}
-                            </span>
-                            <span style={{ color: 'var(--text-secondary)' }}>
-                              {t.startDate ? `${formatToDDMMYYYY(t.startDate)} - ${t.endDate ? formatToDDMMYYYY(t.endDate) : ''}` : ''}
-                            </span>
-                          </div>
-                        ))}
+            );
+          })}
+        </div>
+      ) : (
+        /* List / Table View */
+        <div className="glass-panel" style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+                <th style={{ padding: '0.875rem 1rem' }}>Project Name</th>
+                <th style={{ padding: '0.875rem 1rem' }}>Type & Status</th>
+                <th style={{ padding: '0.875rem 1rem' }}>Schedule</th>
+                <th style={{ padding: '0.875rem 1rem' }}>Budget</th>
+                <th style={{ padding: '0.875rem 1rem' }}>Team Members</th>
+                <th style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {projects
+                .filter(project => 
+                  currentUser?.globalRole === 'Admin' || 
+                  currentUser?.globalRole === 'Manager' || 
+                  project.members?.some(m => m.userId === currentUser?.id)
+                )
+                .map((project, idx) => (
+                  <tr 
+                    key={project.id} 
+                    style={{ 
+                      borderBottom: '1px solid var(--border-color)', 
+                      background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)' 
+                    }}
+                    className="table-row-hover"
+                  >
+                    <td style={{ padding: '0.875rem 1rem' }}>
+                      <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.95rem' }}>{project.name}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', maxWidth: '280px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {project.description}
                       </div>
-                    </details>
-                  </div>
-                );
-              })()}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Add/Edit Modal */}
+                    </td>
+                    <td style={{ padding: '0.875rem 1rem' }}>
+                      <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                        <span style={{ 
+                          fontSize: '0.7rem', 
+                          padding: '0.15rem 0.5rem', 
+                          borderRadius: 'var(--radius-full)', 
+                          background: project.status === 'Active' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                          color: project.status === 'Active' ? 'var(--accent-secondary)' : 'var(--accent-warning)',
+                          fontWeight: 500
+                        }}>
+                          {project.status}
+                        </span>
+                        <span style={{ 
+                          fontSize: '0.7rem', 
+                          padding: '0.15rem 0.5rem', 
+                          borderRadius: 'var(--radius-full)', 
+                          background: project.projectType === 'support' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(139, 92, 246, 0.1)',
+                          color: project.projectType === 'support' ? '#3b82f6' : '#8b5cf6',
+                          fontWeight: 500
+                        }}>
+                          {project.projectType === 'support' ? 'Support' : 'Dev'}
+                        </span>
+                      </div>
+                    </td>
+                    <td style={{ padding: '0.875rem 1rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      {formatToDDMMYYYY(project.startDate)} - {project.endDate ? formatToDDMMYYYY(project.endDate) : 'Ongoing'}
+                    </td>
+                    <td style={{ padding: '0.875rem 1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                      {project.budget ? `$${project.budget.toLocaleString()}` : '-'}
+                    </td>
+                    <td style={{ padding: '0.875rem 1rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        {project.members.length === 0 ? (
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>No members</span>
+                        ) : (
+                          project.members.map((member, index) => (
+                            <img 
+                              key={member.userId} 
+                              src={getUserAvatar(member.userId)} 
+                              alt="Team member" 
+                              title={`${getUserName(member.userId)} (${member.role})`}
+                              style={{ 
+                                width: '28px', 
+                                height: '28px', 
+                                borderRadius: '50%', 
+                                border: '2px solid var(--bg-tertiary)',
+                                marginLeft: index > 0 ? '-8px' : '0',
+                                zIndex: project.members.length - index
+                              }} 
+                            />
+                          ))
+                        )}
+                      </div>
+                    </td>
+                    <td style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>
+                      <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', justifyContent: 'flex-end' }}>
+                        {(currentUser?.globalRole === 'Admin' || currentUser?.globalRole === 'Manager' || project.members?.some(m => m.userId === currentUser?.id)) && (
+                          <Link to={`/chat?projectId=${project.id}`} title="Project Chat" style={{ color: 'var(--accent-primary)', padding: '0.25rem' }}>
+                            <MessageSquare size={16} />
+                          </Link>
+                        )}
+                        {canManageWorkflow(project) && (
+                          <>
+                            <button onClick={() => openWorkflowModal(project)} title="Configure Workflow" style={{ background: 'transparent', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer' }}>
+                              <GitBranch size={16} />
+                            </button>
+                            <button onClick={() => openEditModal(project)} title="Edit Project" style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                              <Edit size={16} />
+                            </button>
+                          </>
+                        )}
+                        {(currentUser?.globalRole === 'Admin' || currentUser?.globalRole === 'Manager') && (
+                          <button onClick={() => handleDelete(project.id)} title="Delete Project" style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer' }}>
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+      )}
       {isModalOpen && (
         <div style={{
           position: 'fixed',

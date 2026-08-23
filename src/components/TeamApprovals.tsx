@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import type { TimesheetEntry, User, GlobalRole, Project, ProjectRole } from '../types';
-import { Check, X, Clock, Award, Users, Plus, Edit, Trash2, Calendar, Home } from 'lucide-react';
+import { Check, X, Clock, Award, Users, Plus, Edit, Trash2, Calendar, Home, LayoutGrid, List } from 'lucide-react';
 import { formatToDDMMYYYY, sortTimesheetsByLastUpdate } from '../utils';
 import { CustomDateInput } from './CustomDateInput';
 
@@ -17,6 +17,7 @@ interface TeamApprovalsProps {
 
 export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, projects, setProjects, tasks, currentUser }: TeamApprovalsProps) => {
   const [activeTab, setActiveTab] = useState<'team' | 'approvals' | 'wfh'>('team');
+  const [teamViewMode, setTeamViewMode] = useState<'card' | 'list'>('card');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
@@ -408,27 +409,86 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
         </div>
       )}
       {/* Top Header */}
-      <div className="flex-between">
+      <div className="flex-between" style={{ flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 className="text-gradient" style={{ marginBottom: '0.5rem' }}>Team & Approvals</h1>
           <p style={{ color: 'var(--text-secondary)' }}>Manage team members and approve timesheet submissions.</p>
         </div>
-        {activeTab === 'team' && (
-          <button onClick={openAddModal} style={{ 
-            background: 'var(--accent-primary)', 
-            color: 'white', 
-            border: 'none', 
-            padding: '0.75rem 1.5rem', 
-            borderRadius: 'var(--radius-md)', 
-            fontWeight: 500, 
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem'
-          }} className="hover-lift">
-            <Plus size={18} /> Add Employee
-          </button>
-        )}
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          {activeTab === 'team' && (
+            <>
+              {/* View Switcher */}
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                background: 'var(--bg-tertiary)', 
+                padding: '0.25rem', 
+                borderRadius: 'var(--radius-md)', 
+                border: '1px solid var(--border-color)' 
+              }}>
+                <button 
+                  onClick={() => setTeamViewMode('card')}
+                  title="Card View (แบบ Card)"
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.4rem', 
+                    padding: '0.5rem 0.85rem', 
+                    borderRadius: 'calc(var(--radius-md) - 2px)', 
+                    border: 'none', 
+                    background: teamViewMode === 'card' ? 'var(--accent-primary)' : 'transparent', 
+                    color: teamViewMode === 'card' ? '#ffffff' : 'var(--text-secondary)', 
+                    fontWeight: teamViewMode === 'card' ? 600 : 400,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <LayoutGrid size={16} />
+                  <span>Card</span>
+                </button>
+
+                <button 
+                  onClick={() => setTeamViewMode('list')}
+                  title="List View (แบบ List)"
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.4rem', 
+                    padding: '0.5rem 0.85rem', 
+                    borderRadius: 'calc(var(--radius-md) - 2px)', 
+                    border: 'none', 
+                    background: teamViewMode === 'list' ? 'var(--accent-primary)' : 'transparent', 
+                    color: teamViewMode === 'list' ? '#ffffff' : 'var(--text-secondary)', 
+                    fontWeight: teamViewMode === 'list' ? 600 : 400,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <List size={16} />
+                  <span>List</span>
+                </button>
+              </div>
+
+              <button onClick={openAddModal} style={{ 
+                background: 'var(--accent-primary)', 
+                color: 'white', 
+                border: 'none', 
+                padding: '0.75rem 1.5rem', 
+                borderRadius: 'var(--radius-md)', 
+                fontWeight: 500, 
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }} className="hover-lift">
+                <Plus size={18} /> Add Employee
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Tab Navigation */}
@@ -498,123 +558,230 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
 
       {/* Tab Content */}
       {activeTab === 'team' ? (
-        /* Team Directory */
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
-          {users.map(user => {
-            const userProjectRoles = projects
-              .filter(p => p.members && p.members.some((m: any) => m.userId === user.id))
-              .map(p => {
-                const member = p.members.find((m: any) => m.userId === user.id);
-                return { 
-                  projectName: p.name, 
-                  role: member ? member.role : '',
-                  startDate: p.startDate,
-                  endDate: p.endDate
-                };
-              });
+        teamViewMode === 'card' ? (
+          /* Team Directory - Card View */
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
+            {users.map(user => {
+              const userProjectRoles = projects
+                .filter(p => p.members && p.members.some((m: any) => m.userId === user.id))
+                .map(p => {
+                  const member = p.members.find((m: any) => m.userId === user.id);
+                  return { 
+                    projectName: p.name, 
+                    role: member ? member.role : '',
+                    startDate: p.startDate,
+                    endDate: p.endDate
+                  };
+                });
 
-             return (
-              <div key={user.id} className="glass-panel hover-lift team-member-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', position: 'relative' }}>
-                <div className="member-card-header" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <img src={user.avatar} alt={user.name} style={{ width: '56px', height: '56px', borderRadius: '50%' }} />
-                  <div className="member-info" style={{ flex: 1, minWidth: 0 }}>
-                    <h3 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>{user.name}</h3>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
-                      <span style={{ 
-                        fontSize: '0.7rem', 
-                        padding: '0.15rem 0.5rem', 
-                        borderRadius: 'var(--radius-sm)', 
-                        fontWeight: 600,
-                        background: user.globalRole === 'Admin' ? 'rgba(239, 68, 68, 0.1)' : 
-                                    user.globalRole === 'Manager' ? 'rgba(59, 130, 246, 0.1)' : 
-                                    user.globalRole === 'Employee' ? 'rgba(16, 185, 129, 0.1)' : 
-                                    'rgba(245, 158, 11, 0.1)',
-                        color: user.globalRole === 'Admin' ? '#EF4444' : 
-                               user.globalRole === 'Manager' ? '#3B82F6' : 
-                               user.globalRole === 'Employee' ? '#10B981' : 
-                               '#F59E0B',
-                        border: user.globalRole === 'Admin' ? '1px solid rgba(239, 68, 68, 0.2)' : 
-                                user.globalRole === 'Manager' ? '1px solid rgba(59, 130, 246, 0.2)' : 
-                                user.globalRole === 'Employee' ? '1px solid rgba(16, 185, 129, 0.2)' : 
-                                '1px solid rgba(245, 158, 11, 0.2)',
-                      }}>
-                        {user.globalRole === 'User' ? 'User / บุคคลภายนอก' : user.globalRole}
-                      </span>
-                      {user.department && (
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                          • {user.department}
+               return (
+                <div key={user.id} className="glass-panel hover-lift team-member-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', position: 'relative' }}>
+                  <div className="member-card-header" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <img src={user.avatar} alt={user.name} style={{ width: '56px', height: '56px', borderRadius: '50%' }} />
+                    <div className="member-info" style={{ flex: 1, minWidth: 0 }}>
+                      <h3 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>{user.name}</h3>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+                        <span style={{ 
+                          fontSize: '0.7rem', 
+                          padding: '0.15rem 0.5rem', 
+                          borderRadius: 'var(--radius-sm)', 
+                          fontWeight: 600,
+                          background: user.globalRole === 'Admin' ? 'rgba(239, 68, 68, 0.1)' : 
+                                      user.globalRole === 'Manager' ? 'rgba(59, 130, 246, 0.1)' : 
+                                      user.globalRole === 'Employee' ? 'rgba(16, 185, 129, 0.1)' : 
+                                      'rgba(245, 158, 11, 0.1)',
+                          color: user.globalRole === 'Admin' ? '#EF4444' : 
+                                 user.globalRole === 'Manager' ? '#3B82F6' : 
+                                 user.globalRole === 'Employee' ? '#10B981' : 
+                                 '#F59E0B',
+                          border: user.globalRole === 'Admin' ? '1px solid rgba(239, 68, 68, 0.2)' : 
+                                  user.globalRole === 'Manager' ? '1px solid rgba(59, 130, 246, 0.2)' : 
+                                  user.globalRole === 'Employee' ? '1px solid rgba(16, 185, 129, 0.2)' : 
+                                  '1px solid rgba(245, 158, 11, 0.2)',
+                        }}>
+                          {user.globalRole === 'User' ? 'User / บุคคลภายนอก' : user.globalRole}
                         </span>
-                      )}
-                    </div>
-                    
-                    {(user.gender || user.birthday) && (
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
-                        {user.gender && <span>{user.gender}</span>}
-                        {user.gender && user.birthday && <span> • </span>}
-                        {user.birthday && (
-                          <span>
-                            {user.birthday} ({calculateAge(user.birthday)} yrs)
+                        {user.department && (
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                            • {user.department}
                           </span>
                         )}
                       </div>
-                    )}
+                      
+                      {(user.gender || user.birthday) && (
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                          {user.gender && <span>{user.gender}</span>}
+                          {user.gender && user.birthday && <span> • </span>}
+                          {user.birthday && (
+                            <span>
+                              {user.birthday} ({calculateAge(user.birthday)} yrs)
+                            </span>
+                          )}
+                        </div>
+                      )}
 
-                    <div className="member-email" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', wordBreak: 'break-all' }}>
-                      {user.email}
+                      <div className="member-email" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', wordBreak: 'break-all' }}>
+                        {user.email}
+                      </div>
+
+                      {user.skills && user.skills.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginTop: '0.5rem' }}>
+                          {user.skills.map((skill, idx) => (
+                            <span key={idx} style={{ 
+                              fontSize: '0.65rem', 
+                              padding: '0.1rem 0.4rem', 
+                              background: 'rgba(255, 255, 255, 0.05)', 
+                              border: '1px solid rgba(255, 255, 255, 0.1)',
+                              color: 'var(--text-secondary)', 
+                              borderRadius: 'var(--radius-sm)' 
+                            }}>
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
+                    <div className="member-actions" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <button onClick={() => openEditModal(user)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                        <Edit size={14} />
+                      </button>
+                      <button onClick={() => handleDeleteUser(user.id)} style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer' }}>
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
 
-                    {user.skills && user.skills.length > 0 && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginTop: '0.5rem' }}>
-                        {user.skills.map((skill, idx) => (
+                  {/* Display Project Specific Roles */}
+                  {userProjectRoles.length > 0 && (
+                    <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Project Roles:</span>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                        {userProjectRoles.map((pr, idx) => (
                           <span key={idx} style={{ 
-                            fontSize: '0.65rem', 
-                            padding: '0.1rem 0.4rem', 
-                            background: 'rgba(255, 255, 255, 0.05)', 
-                            border: '1px solid rgba(255, 255, 255, 0.1)',
-                            color: 'var(--text-secondary)', 
+                            fontSize: '0.7rem', 
+                            padding: '0.2rem 0.5rem', 
+                            background: 'rgba(99, 102, 241, 0.1)', 
+                            border: '1px solid rgba(99, 102, 241, 0.2)',
+                            color: 'var(--accent-primary)', 
                             borderRadius: 'var(--radius-sm)' 
                           }}>
-                            {skill}
+                            {pr.projectName} ({pr.role})
+                            {pr.startDate && <span style={{ marginLeft: '4px', opacity: 0.8 }}>• {formatToDDMMYYYY(pr.startDate)} {pr.endDate ? `to ${formatToDDMMYYYY(pr.endDate)}` : '(Present)'}</span>}
                           </span>
                         ))}
                       </div>
-                    )}
-                  </div>
-                  <div className="member-actions" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    <button onClick={() => openEditModal(user)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-                      <Edit size={14} />
-                    </button>
-                    <button onClick={() => handleDeleteUser(user.id)} style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer' }}>
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Display Project Specific Roles */}
-                {userProjectRoles.length > 0 && (
-                  <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Project Roles:</span>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-                      {userProjectRoles.map((pr, idx) => (
-                        <span key={idx} style={{ 
-                          fontSize: '0.7rem', 
-                          padding: '0.2rem 0.5rem', 
-                          background: 'rgba(99, 102, 241, 0.1)', 
-                          border: '1px solid rgba(99, 102, 241, 0.2)',
-                          color: 'var(--accent-primary)', 
-                          borderRadius: 'var(--radius-sm)' 
-                        }}>
-                          {pr.projectName} ({pr.role})
-                          {pr.startDate && <span style={{ marginLeft: '4px', opacity: 0.8 }}>• {formatToDDMMYYYY(pr.startDate)} {pr.endDate ? `to ${formatToDDMMYYYY(pr.endDate)}` : '(Present)'}</span>}
-                        </span>
-                      ))}
                     </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          /* Team Directory - List View */
+          <div className="glass-panel" style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+                  <th style={{ padding: '0.875rem 1rem' }}>Employee Name</th>
+                  <th style={{ padding: '0.875rem 1rem' }}>Role & Department</th>
+                  <th style={{ padding: '0.875rem 1rem' }}>Contact / Details</th>
+                  <th style={{ padding: '0.875rem 1rem' }}>Skills</th>
+                  <th style={{ padding: '0.875rem 1rem' }}>Active Projects</th>
+                  <th style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((user, idx) => {
+                  const userProjectRoles = projects
+                    .filter(p => p.members && p.members.some((m: any) => m.userId === user.id))
+                    .map(p => {
+                      const member = p.members.find((m: any) => m.userId === user.id);
+                      return { 
+                        projectName: p.name, 
+                        role: member ? member.role : ''
+                      };
+                    });
+
+                  return (
+                    <tr key={user.id} style={{ borderBottom: '1px solid var(--border-color)', background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)' }} className="table-row-hover">
+                      <td style={{ padding: '0.875rem 1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <img src={user.avatar} alt={user.name} style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover' }} />
+                          <div>
+                            <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{user.name}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{user.email}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: '0.875rem 1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ 
+                            fontSize: '0.7rem', 
+                            padding: '0.15rem 0.5rem', 
+                            borderRadius: 'var(--radius-sm)', 
+                            fontWeight: 600,
+                            background: user.globalRole === 'Admin' ? 'rgba(239, 68, 68, 0.1)' : 
+                                        user.globalRole === 'Manager' ? 'rgba(59, 130, 246, 0.1)' : 
+                                        user.globalRole === 'Employee' ? 'rgba(16, 185, 129, 0.1)' : 
+                                        'rgba(245, 158, 11, 0.1)',
+                            color: user.globalRole === 'Admin' ? '#EF4444' : 
+                                   user.globalRole === 'Manager' ? '#3B82F6' : 
+                                   user.globalRole === 'Employee' ? '#10B981' : 
+                                   '#F59E0B'
+                          }}>
+                            {user.globalRole}
+                          </span>
+                          {user.department && <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>{user.department}</span>}
+                        </div>
+                      </td>
+                      <td style={{ padding: '0.875rem 1rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        {user.gender && <span>{user.gender}</span>}
+                        {user.gender && user.birthday && <span> • </span>}
+                        {user.birthday && <span>{user.birthday}</span>}
+                      </td>
+                      <td style={{ padding: '0.875rem 1rem' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', maxWidth: '250px' }}>
+                          {user.skills && user.skills.length > 0 ? (
+                            user.skills.map((skill, i) => (
+                              <span key={i} style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', color: 'var(--text-secondary)', borderRadius: 'var(--radius-sm)' }}>
+                                {skill}
+                              </span>
+                            ))
+                          ) : (
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>-</span>
+                          )}
+                        </div>
+                      </td>
+                      <td style={{ padding: '0.875rem 1rem' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', maxWidth: '250px' }}>
+                          {userProjectRoles.length > 0 ? (
+                            userProjectRoles.map((pr, i) => (
+                              <span key={i} style={{ fontSize: '0.68rem', padding: '0.15rem 0.4rem', background: 'rgba(99, 102, 241, 0.1)', color: 'var(--accent-primary)', borderRadius: '4px' }}>
+                                {pr.projectName}
+                              </span>
+                            ))
+                          ) : (
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>None</span>
+                          )}
+                        </div>
+                      </td>
+                      <td style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>
+                        <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
+                          <button onClick={() => openEditModal(user)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                            <Edit size={16} />
+                          </button>
+                          <button onClick={() => handleDeleteUser(user.id)} style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer' }}>
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )
       ) : activeTab === 'approvals' ? (
         /* Approvals Queue */
         <div className="glass-panel" style={{ padding: '1.5rem', minHeight: '300px' }}>
@@ -755,7 +922,7 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                 <tr style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-tertiary)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                   <th style={{ padding: '1rem', width: '220px' }}>Employee</th>
                   {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-                    <th key={day} style={{ padding: '1rem', textAlign: 'center' }}>{day}</th>
+                    <th key={day} style={{ padding: '1rem', textAlign: 'center', color: (day === 'Sat' || day === 'Sun') ? '#ef4444' : undefined, fontWeight: (day === 'Sat' || day === 'Sun') ? 700 : 600 }}>{day}</th>
                   ))}
                 </tr>
               </thead>

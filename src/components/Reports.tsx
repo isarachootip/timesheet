@@ -186,7 +186,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
 
     while (curr <= endD) {
       const dateStr = curr.toISOString().split('T')[0];
-      const dayTimesheets = filteredTimesheets.filter(ts => ts.date === dateStr);
+      const dayTimesheets = filteredTimesheets.filter(ts => ts.date.startsWith(dateStr));
       
       const dayHours = dayTimesheets.reduce((sum, ts) => sum + ts.hours, 0);
       const dayCost = dayTimesheets.reduce((sum, ts) => sum + getEntryCost(ts), 0);
@@ -292,7 +292,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
     // For the table, we'll group by the selected type, but we still filter the KPI cards by costDate.
     // Wait, let's keep the filter for KPIs.
     if (costReportType === 'daily') {
-      return ts.date === costDate;
+      return ts.date.startsWith(costDate);
     } else if (costReportType === 'weekly') {
       // costDate is '2026-W26'
       return getWeekString(ts.date) === costDate;
@@ -386,7 +386,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
       const curr = new Date(startDateObj);
       while (curr <= endDateObj) {
         const dateStr = curr.toISOString().split('T')[0];
-        const dayTimesheets = timesheets.filter(ts => (selectedProject === 'all' || ts.projectId === selectedProject) && ts.date === dateStr);
+        const dayTimesheets = timesheets.filter(ts => (selectedProject === 'all' || ts.projectId === selectedProject) && ts.date.startsWith(dateStr));
         
         const point: any = {
           date: dateStr,
@@ -409,7 +409,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
       
       for (let d = 1; d <= daysInMonth; d++) {
         const dateStr = `${selectedMonthStr}-${String(d).padStart(2, '0')}`;
-        const dayTimesheets = timesheets.filter(ts => (selectedProject === 'all' || ts.projectId === selectedProject) && ts.date === dateStr);
+        const dayTimesheets = timesheets.filter(ts => (selectedProject === 'all' || ts.projectId === selectedProject) && ts.date.startsWith(dateStr));
         
         const point: any = {
           day: d,
@@ -515,7 +515,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
 
   // ── Export CSV ──
   const exportCSV = () => {
-    const headers = ['Date', 'User', 'Project', 'Hours', 'Cost (THB)', 'Description', 'Status'];
+    const headers = ['Date', 'User', 'Project', 'Hours', 'Cost (THB)', 'Description', 'WFH', 'Status'];
     const rows = sortedTimesheets.map(ts => [
       ts.date,
       users.find(u => u.id === ts.userId)?.name || '',
@@ -523,6 +523,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
       ts.hours,
       getEntryCost(ts).toFixed(2),
       `"${(ts.description || '').replace(/"/g, '""')}"`,
+      ts.isWfh ? 'Yes' : 'No',
       ts.status,
     ]);
     const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
@@ -563,6 +564,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
       'Hours Logged',
       'Work Description',
       'Work Results',
+      'WFH',
       'Status'
     ];
 
@@ -584,6 +586,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
         ts.hours,
         ts.description || '',
         ts.workResults || '',
+        ts.isWfh ? 'Yes' : 'No',
         ts.status
       ];
     });
@@ -600,6 +603,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
         personalTotalHours,
         `${detailRows.length} entry(ies)`,
         '',
+        '',
         ''
       ]);
     }
@@ -612,7 +616,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
       const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const dayOfWeek = isNaN(d.getTime()) ? '' : dayNames[d.getDay()];
       
-      const dayEntries = personalTimesheets.filter(ts => ts.date === dateStr);
+      const dayEntries = personalTimesheets.filter(ts => ts.date.startsWith(dateStr));
       const dayHours = dayEntries.reduce((s, ts) => s + ts.hours, 0);
       const dayProjects = Array.from(new Set(dayEntries.map(ts => projects.find(p => p.id === ts.projectId)?.name || ts.projectId))).join(', ');
       const statuses = Array.from(new Set(dayEntries.map(ts => ts.status))).join(', ');
@@ -651,6 +655,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
       { wch: 14 }, // Hours Logged
       { wch: 35 }, // Description
       { wch: 30 }, // Work Results
+      { wch: 8 },  // WFH
       { wch: 12 }  // Status
     ];
 
@@ -722,8 +727,8 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
         {/* ── Header ── */}
-        <div className="flex-between">
-          <div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+          <div style={{ flex: '1 1 min-content', minWidth: '300px' }}>
             <h1 className="text-gradient" style={{ marginBottom: '0.5rem' }}>HR &amp; Cost Reports</h1>
             <p style={{ color: 'var(--text-secondary)' }}>Analytical dashboards detailing work allocation, personal metrics, and project financial effort.</p>
           </div>
@@ -1038,6 +1043,30 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                       fontSize={12} 
                       tickLine={false} 
                       axisLine={false} 
+                      tick={(props: any) => {
+                        const { x, y, payload } = props;
+                        const item = costMovementData[payload.index];
+                        let isWeekend = false;
+                        if (item && item.date) {
+                          const day = new Date(item.date).getDay();
+                          isWeekend = day === 0 || day === 6;
+                        }
+                        return (
+                          <g transform={`translate(${x},${y})`}>
+                            <text 
+                              x={0} 
+                              y={0} 
+                              dy={12} 
+                              textAnchor="middle" 
+                              fill={isWeekend ? '#ef4444' : 'var(--text-secondary)'} 
+                              fontSize={12}
+                              fontWeight={isWeekend ? 'bold' : 'normal'}
+                            >
+                              {payload.value}
+                            </text>
+                          </g>
+                        );
+                      }}
                     />
                     <YAxis 
                       yAxisId="left"
@@ -1097,15 +1126,16 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.25rem', textAlign: 'center', marginBottom: '0.25rem' }}>
-                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                      <span key={d} style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>{d}</span>
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d, i) => (
+                      <span key={d} style={{ fontSize: '0.75rem', fontWeight: 600, color: (i === 0 || i === 6) ? '#ef4444' : 'var(--text-muted)' }}>{d}</span>
                     ))}
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.25rem' }}>
                     {getCalendarDays().map((cell, idx) => {
-                      const dayEntries = cell.dateStr ? filteredTimesheets.filter(ts => ts.date === cell.dateStr) : [];
+                      const dayEntries = cell.dateStr ? filteredTimesheets.filter(ts => ts.date.startsWith(cell.dateStr as string)) : [];
                       const dailyTotal = dayEntries.reduce((sum, e) => sum + e.hours, 0);
+                      const isWeekendCell = (idx % 7 === 0) || (idx % 7 === 6);
 
                       return (
                         <div 
@@ -1118,13 +1148,13 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                             display: 'flex',
                             flexDirection: 'column',
                             justifyContent: 'flex-start',
-                            background: cell.dayNum ? undefined : 'rgba(255,255,255,0.005)',
-                            border: cell.dayNum ? undefined : '1px solid transparent'
+                            background: cell.dayNum ? (isWeekendCell ? 'rgba(239, 68, 68, 0.04)' : undefined) : 'rgba(255,255,255,0.005)',
+                            border: cell.dayNum ? (isWeekendCell ? '1px solid rgba(239, 68, 68, 0.15)' : undefined) : '1px solid transparent'
                           }}
                         >
                           {cell.dayNum && (
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: dailyTotal > 0 ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: isWeekendCell ? '#ef4444' : (dailyTotal > 0 ? 'var(--text-primary)' : 'var(--text-muted)') }}>
                                 {cell.dayNum}
                               </span>
                               {dailyTotal > 0 && (
@@ -1374,7 +1404,12 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                 
                 {daysInMonthArray.map(day => {
                   const dateStr = `${selectedMonth}-${String(day).padStart(2, '0')}`;
-                  const dayHours = personalTimesheets.filter(ts => ts.date === dateStr).reduce((s, ts) => s + ts.hours, 0);
+                  const [yStr, mStr] = selectedMonth.split('-');
+                  const dateObj = new Date(Number(yStr), Number(mStr) - 1, day);
+                  const dayOfWeek = dateObj.getDay();
+                  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+                  const dayHours = personalTimesheets.filter(ts => ts.date.startsWith(dateStr)).reduce((s, ts) => s + ts.hours, 0);
                   const barHeight = Math.min(100, Math.round((dayHours / 12) * 100)); // reference 12 hours max
                   
                   return (
@@ -1397,14 +1432,24 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                       <div style={{
                         height: `${barHeight}%`,
                         width: '100%',
-                        background: dayHours > 0 ? 'var(--accent-primary)' : 'rgba(255,255,255,0.02)',
+                        background: dayHours > 0 
+                          ? (isWeekend ? '#ef4444' : 'var(--accent-primary)') 
+                          : (isWeekend ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255,255,255,0.02)'),
                         borderRadius: '3px 3px 0 0',
                         transition: 'height 0.3s ease',
                         cursor: 'pointer',
-                        boxShadow: dayHours > 0 ? '0 0 10px rgba(124, 58, 237, 0.2)' : 'none'
+                        boxShadow: dayHours > 0 
+                          ? (isWeekend ? '0 0 10px rgba(239, 68, 68, 0.4)' : '0 0 10px rgba(124, 58, 237, 0.2)') 
+                          : 'none'
                       }} />
                       {/* Day Label */}
-                      <span style={{ fontSize: '0.65rem', color: dayHours > 0 ? 'var(--text-primary)' : 'var(--text-muted)' }}>{day}</span>
+                      <span style={{ 
+                        fontSize: '0.65rem', 
+                        color: isWeekend ? '#ef4444' : (dayHours > 0 ? 'var(--text-primary)' : 'var(--text-muted)'),
+                        fontWeight: isWeekend ? 700 : 400
+                      }}>
+                        {day}
+                      </span>
                       
                       {/* Tooltip */}
                       {dayHours > 0 && (
@@ -1767,6 +1812,36 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                         fontSize={11}
                         tickLine={false}
                         axisLine={false}
+                        tick={(props: any) => {
+                          const { x, y, payload } = props;
+                          const item = trendData[payload.index];
+                          let isWeekend = false;
+                          if (item) {
+                            if (item.date) {
+                              const d = new Date(item.date).getDay();
+                              isWeekend = d === 0 || d === 6;
+                            } else if (item.day && selectedMonthStr) {
+                              const [yr, mo] = selectedMonthStr.split('-').map(Number);
+                              const d = new Date(yr, mo - 1, item.day).getDay();
+                              isWeekend = d === 0 || d === 6;
+                            }
+                          }
+                          return (
+                            <g transform={`translate(${x},${y})`}>
+                              <text 
+                                x={0} 
+                                y={0} 
+                                dy={12} 
+                                textAnchor="middle" 
+                                fill={isWeekend ? '#ef4444' : 'var(--text-secondary)'} 
+                                fontSize={11}
+                                fontWeight={isWeekend ? 'bold' : 'normal'}
+                              >
+                                {payload.value}
+                              </text>
+                            </g>
+                          );
+                        }}
                       />
                       <YAxis 
                         stroke="var(--text-secondary)" 

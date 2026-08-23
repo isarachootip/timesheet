@@ -1,19 +1,24 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, CheckSquare, Clock, Users, Settings as SettingsIcon, LogOut, Briefcase, BarChart3, Menu, X, CalendarRange, Bell, AlertTriangle, AlertCircle, CalendarClock, HelpCircle, MessageSquare } from 'lucide-react';
-import { Dashboard } from './components/Dashboard';
-import { Projects } from './components/Projects';
-import { Timesheet } from './components/Timesheet';
-import { Tasks } from './components/Tasks';
-import { TeamApprovals } from './components/TeamApprovals';
-import { Reports } from './components/Reports';
+import { useQueryClient } from '@tanstack/react-query';
+import { useUsers, useProjects, useTasks, useTimesheets, useTaskTemplates, useSprints, useReleases, usePermissionSchemes, useProjectWorkflows, useCostRates, useSystemSettings } from './hooks/useAppQueries';
+import { LayoutDashboard, CheckSquare, Clock, Users, Settings as SettingsIcon, LogOut, Briefcase, BarChart3, Menu, X, CalendarRange, Bell, AlertTriangle, AlertCircle, CalendarClock, HelpCircle, MessageSquare, Wrench, Sun, Moon } from 'lucide-react';
 import { Login } from './components/Login';
-import { Settings } from './components/Settings';
-import { ProjectPlan } from './components/ProjectPlan';
-import { ProjectChat } from './components/ProjectChat';
-import KnowledgeBase from './components/KnowledgeBase';
 import ChatWidget from './components/ChatWidget';
-import { mockUsers, mockProjects, mockTasks, mockTimesheets } from './data/mockData';
+
+const Dashboard = lazy(() => import('./components/Dashboard').then(m => ({ default: m.Dashboard })));
+const Projects = lazy(() => import('./components/Projects').then(m => ({ default: m.Projects })));
+const Timesheet = lazy(() => import('./components/Timesheet').then(m => ({ default: m.Timesheet })));
+const Tasks = lazy(() => import('./components/Tasks').then(m => ({ default: m.Tasks })));
+const TeamApprovals = lazy(() => import('./components/TeamApprovals').then(m => ({ default: m.TeamApprovals })));
+const Reports = lazy(() => import('./components/Reports').then(m => ({ default: m.Reports })));
+const Settings = lazy(() => import('./components/Settings').then(m => ({ default: m.Settings })));
+const ProjectPlan = lazy(() => import('./components/ProjectPlan').then(m => ({ default: m.ProjectPlan })));
+const ProjectChat = lazy(() => import('./components/ProjectChat').then(m => ({ default: m.ProjectChat })));
+const KnowledgeBase = lazy(() => import('./components/KnowledgeBase'));
+const TechnicianMatrix = lazy(() => import('./components/TechnicianMatrix').then(m => ({ default: m.TechnicianMatrix })));
+
+import { mockUsers } from './data/mockData';
 import type { User, Project, Task, TimesheetEntry, TaskTemplate, Sprint, Release, PermissionScheme, ProjectWorkflow, CostRate } from './types';
 import { formatToDDMMYYYY } from './utils';
 import './index.css';
@@ -156,35 +161,45 @@ const NotificationBell = ({ tasks, currentUser }: { tasks: Task[], currentUser: 
               {unreadChatNotifs.length > 0 && (
                 <>
                   <div style={{ padding: '0.6rem 1.25rem', fontSize: '0.72rem', fontWeight: 700, color: 'var(--accent-primary)', background: 'rgba(59, 130, 246, 0.1)', letterSpacing: '0.05em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <MessageSquare size={12} /> Chat Mentions ({unreadChatNotifs.length})
+                    <MessageSquare size={12} /> System & Chat Notifications ({unreadChatNotifs.length})
                   </div>
-                  {unreadChatNotifs.map(n => (
-                    <div 
-                      key={n.id} 
-                      className="notif-item" 
-                      onClick={() => handleMarkAsRead(n.id, n.projectId)}
-                      style={{ cursor: 'pointer', transition: 'background 0.2s', padding: '0.75rem 1.25rem', borderBottom: '1px solid rgba(255,255,255,0.03)', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}
-                    >
-                      {n.senderAvatar ? (
-                        <img src={n.senderAvatar} alt={n.senderName} style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', marginTop: '0.1rem' }} />
-                      ) : (
-                        <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', marginTop: '0.1rem' }}>
-                          {n.senderName.charAt(0)}
-                        </div>
-                      )}
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-primary)', lineHeight: '1.4' }}>
-                          <strong>{n.senderName}</strong> mentioned you in <span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>#{n.projectName}</span>
-                        </div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '220px' }}>
-                          "{n.text}"
-                        </div>
-                        <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                          {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {unreadChatNotifs.map(n => {
+                    const isSystem = n.type === 'system';
+                    const isApproval = n.type === 'approval';
+                    const typeColor = isSystem ? '#ef4444' : isApproval ? '#10b981' : 'var(--accent-primary)';
+                    
+                    return (
+                      <div 
+                        key={n.id} 
+                        className="notif-item" 
+                        onClick={() => handleMarkAsRead(n.id, n.projectId)}
+                        style={{ cursor: 'pointer', transition: 'background 0.2s', padding: '0.75rem 1.25rem', borderBottom: '1px solid rgba(255,255,255,0.03)', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}
+                      >
+                        {n.senderAvatar ? (
+                          <img src={n.senderAvatar} alt={n.senderName} style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', marginTop: '0.1rem' }} />
+                        ) : (
+                          <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', marginTop: '0.1rem' }}>
+                            {n.senderName.charAt(0)}
+                          </div>
+                        )}
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-primary)', lineHeight: '1.4', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            {isSystem && <AlertCircle size={14} color={typeColor} />}
+                            {isApproval && <CheckSquare size={14} color={typeColor} />}
+                            <span>
+                              <strong>{n.senderName}</strong> {isSystem ? 'system alert' : isApproval ? 'requested approval' : 'mentioned you'} in <span style={{ color: typeColor, fontWeight: 600 }}>#{n.projectName}</span>
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '220px' }}>
+                            "{n.text}"
+                          </div>
+                          <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                            {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </>
               )}
               
@@ -221,7 +236,7 @@ const MobileBottomNav = () => {
   );
 };
 
-const AppLayout = ({ children, currentUser, tasks, onLogout }: { children: React.ReactNode, currentUser: User, tasks: Task[], onLogout: () => void }) => {
+const AppLayout = ({ children, currentUser, tasks, onLogout, theme, onToggleTheme }: { children: React.ReactNode, currentUser: User, tasks: Task[], onLogout: () => void, theme: 'dark' | 'light', onToggleTheme: () => void }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [chatNotifications, setChatNotifications] = useState<any[]>([]);
 
@@ -281,6 +296,7 @@ const AppLayout = ({ children, currentUser, tasks, onLogout }: { children: React
           <SidebarItem icon={Clock} label="Timesheet" path="/timesheet" />
           <SidebarItem icon={MessageSquare} label="Team Chat" path="/chat" badgeCount={unreadChatCount} />
           <SidebarItem icon={Users} label="Team" path="/team" />
+          <SidebarItem icon={Wrench} label="ข้อมูลช่าง & Skill Matrix" path="/technicians" />
           <SidebarItem icon={BarChart3} label="Reports" path="/reports" />
           <SidebarItem icon={SettingsIcon} label="Settings" path="/settings" />
           <SidebarItem icon={HelpCircle} label="Help / FAQ" path="/help" />
@@ -312,6 +328,27 @@ const AppLayout = ({ children, currentUser, tasks, onLogout }: { children: React
             <h2 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 500 }}>System Overview</h2>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <button
+              onClick={onToggleTheme}
+              className="glass-panel hover-lift"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-primary)',
+                cursor: 'pointer',
+                padding: '0.5rem',
+                borderRadius: 'var(--radius-md)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                outline: 'none',
+                width: '38px',
+                height: '38px'
+              }}
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
             <NotificationBell tasks={tasks} currentUser={currentUser} />
             <Link to="/settings" className="glass-panel hover-lift" style={{ padding: '0.5rem 1rem', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'transparent', outline: 'none', textDecoration: 'none' }}>
               <SettingsIcon size={18} />
@@ -412,23 +449,53 @@ const ActualHoursModal = ({ task, onConfirm, onCancel }: ActualHoursModalProps) 
 
 
 function App() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [timesheets, setTimesheets] = useState<TimesheetEntry[]>([]);
-  const [taskTemplates, setTaskTemplates] = useState<TaskTemplate[]>([]);
-  const [sprints, setSprints] = useState<Sprint[]>([]);
-  const [releases, setReleases] = useState<Release[]>([]);
-  const [permissionSchemes, setPermissionSchemes] = useState<PermissionScheme[]>([]);
-  const [projectWorkflows, setProjectWorkflows] = useState<ProjectWorkflow[]>([]);
-  const [costRates, setCostRates] = useState<CostRate[]>([]);
-  const [systemSettings, setSystemSettings] = useState<Record<string, any>>({});
+  const queryClient = useQueryClient();
+  const { data: users = [], isLoading: l1 } = useUsers();
+  const { data: projects = [], isLoading: l2 } = useProjects();
+  const { data: tasks = [], isLoading: l3 } = useTasks();
+  const { data: timesheets = [], isLoading: l4 } = useTimesheets();
+  const { data: taskTemplates = [] } = useTaskTemplates();
+  const { data: sprints = [] } = useSprints();
+  const { data: releases = [] } = useReleases();
+  const { data: permissionSchemes = [] } = usePermissionSchemes();
+  const { data: projectWorkflows = [] } = useProjectWorkflows();
+  const { data: costRates = [] } = useCostRates();
+  const { data: systemSettings = {} } = useSystemSettings();
+
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    return (localStorage.getItem('nt_theme') as 'dark' | 'light') || 'dark';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('nt_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
+
+  const loading = l1 || l2 || l3 || l4;
+
+  const setUsers = (val: React.SetStateAction<User[]>) => queryClient.setQueryData<User[]>(['users'], val as any);
+  const setProjects = (val: React.SetStateAction<Project[]>) => queryClient.setQueryData<Project[]>(['projects'], val as any);
+  const setTasks = (val: React.SetStateAction<Task[]>) => queryClient.setQueryData<Task[]>(['tasks'], val as any);
+  const setTimesheets = (val: React.SetStateAction<TimesheetEntry[]>) => queryClient.setQueryData<TimesheetEntry[]>(['timesheets'], val as any);
+  const setTaskTemplates = (val: React.SetStateAction<TaskTemplate[]>) => queryClient.setQueryData<TaskTemplate[]>(['taskTemplates'], val as any);
+  const setSprints = (val: React.SetStateAction<Sprint[]>) => queryClient.setQueryData<Sprint[]>(['sprints'], val as any);
+  const setReleases = (val: React.SetStateAction<Release[]>) => queryClient.setQueryData<Release[]>(['releases'], val as any);
+  const setPermissionSchemes = (val: React.SetStateAction<PermissionScheme[]>) => queryClient.setQueryData<PermissionScheme[]>(['permissionSchemes'], val as any);
+  const setProjectWorkflows = (val: React.SetStateAction<ProjectWorkflow[]>) => queryClient.setQueryData<ProjectWorkflow[]>(['projectWorkflows'], val as any);
+  const setCostRates = (val: React.SetStateAction<CostRate[]>) => queryClient.setQueryData<CostRate[]>(['costRates'], val as any);
+  const setSystemSettings = (val: React.SetStateAction<Record<string, any>>) => queryClient.setQueryData<Record<string, any>>(['systemSettings'], val as any);
+  
+  const fetchInitialData = () => {
+    queryClient.invalidateQueries();
+  };
+
   const [currentUser, setCurrentUser] = useState<User | null>(() => getLocalStorage<User | null>('nt_current_user', null));
-  const [loading, setLoading] = useState(true);
-  // Actual-hours modal state
   const [pendingTsTask, setPendingTsTask] = useState<Task | null>(null);
 
-  // Check if we just redirected from successful LINE login
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const userParam = params.get('user');
@@ -445,40 +512,6 @@ function App() {
         console.error('Error parsing login user:', err);
       }
     }
-  }, []);
-
-  // Fetch initial data from PostgreSQL
-  const fetchInitialData = () => {
-    fetch('/api/initial-data')
-      .then(res => res.json())
-      .then(data => {
-        setUsers(data.users || []);
-        setProjects(data.projects || []);
-        setTasks(data.tasks || []);
-        setTimesheets(data.timesheets || []);
-        setTaskTemplates(data.taskTemplates || []);
-        setSprints(data.sprints || []);
-        setReleases(data.releases || []);
-        setPermissionSchemes(data.permissionSchemes || []);
-        setProjectWorkflows(data.projectWorkflows || []);
-        setCostRates(data.costRates || []);
-        setSystemSettings(data.systemSettings || {});
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error('Error fetching backend data, falling back to mocks:', err);
-        setUsers(mockUsers);
-        setProjects(mockProjects);
-        setTasks(mockTasks);
-        setTimesheets(mockTimesheets);
-        setTaskTemplates([]);
-        setCostRates([]);
-        setLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    fetchInitialData();
   }, []);
 
   // Sync current logged-in user in localStorage
@@ -925,7 +958,7 @@ function App() {
       status: 'Pending'
     };
     handleSetTimesheets(prevTs => {
-      const isDuplicate = prevTs.some(t => t.taskId === newTs.taskId && t.date === newTs.date);
+      const isDuplicate = prevTs.some(t => t.taskId === newTs.taskId && t.date.startsWith(newTs.date));
       if (isDuplicate) return prevTs;
       return [...prevTs, newTs];
     });
@@ -941,19 +974,22 @@ function App() {
           onCancel={() => setPendingTsTask(null)}
         />
       )}
-      <AppLayout currentUser={currentUser} tasks={tasks} onLogout={handleLogout}>
-        <Routes>
-          <Route path="/" element={<Dashboard projects={projects} tasks={tasks} timesheets={timesheets} currentUser={currentUser} />} />
-          <Route path="/projects" element={<Projects projects={projects} setProjects={handleSetProjects} users={users} tasks={tasks} permissionSchemes={permissionSchemes} currentUser={currentUser} projectWorkflows={projectWorkflows} setProjectWorkflows={handleSetProjectWorkflows} />} />
-          <Route path="/project-plan" element={<ProjectPlan projects={projects} tasks={tasks} setTasks={handleSetTasks} users={users} taskTemplates={taskTemplates} permissionSchemes={permissionSchemes} currentUser={currentUser} fetchInitialData={fetchInitialData} />} />
-          <Route path="/tasks" element={<Tasks tasks={tasks} setTasks={handleSetTasks} projects={projects} users={users} sprints={sprints} setSprints={handleSetSprints} releases={releases} setReleases={handleSetReleases} projectWorkflows={projectWorkflows} setProjectWorkflows={handleSetProjectWorkflows} permissionSchemes={permissionSchemes} currentUser={currentUser} />} />
-          <Route path="/timesheet" element={<Timesheet timesheets={timesheets} setTimesheets={handleSetTimesheets} projects={projects} tasks={tasks} currentUser={currentUser} users={users} />} />
-          <Route path="/chat" element={<ProjectChat projects={projects} users={users} currentUser={currentUser} systemSettings={systemSettings} />} />
-          <Route path="/team" element={<TeamApprovals users={users} setUsers={handleSetUsers} timesheets={timesheets} setTimesheets={handleSetTimesheets} projects={projects} setProjects={handleSetProjects} tasks={tasks} currentUser={currentUser} />} />
-          <Route path="/reports" element={<Reports timesheets={timesheets} projects={projects} users={users} currentUser={currentUser} tasks={tasks} costRates={costRates} sprints={sprints} />} />
-          <Route path="/settings" element={<Settings taskTemplates={taskTemplates} setTaskTemplates={handleSetTaskTemplates} permissionSchemes={permissionSchemes} setPermissionSchemes={handleSetPermissionSchemes} currentUser={currentUser} costRates={costRates} setCostRates={handleSetCostRates} systemSettings={systemSettings} setSystemSettings={setSystemSettings} fetchInitialData={fetchInitialData} />} />
-          <Route path="/help" element={<KnowledgeBase currentUser={currentUser} />} />
-        </Routes>
+      <AppLayout currentUser={currentUser} tasks={tasks} onLogout={handleLogout} theme={theme} onToggleTheme={toggleTheme}>
+        <Suspense fallback={<div className="flex-center" style={{ height: '100%', flexDirection: 'column', gap: '1rem' }}><div className="text-gradient" style={{ fontSize: '1.5rem', fontWeight: 600 }}>Loading view...</div></div>}>
+          <Routes>
+            <Route path="/" element={<Dashboard projects={projects} tasks={tasks} timesheets={timesheets} currentUser={currentUser} />} />
+            <Route path="/projects" element={<Projects projects={projects} setProjects={handleSetProjects} users={users} tasks={tasks} permissionSchemes={permissionSchemes} currentUser={currentUser} projectWorkflows={projectWorkflows} setProjectWorkflows={handleSetProjectWorkflows} />} />
+            <Route path="/project-plan" element={<ProjectPlan projects={projects} tasks={tasks} setTasks={handleSetTasks} users={users} taskTemplates={taskTemplates} permissionSchemes={permissionSchemes} currentUser={currentUser} fetchInitialData={fetchInitialData} />} />
+            <Route path="/tasks" element={<Tasks tasks={tasks} setTasks={handleSetTasks} projects={projects} users={users} sprints={sprints} setSprints={handleSetSprints} releases={releases} setReleases={handleSetReleases} projectWorkflows={projectWorkflows} setProjectWorkflows={handleSetProjectWorkflows} permissionSchemes={permissionSchemes} currentUser={currentUser} />} />
+            <Route path="/timesheet" element={<Timesheet timesheets={timesheets} setTimesheets={handleSetTimesheets} projects={projects} tasks={tasks} currentUser={currentUser} users={users} />} />
+            <Route path="/chat" element={<ProjectChat projects={projects} users={users} currentUser={currentUser} systemSettings={systemSettings} />} />
+            <Route path="/team" element={<TeamApprovals users={users} setUsers={handleSetUsers} timesheets={timesheets} setTimesheets={handleSetTimesheets} projects={projects} setProjects={handleSetProjects} tasks={tasks} currentUser={currentUser} />} />
+            <Route path="/technicians" element={<TechnicianMatrix />} />
+            <Route path="/reports" element={<Reports timesheets={timesheets} projects={projects} users={users} currentUser={currentUser} tasks={tasks} costRates={costRates} sprints={sprints} />} />
+            <Route path="/settings" element={<Settings taskTemplates={taskTemplates} setTaskTemplates={handleSetTaskTemplates} permissionSchemes={permissionSchemes} setPermissionSchemes={handleSetPermissionSchemes} currentUser={currentUser} costRates={costRates} setCostRates={handleSetCostRates} systemSettings={systemSettings} setSystemSettings={setSystemSettings} fetchInitialData={fetchInitialData} />} />
+            <Route path="/help" element={<KnowledgeBase currentUser={currentUser} />} />
+          </Routes>
+        </Suspense>
       </AppLayout>
     </Router>
   );

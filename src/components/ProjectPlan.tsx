@@ -1120,6 +1120,10 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
                     });
                     const isExpanded = searchQuery ? true : expandedMilestones.has(m.id);
                     const statusColors = getStatusColor(m.status);
+                    
+                    const compTask = compareData ? compareData.tasks.find(t => t.taskId === m.id) : null;
+                    const mDelayDays = compTask ? compTask.variance.endDelayDays : 0;
+                    const mStartDelayDays = compTask ? compTask.variance.startDelayDays : 0;
 
                     return (
                       <div key={m.id} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', overflow: 'hidden' }}>
@@ -1138,7 +1142,7 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
                           <p style={{ fontSize: '0.875rem', color: '#9ca3af', marginTop: '0.15rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '280px' }}>{m.description}</p>
                         </div>
                         {/* Dates */}
-                        <div style={{ fontSize: '0.9rem', color: '#d1d5db' }}>
+                        <div style={{ fontSize: '0.9rem', color: '#d1d5db', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                           {m.startDate && m.endDate ? (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                               <span>{formatToDDMMYYYY(m.startDate)}</span>
@@ -1146,6 +1150,13 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
                               <span>{formatToDDMMYYYY(m.endDate)}</span>
                             </div>
                           ) : <span style={{ color: '#4b5563' }}>Not scheduled</span>}
+                          
+                          {(mStartDelayDays > 0 || mDelayDays > 0) && (
+                            <div style={{ display: 'flex', gap: '0.3rem', fontSize: '0.7rem' }}>
+                              {mStartDelayDays > 0 && <span style={{ color: '#ef4444', background: 'rgba(239,68,68,0.1)', padding: '0.1rem 0.3rem', borderRadius: '4px' }}>Start +{mStartDelayDays}d</span>}
+                              {mDelayDays > 0 && <span style={{ color: '#ef4444', background: 'rgba(239,68,68,0.1)', padding: '0.1rem 0.3rem', borderRadius: '4px' }}>End +{mDelayDays}d</span>}
+                            </div>
+                          )}
                         </div>
                         {/* Hours */}
                         <span style={{ fontSize: '1rem', fontWeight: 700, color: 'white' }}>{m.estimatedHours}h</span>
@@ -1179,6 +1190,10 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
                           ) : (
                             visibleSubtasks.map(sub => {
                               const subColors = getStatusColor(sub.status);
+                              const subCompTask = compareData ? compareData.tasks.find(t => t.taskId === sub.id) : null;
+                              const subDelayDays = subCompTask ? subCompTask.variance.endDelayDays : 0;
+                              const subStartDelayDays = subCompTask ? subCompTask.variance.startDelayDays : 0;
+
                               return (
                                 <div key={sub.id} style={{ padding: '0.65rem 1.25rem 0.65rem 3rem', display: 'grid', gridTemplateColumns: '28px 2fr 1fr 1fr 1fr 1fr auto', gap: '0.75rem', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
                                   <span style={{ color: '#374151', fontSize: '0.85rem' }}>↳</span>
@@ -1186,8 +1201,15 @@ export const ProjectPlan = ({ projects, tasks, setTasks, users, taskTemplates, p
                                     <span style={{ fontSize: '0.95rem', fontWeight: 500, color: '#e5e7eb' }}>{sub.title}</span>
                                     <p style={{ fontSize: '0.8rem', color: '#9ca3af', marginTop: '0.1rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '260px' }}>{sub.description}</p>
                                   </div>
-                                  <div style={{ fontSize: '0.85rem', color: '#9ca3af' }}>
+                                  <div style={{ fontSize: '0.85rem', color: '#9ca3af', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                                     {sub.startDate ? formatToDDMMYYYY(sub.startDate) : '—'}
+                                    
+                                    {(subStartDelayDays > 0 || subDelayDays > 0) && (
+                                      <div style={{ display: 'flex', gap: '0.3rem', fontSize: '0.65rem' }}>
+                                        {subStartDelayDays > 0 && <span style={{ color: '#ef4444', background: 'rgba(239,68,68,0.1)', padding: '0.1rem 0.2rem', borderRadius: '3px' }}>S+{subStartDelayDays}d</span>}
+                                        {subDelayDays > 0 && <span style={{ color: '#ef4444', background: 'rgba(239,68,68,0.1)', padding: '0.1rem 0.2rem', borderRadius: '3px' }}>E+{subDelayDays}d</span>}
+                                      </div>
+                                    )}
                                   </div>
                                   <span style={{ fontSize: '0.92rem', color: '#e5e7eb' }}>{sub.estimatedHours}h</span>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
