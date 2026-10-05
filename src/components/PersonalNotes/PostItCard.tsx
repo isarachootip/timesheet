@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Clock, Check, Trash2, Edit3, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, Check, Trash2, Edit3, AlertCircle, Pin } from 'lucide-react';
 import type { PersonalNote } from '../../types';
 import { COLOR_THEMES, getDueStatus } from './noteUtils';
 import { formatToDDMMYYYY } from '../../utils';
@@ -89,6 +89,15 @@ export const PostItCard: React.FC<PostItCardProps> = ({ note, onToggle, onEdit, 
           <span>วันที่: {formatToDDMMYYYY(note.noteDate)}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <button
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('open-floating-note', { detail: { noteId: note.id } }));
+            }}
+            title="ปักหมุดลอยบนหน้าจอ"
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px', borderRadius: '4px', color: theme.textColor, opacity: 0.75 }}
+          >
+            <Pin size={15} />
+          </button>
           <button
             onClick={() => onEdit(note)}
             title="แก้ไข"

@@ -18,6 +18,7 @@ const ProjectChat = lazy(() => import('./components/ProjectChat').then(m => ({ d
 const KnowledgeBase = lazy(() => import('./components/KnowledgeBase'));
 const TechnicianMatrix = lazy(() => import('./components/TechnicianMatrix').then(m => ({ default: m.TechnicianMatrix })));
 const PersonalNotes = lazy(() => import('./components/PersonalNotes/PersonalNotes').then(m => ({ default: m.PersonalNotes })));
+const FloatingPostIt = lazy(() => import('./components/PersonalNotes/FloatingPostIt').then(m => ({ default: m.FloatingPostIt })));
 
 import { mockUsers } from './data/mockData';
 import type { User, Project, Task, TimesheetEntry, TaskTemplate, Sprint, Release, PermissionScheme, ProjectWorkflow, CostRate } from './types';
@@ -993,6 +994,7 @@ function App() {
             <Route path="/help" element={<KnowledgeBase currentUser={currentUser} />} />
           </Routes>
         </Suspense>
+        <FloatingPostIt currentUser={currentUser} />
       </AppLayout>
     </Router>
   );
