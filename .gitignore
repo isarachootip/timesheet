@@ -29,3 +29,7 @@ dist-ssr
 .env.development
 .env.local
 
+# Test & scratch temporary scripts
+test-api.js
+test-dummy.js
+
