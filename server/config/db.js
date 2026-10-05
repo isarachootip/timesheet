@@ -295,6 +295,23 @@ const initDB = async () => {
       );
     `);
 
+    // Create Personal Notes (Post-it) Table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS personal_notes (
+        id VARCHAR(50) PRIMARY KEY,
+        user_id VARCHAR(50) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        title VARCHAR(255) NOT NULL,
+        content TEXT DEFAULT '',
+        note_date VARCHAR(50) NOT NULL,
+        due_date VARCHAR(50),
+        color VARCHAR(50) DEFAULT 'yellow',
+        is_completed BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_personal_notes_user_id ON personal_notes(user_id);
+    `);
+
     // Seed default cost rates if table is empty
     const costRatesCount = await client.query('SELECT COUNT(*) FROM cost_rates');
     if (parseInt(costRatesCount.rows[0].count) === 0) {

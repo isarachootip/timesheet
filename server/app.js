@@ -11,6 +11,7 @@ import timesheetRoutes from './routes/timesheetRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import systemRoutes from './routes/systemRoutes.js';
 import generalRoutes from './routes/generalRoutes.js';
+import noteRoutes from './routes/noteRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -43,6 +44,7 @@ app.use(timesheetRoutes);
 app.use(chatRoutes);
 app.use(systemRoutes);
 app.use(generalRoutes);
+app.use(noteRoutes);
 
 // Catch all for frontend
 app.use((req, res) => {

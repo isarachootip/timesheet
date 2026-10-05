@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUsers, useProjects, useTasks, useTimesheets, useTaskTemplates, useSprints, useReleases, usePermissionSchemes, useProjectWorkflows, useCostRates, useSystemSettings } from './hooks/useAppQueries';
-import { LayoutDashboard, CheckSquare, Clock, Users, Settings as SettingsIcon, LogOut, Briefcase, BarChart3, Menu, X, CalendarRange, Bell, AlertTriangle, AlertCircle, CalendarClock, HelpCircle, MessageSquare, Wrench, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, Clock, Users, Settings as SettingsIcon, LogOut, Briefcase, BarChart3, Menu, X, CalendarRange, Bell, AlertTriangle, AlertCircle, CalendarClock, HelpCircle, MessageSquare, Wrench, Sun, Moon, StickyNote } from 'lucide-react';
 import { Login } from './components/Login';
 import ChatWidget from './components/ChatWidget';
 
@@ -17,6 +17,7 @@ const ProjectPlan = lazy(() => import('./components/ProjectPlan').then(m => ({ d
 const ProjectChat = lazy(() => import('./components/ProjectChat').then(m => ({ default: m.ProjectChat })));
 const KnowledgeBase = lazy(() => import('./components/KnowledgeBase'));
 const TechnicianMatrix = lazy(() => import('./components/TechnicianMatrix').then(m => ({ default: m.TechnicianMatrix })));
+const PersonalNotes = lazy(() => import('./components/PersonalNotes/PersonalNotes').then(m => ({ default: m.PersonalNotes })));
 
 import { mockUsers } from './data/mockData';
 import type { User, Project, Task, TimesheetEntry, TaskTemplate, Sprint, Release, PermissionScheme, ProjectWorkflow, CostRate } from './types';
@@ -294,6 +295,7 @@ const AppLayout = ({ children, currentUser, tasks, onLogout, theme, onToggleThem
           <SidebarItem icon={CalendarRange} label="Project Plan" path="/project-plan" />
           <SidebarItem icon={CheckSquare} label="Tasks" path="/tasks" />
           <SidebarItem icon={Clock} label="Timesheet" path="/timesheet" />
+          <SidebarItem icon={StickyNote} label="Post-it (ส่วนตัว)" path="/notes" />
           <SidebarItem icon={MessageSquare} label="Team Chat" path="/chat" badgeCount={unreadChatCount} />
           <SidebarItem icon={Users} label="Team" path="/team" />
           <SidebarItem icon={Wrench} label="ข้อมูลช่าง & Skill Matrix" path="/technicians" />
@@ -982,6 +984,7 @@ function App() {
             <Route path="/project-plan" element={<ProjectPlan projects={projects} tasks={tasks} setTasks={handleSetTasks} users={users} taskTemplates={taskTemplates} permissionSchemes={permissionSchemes} currentUser={currentUser} fetchInitialData={fetchInitialData} />} />
             <Route path="/tasks" element={<Tasks tasks={tasks} setTasks={handleSetTasks} projects={projects} users={users} sprints={sprints} setSprints={handleSetSprints} releases={releases} setReleases={handleSetReleases} projectWorkflows={projectWorkflows} setProjectWorkflows={handleSetProjectWorkflows} permissionSchemes={permissionSchemes} currentUser={currentUser} />} />
             <Route path="/timesheet" element={<Timesheet timesheets={timesheets} setTimesheets={handleSetTimesheets} projects={projects} tasks={tasks} currentUser={currentUser} users={users} />} />
+            <Route path="/notes" element={<PersonalNotes currentUser={currentUser} />} />
             <Route path="/chat" element={<ProjectChat projects={projects} users={users} currentUser={currentUser} systemSettings={systemSettings} />} />
             <Route path="/team" element={<TeamApprovals users={users} setUsers={handleSetUsers} timesheets={timesheets} setTimesheets={handleSetTimesheets} projects={projects} setProjects={handleSetProjects} tasks={tasks} currentUser={currentUser} />} />
             <Route path="/technicians" element={<TechnicianMatrix />} />

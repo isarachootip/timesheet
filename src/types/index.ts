@@ -154,4 +154,19 @@ export interface CostRate {
   currency: string;
 }
 
+export type PostItColor = 'yellow' | 'blue' | 'green' | 'pink' | 'orange' | 'purple';
+
+export interface PersonalNote {
+  id: string;
+  userId: string;
+  title: string;
+  content: string;
+  noteDate: string;
+  dueDate?: string;
+  color: PostItColor;
+  isCompleted: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 
