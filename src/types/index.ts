@@ -112,7 +112,7 @@ export interface TaskTemplate {
 export interface TimesheetEntry {
   id: string;
   userId: string;
-  projectId: string;
+  projectId?: string;
   taskId?: string;
   date: string;
   hours: number;
@@ -127,6 +127,7 @@ export interface TimesheetEntry {
   workResults?: string;
   updatedAt?: string;
   isWfh?: boolean;
+  isPersonal?: boolean;
 }
 
 export interface PermissionScheme {
@@ -155,6 +156,7 @@ export interface CostRate {
 }
 
 export type PostItColor = 'yellow' | 'blue' | 'green' | 'pink' | 'orange' | 'purple';
+export type NoteWorkType = 'personal' | 'project';
 
 export interface PersonalNote {
   id: string;
@@ -165,6 +167,10 @@ export interface PersonalNote {
   dueDate?: string;
   color: PostItColor;
   isCompleted: boolean;
+  workType?: NoteWorkType;
+  projectId?: string;
+  taskId?: string;
+  timesheetId?: string;
   createdAt?: string;
   updatedAt?: string;
 }

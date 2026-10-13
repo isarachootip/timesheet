@@ -6,16 +6,20 @@ const router = express.Router();
 
 // Timesheets REST API
 router.post('/api/timesheets', async (req, res) => {
-  const { id, userId, projectId, taskId, date, hours, plannedHours, startTime, endTime, description, status, approvedBy, approvedAt, imageUrl, workResults, isWfh } = req.body;
+  const { id, userId, projectId, taskId, date, hours, plannedHours, startTime, endTime, description, status, approvedBy, approvedAt, imageUrl, workResults, isWfh, isPersonal } = req.body;
   const updatedAt = new Date().toISOString();
+  const finalStatus = isPersonal ? (status || 'Approved') : (status || 'Pending');
+  const finalApprovedBy = isPersonal ? (approvedBy || 'Auto') : approvedBy;
+  const finalApprovedAt = isPersonal ? (approvedAt || updatedAt) : approvedAt;
+
   try {
     // Check existing status before update to detect transitions
     const existingTimesheet = await pool.query('SELECT status FROM timesheets WHERE id = $1', [id]);
     const oldStatus = existingTimesheet.rows[0]?.status;
 
     await pool.query(
-      `INSERT INTO timesheets (id, user_id, project_id, task_id, date, hours, planned_hours, start_time, end_time, description, status, approved_by, approved_at, image_url, work_results, updated_at, is_wfh)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+      `INSERT INTO timesheets (id, user_id, project_id, task_id, date, hours, planned_hours, start_time, end_time, description, status, approved_by, approved_at, image_url, work_results, updated_at, is_wfh, is_personal)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
        ON CONFLICT (id) DO UPDATE SET
          user_id = EXCLUDED.user_id,
          project_id = EXCLUDED.project_id,
@@ -32,12 +36,13 @@ router.post('/api/timesheets', async (req, res) => {
          image_url = EXCLUDED.image_url,
          work_results = EXCLUDED.work_results,
          updated_at = EXCLUDED.updated_at,
-         is_wfh = EXCLUDED.is_wfh`,
-      [id, userId, projectId, taskId, date, hours, plannedHours ?? null, startTime || null, endTime || null, description, status, approvedBy, approvedAt, imageUrl || null, workResults || null, updatedAt, isWfh ?? false]
+         is_wfh = EXCLUDED.is_wfh,
+         is_personal = EXCLUDED.is_personal`,
+      [id, userId, projectId || null, taskId || null, date, hours, plannedHours ?? null, startTime || null, endTime || null, description, finalStatus, finalApprovedBy, finalApprovedAt, imageUrl || null, workResults || null, updatedAt, isWfh ?? false, isPersonal ?? false]
     );
 
-    // Send email notifications asynchronously (non-blocking)
-    if (oldStatus !== status) {
+    // Send email notifications asynchronously (non-blocking) - skip if personal
+    if (oldStatus !== finalStatus && projectId && !isPersonal) {
       (async () => {
         try {
           // Fetch employee details

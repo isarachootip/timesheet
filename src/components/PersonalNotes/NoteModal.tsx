@@ -1,23 +1,36 @@
 import React, { useState, useEffect } from 'react';
-import { X, Check, Calendar, Clock, FileText } from 'lucide-react';
-import type { PersonalNote, PostItColor } from '../../types';
-import { COLOR_THEMES } from './noteUtils';
+import { X, Calendar, Clock, FileText } from 'lucide-react';
+import type { PersonalNote, PostItColor, NoteWorkType, Project, Task, User } from '../../types';
+import { NoteProjectFields } from './NoteProjectFields';
+import { NoteColorPicker } from './NoteColorPicker';
 
 interface NoteModalProps {
   isOpen: boolean;
   noteToEdit?: PersonalNote | null;
   onClose: () => void;
   onSave: (data: Partial<PersonalNote> & { title: string; noteDate: string }) => Promise<void>;
+  projects?: Project[];
+  tasks?: Task[];
+  currentUser?: User;
 }
 
-const COLORS: PostItColor[] = ['yellow', 'blue', 'green', 'pink', 'orange', 'purple'];
-
-export const NoteModal: React.FC<NoteModalProps> = ({ isOpen, noteToEdit, onClose, onSave }) => {
+export const NoteModal: React.FC<NoteModalProps> = ({
+  isOpen,
+  noteToEdit,
+  onClose,
+  onSave,
+  projects = [],
+  tasks = [],
+  currentUser,
+}) => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [noteDate, setNoteDate] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [color, setColor] = useState<PostItColor>('yellow');
+  const [workType, setWorkType] = useState<NoteWorkType>('personal');
+  const [projectId, setProjectId] = useState('');
+  const [taskId, setTaskId] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -27,12 +40,18 @@ export const NoteModal: React.FC<NoteModalProps> = ({ isOpen, noteToEdit, onClos
       setNoteDate(noteToEdit.noteDate);
       setDueDate(noteToEdit.dueDate || '');
       setColor(noteToEdit.color || 'yellow');
+      setWorkType(noteToEdit.workType || (noteToEdit.projectId ? 'project' : 'personal'));
+      setProjectId(noteToEdit.projectId || '');
+      setTaskId(noteToEdit.taskId || '');
     } else {
       setTitle('');
       setContent('');
       setNoteDate(new Date().toISOString().split('T')[0]);
       setDueDate('');
       setColor('yellow');
+      setWorkType('personal');
+      setProjectId('');
+      setTaskId('');
     }
   }, [noteToEdit, isOpen]);
 
@@ -41,6 +60,10 @@ export const NoteModal: React.FC<NoteModalProps> = ({ isOpen, noteToEdit, onClos
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !noteDate) return;
+    if (workType === 'project' && !projectId) {
+      alert('กรุณาเลือกโครงการสำหรับงานประเภท Project');
+      return;
+    }
     setLoading(true);
     try {
       await onSave({
@@ -51,6 +74,9 @@ export const NoteModal: React.FC<NoteModalProps> = ({ isOpen, noteToEdit, onClos
         dueDate: dueDate || undefined,
         color,
         isCompleted: noteToEdit?.isCompleted || false,
+        workType,
+        projectId: workType === 'project' ? projectId : undefined,
+        taskId: workType === 'project' ? (taskId || undefined) : undefined,
       });
       onClose();
     } catch (err) {
@@ -86,6 +112,18 @@ export const NoteModal: React.FC<NoteModalProps> = ({ isOpen, noteToEdit, onClos
               style={{ width: '100%', padding: '0.65rem 0.85rem', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', outline: 'none' }}
             />
           </div>
+
+          <NoteProjectFields
+            workType={workType}
+            setWorkType={setWorkType}
+            projectId={projectId}
+            setProjectId={setProjectId}
+            taskId={taskId}
+            setTaskId={setTaskId}
+            projects={projects}
+            tasks={tasks}
+            currentUser={currentUser}
+          />
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
             <div>
@@ -126,38 +164,7 @@ export const NoteModal: React.FC<NoteModalProps> = ({ isOpen, noteToEdit, onClos
             />
           </div>
 
-          <div>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.45rem' }}>
-              สี Post-it
-            </label>
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              {COLORS.map((c) => {
-                const t = COLOR_THEMES[c];
-                const isSelected = color === c;
-                return (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setColor(c)}
-                    style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '8px',
-                      background: t.bg,
-                      border: isSelected ? `2.5px solid ${t.accent}` : `1px solid ${t.border}`,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      boxShadow: isSelected ? '0 0 8px rgba(0,0,0,0.2)' : 'none',
-                    }}
-                  >
-                    {isSelected && <Check size={16} color={t.textColor} strokeWidth={3} />}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <NoteColorPicker color={color} setColor={setColor} />
 
           <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.75rem' }}>
             <button type="button" onClick={onClose} style={{ flex: 1, padding: '0.65rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer' }}>

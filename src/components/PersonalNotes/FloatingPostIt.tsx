@@ -117,11 +117,42 @@ export const FloatingPostIt: React.FC<FloatingPostItProps> = ({ currentUser }) =
               {dueStatus === 'due-today' && <span style={{ color: '#d97706', marginLeft: '3px' }}>⚡ วันนี้</span>}
             </div>
 
-            {location.pathname !== '/notes' && (
-              <button onClick={() => navigate('/notes')} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: theme.accent, fontWeight: 700, fontSize: '0.74rem', textDecoration: 'underline' }}>
-                ดูทั้งหมด
-              </button>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {(currentNote.workType === 'project' || Boolean(currentNote.projectId)) && !currentNote.timesheetId && (
+                <button
+                  onClick={() => {
+                    navigate('/timesheet', {
+                      state: {
+                        autoOpenLog: true, projectId: currentNote.projectId, taskId: currentNote.taskId,
+                        taskTitle: currentNote.title, workResults: currentNote.content,
+                        date: currentNote.noteDate, noteId: currentNote.id,
+                      },
+                    });
+                  }}
+                  style={{ background: 'rgba(6, 199, 85, 0.2)', border: 'none', borderRadius: '4px', cursor: 'pointer', color: '#15803d', fontWeight: 700, fontSize: '0.72rem', padding: '2px 6px', display: 'flex', alignItems: 'center', gap: '3px' }}
+                  title="นำเข้าสู่ Timesheet ประจำวัน"
+                >
+                  <Clock size={11} />
+                  <span>ลงเวลา</span>
+                </button>
+              )}
+              {location.pathname !== '/notes' && (
+                <button
+                  onClick={() => navigate('/notes')}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: theme.accent,
+                    fontWeight: 700,
+                    fontSize: '0.74rem',
+                    textDecoration: 'underline',
+                  }}
+                >
+                  ดูทั้งหมด
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}

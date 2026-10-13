@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Clock, Plus, CheckCircle2, Calendar as CalendarIcon, X, Trash2, ChevronLeft, ChevronRight, XCircle, Edit, Paperclip, ImageIcon } from 'lucide-react';
+import { Clock, Plus, CheckCircle2, Calendar as CalendarIcon, X, Trash2, ChevronLeft, ChevronRight, XCircle, Edit, Paperclip, ImageIcon, StickyNote } from 'lucide-react';
 import { format, isSameDay, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, isSameMonth } from 'date-fns';
-import type { TimesheetEntry, Project, Task, User, TimesheetStatus } from '../types';
+import type { TimesheetEntry, Project, Task, User, TimesheetStatus, PersonalNote } from '../types';
 import { sortTimesheetsByLastUpdate } from '../utils';
+import { PostItImportPickerModal } from './Timesheet/PostItImportPickerModal';
 
 interface TimesheetProps {
   timesheets: TimesheetEntry[];
@@ -18,6 +19,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPostItPickerOpen, setIsPostItPickerOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'personal' | 'team' | 'project'>('personal');
   const [selectedReportProject, setSelectedReportProject] = useState<string>('all');
 
@@ -51,9 +53,11 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
   const [workResults, setWorkResults] = useState('');
   const [entryStatus, setEntryStatus] = useState<TimesheetStatus>('Pending');
   const [isWfh, setIsWfh] = useState(false);
+  const [isPersonal, setIsPersonal] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+  const [importingNoteId, setImportingNoteId] = useState<string | null>(null);
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
   const location = useLocation();
@@ -62,15 +66,26 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
   useEffect(() => {
     if (location.state?.autoOpenLog && !hasAutoOpened.current) {
       hasAutoOpened.current = true;
-      const { projectId: sProjId, taskId: sTaskId, taskTitle } = location.state;
+      const { projectId: sProjId, taskId: sTaskId, taskTitle, workResults: sWorkResults, date: sDate } = location.state;
+      if (sDate) {
+        try {
+          const parsed = new Date(sDate);
+          if (!isNaN(parsed.getTime())) {
+            setSelectedDate(parsed);
+          }
+        } catch {
+          // ignore
+        }
+      }
       setIsModalOpen(true);
-      setProjectId(sProjId || '');
+      setProjectId(sProjId || (projects.length > 0 ? projects[0].id : ''));
       setTaskId(sTaskId || '');
       setDescription(taskTitle || '');
+      if (sWorkResults) setWorkResults(sWorkResults);
       // Clear location state to avoid reopening on reload
       window.history.replaceState({}, document.title);
     }
-  }, [location.state]);
+  }, [location.state, projects]);
 
   // Filter project-specific tasks. Employees/Users only see tasks assigned to them or unassigned.
   const projectTasks = tasks.filter(t => {
@@ -177,7 +192,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
     }
   };
 
-  const getProjectName = (id: string) => projects.find(p => p.id === id)?.name || 'Unknown Project';
+  const getProjectName = (id?: string) => id ? (projects.find(p => p.id === id)?.name || 'Unknown Project') : 'งานส่วนตัว / กิจกรรมทั่วไป';
   const getTaskName = (id?: string) => id ? (tasks.find(t => t.id === id)?.title || 'Unknown Task') : 'General';
 
   const resetForm = () => {
@@ -190,8 +205,10 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
     setWorkResults('');
     setEntryStatus('Pending');
     setIsWfh(false);
+    setIsPersonal(false);
     setImageUrl('');
     setEditingEntryId(null);
+    setImportingNoteId(null);
   };
 
   const openLogModal = () => {
@@ -202,8 +219,39 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
     setIsModalOpen(true);
   };
 
+  const handleSelectPostItForImport = (note: PersonalNote) => {
+    resetForm();
+    setImportingNoteId(note.id);
+    if (note.noteDate) {
+      try {
+        const d = new Date(note.noteDate);
+        if (!isNaN(d.getTime())) {
+          setSelectedDate(d);
+        }
+      } catch {
+        // ignore
+      }
+    }
+    if (note.projectId) {
+      setProjectId(note.projectId);
+    } else if (projects.length > 0) {
+      setProjectId(projects[0].id);
+    }
+    if (note.taskId) {
+      setTaskId(note.taskId);
+    }
+    setDescription(note.title);
+    if (note.content) {
+      setWorkResults(note.content);
+    }
+    setHours('1');
+    setIsPersonal(false);
+    setIsModalOpen(true);
+  };
+
   const openEditModal = (entry: TimesheetEntry) => {
-    setProjectId(entry.projectId);
+    setIsPersonal(Boolean(entry.isPersonal || !entry.projectId));
+    setProjectId(entry.projectId || '');
     setTaskId(entry.taskId || '');
     setHours(String(entry.hours));
     setStartTime(entry.startTime || '');
@@ -281,7 +329,8 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!projectId || !hours || !description) return alert('Project, Hours, and Description are required');
+    if (!isPersonal && !projectId) return alert('Project is required');
+    if (!hours || !description) return alert('Hours and Description are required');
 
     if (editingEntryId) {
       const existing = timesheets.find(ts => ts.id === editingEntryId);
@@ -289,16 +338,17 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
         ...existing,
         id: editingEntryId,
         userId: existing ? existing.userId : currentUser.id,
-        projectId,
-        taskId: taskId || undefined,
+        projectId: isPersonal ? undefined : (projectId || undefined),
+        taskId: isPersonal ? undefined : (taskId || undefined),
         date: format(selectedDate, 'yyyy-MM-dd'),
         hours: Number(hours),
         startTime: startTime || undefined,
         endTime: endTime || undefined,
         description,
         workResults: workResults || undefined,
-        status: existing ? existing.status : 'Pending',
+        status: isPersonal ? 'Approved' : (existing ? existing.status : 'Pending'),
         isWfh,
+        isPersonal,
         imageUrl: imageUrl || undefined
       };
       setTimesheets(prev => prev.map(ts => ts.id === editingEntryId ? updatedEntry : ts));
@@ -306,19 +356,34 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
       const newEntry: TimesheetEntry = {
         id: 'ts_' + Date.now(),
         userId: currentUser.id,
-        projectId,
-        taskId: taskId || undefined,
+        projectId: isPersonal ? undefined : (projectId || undefined),
+        taskId: isPersonal ? undefined : (taskId || undefined),
         date: format(selectedDate, 'yyyy-MM-dd'),
         hours: Number(hours),
         startTime: startTime || undefined,
         endTime: endTime || undefined,
         description,
         workResults: workResults || undefined,
-        status: entryStatus,
+        status: isPersonal ? 'Approved' : entryStatus,
         isWfh,
+        isPersonal,
         imageUrl: imageUrl || undefined
       };
       setTimesheets(prev => [...prev, newEntry]);
+
+      if (importingNoteId) {
+        fetch(`/api/notes/${importingNoteId}/link-timesheet`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-Id': currentUser.id,
+          },
+          body: JSON.stringify({
+            timesheetId: newEntry.id,
+            markCompleted: true,
+          }),
+        }).catch(console.error);
+      }
     }
 
     resetForm();
@@ -884,6 +949,26 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                 <h3 style={{ fontSize: '1.125rem' }}>Entries for {format(selectedDate, 'dd/MM/yyyy')}</h3>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                   <div style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>{totalHoursToday} Hours Total</div>
+                  <button
+                    onClick={() => setIsPostItPickerOpen(true)}
+                    style={{
+                      background: 'rgba(234, 179, 8, 0.15)',
+                      color: '#eab308',
+                      border: '1px solid rgba(234, 179, 8, 0.35)',
+                      padding: '0.5rem 0.85rem',
+                      borderRadius: 'var(--radius-md)',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      fontSize: '0.85rem'
+                    }}
+                    className="hover-lift"
+                    title="นำเข้าจากบันทึกช่วยจำ Post-it"
+                  >
+                    <StickyNote size={15} /> นำเข้าจาก Post-it
+                  </button>
                   <button onClick={openLogModal} style={{ 
                     background: 'var(--accent-primary)', 
                     color: 'white', 
@@ -917,19 +1002,27 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                       display: 'flex',
                       alignItems: 'flex-start',
                       justifyContent: 'space-between',
-                      borderLeft: '4px solid var(--accent-primary)'
+                      borderLeft: (entry.isPersonal || !entry.projectId) ? '4px solid #eab308' : '4px solid var(--accent-primary)'
                     }}>
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{getProjectName(entry.projectId)}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+                          {(entry.isPersonal || !entry.projectId) ? (
+                            <span style={{ fontSize: '0.75rem', padding: '0.15rem 0.5rem', background: 'rgba(234, 179, 8, 0.15)', border: '1px solid rgba(234, 179, 8, 0.35)', borderRadius: 'var(--radius-sm)', color: '#eab308', fontWeight: 700 }}>
+                              🟡 งานส่วนตัว / กิจกรรมทั่วไป
+                            </span>
+                          ) : (
+                            <>
+                              <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{getProjectName(entry.projectId)}</span>
+                              <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-sm)', color: 'var(--text-secondary)' }}>
+                                {getTaskName(entry.taskId)}
+                              </span>
+                            </>
+                          )}
                           {entry.isWfh && (
                             <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', background: 'rgba(16, 185, 129, 0.15)', borderRadius: 'var(--radius-sm)', color: '#10B981', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
                               🏠 WFH
                             </span>
                           )}
-<span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-sm)', color: 'var(--text-secondary)' }}>
-                            {getTaskName(entry.taskId)}
-                          </span>
                         </div>
                         <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}><strong>เป้าหมาย:</strong> {entry.description}</p>
                         {entry.workResults && (
@@ -1087,31 +1180,69 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
             </div>
 
             <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Project *</label>
-                <select 
-                  value={projectId} 
-                  onChange={e => { setProjectId(e.target.value); setTaskId(''); }}
-                  style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
-                  required
+              {/* Work Type Segmented Selector */}
+              <div style={{ display: 'flex', gap: '8px', background: 'var(--bg-tertiary)', padding: '4px', borderRadius: 'var(--radius-md)' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsPersonal(false)}
+                  style={{
+                    flex: 1, padding: '8px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '0.85rem',
+                    fontWeight: !isPersonal ? 700 : 500,
+                    background: !isPersonal ? 'var(--accent-primary)' : 'transparent',
+                    color: !isPersonal ? '#fff' : 'var(--text-secondary)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                  }}
                 >
-                  <option value="">Select Project...</option>
-                  {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
+                  งานในโครงการ (Project Work)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setIsPersonal(true); setProjectId(''); setTaskId(''); }}
+                  style={{
+                    flex: 1, padding: '8px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '0.85rem',
+                    fontWeight: isPersonal ? 700 : 500,
+                    background: isPersonal ? '#eab308' : 'transparent',
+                    color: isPersonal ? '#713f12' : 'var(--text-secondary)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                  }}
+                >
+                  <span>🟡 งานส่วนตัว / กิจกรรมทั่วไป</span>
+                </button>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Task</label>
-                <select 
-                  value={taskId} 
-                  onChange={e => setTaskId(e.target.value)}
-                  style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
-                  disabled={!projectId}
-                >
-                  <option value="">General Work / No Task</option>
-                  {projectTasks.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
-                </select>
-              </div>
+              {!isPersonal ? (
+                <>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Project *</label>
+                    <select 
+                      value={projectId} 
+                      onChange={e => { setProjectId(e.target.value); setTaskId(''); }}
+                      style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
+                      required
+                    >
+                      <option value="">Select Project...</option>
+                      {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </select>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Task</label>
+                    <select 
+                      value={taskId} 
+                      onChange={e => setTaskId(e.target.value)}
+                      style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
+                      disabled={!projectId}
+                    >
+                      <option value="">General Work / No Task</option>
+                      {projectTasks.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
+                    </select>
+                  </div>
+                </>
+              ) : (
+                <div style={{ background: 'rgba(234, 179, 8, 0.1)', border: '1px dashed #eab308', borderRadius: 'var(--radius-md)', padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#a16207' }}>
+                  ⚡ <strong>งานส่วนตัว / กิจกรรมทั่วไป</strong> จะไม่ถูกนำเข้า Project ลูกค้า ไม่กระทบงบประมาณ และอนุมัติอัตโนมัติทันที
+                </div>
+              )}
 
               {/* Visual Time Bar Picker */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -1463,6 +1594,15 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
           </div>
         </div>
       )}
+
+      {/* Post-it Import Picker Modal */}
+      <PostItImportPickerModal
+        isOpen={isPostItPickerOpen}
+        onClose={() => setIsPostItPickerOpen(false)}
+        currentUser={currentUser}
+        selectedDateStr={format(selectedDate, 'yyyy-MM-dd')}
+        onSelectNote={handleSelectPostItForImport}
+      />
     </div>
   );
 };

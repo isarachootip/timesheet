@@ -32,4 +32,8 @@ dist-ssr
 # Test & scratch temporary scripts
 test-api.js
 test-dummy.js
+scratch/
+*.dump
+timesheet_backup.sql
+
 

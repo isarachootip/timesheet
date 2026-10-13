@@ -99,5 +99,22 @@ describe('noteUtils', () => {
       expect(sorted[1].id).toBe('3'); // no due date (incomplete)
       expect(sorted[2].id).toBe('1'); // completed
     });
+
+    it('filters by category (project vs personal)', () => {
+      const notesWithCategory: PersonalNote[] = [
+        { ...sampleNotes[0], workType: 'project', projectId: 'p1' },
+        { ...sampleNotes[1], workType: 'personal' },
+        { ...sampleNotes[2], workType: 'project', projectId: 'p2' },
+      ];
+
+      const projectOnly = filterAndSortNotes(notesWithCategory, 'all', '', 'project');
+      expect(projectOnly).toHaveLength(2);
+      expect(projectOnly.map((n) => n.id)).toEqual(['3', '1']);
+
+      const personalOnly = filterAndSortNotes(notesWithCategory, 'all', '', 'personal');
+      expect(personalOnly).toHaveLength(1);
+      expect(personalOnly[0].id).toBe('2');
+    });
   });
 });
+

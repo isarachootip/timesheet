@@ -1,51 +1,34 @@
 import React from 'react';
-import { Calendar, Clock, Check, Trash2, Edit3, AlertCircle, Pin } from 'lucide-react';
+import { Calendar, Clock, Check, Trash2, Edit3, Pin } from 'lucide-react';
 import type { PersonalNote } from '../../types';
-import { COLOR_THEMES, getDueStatus } from './noteUtils';
+import { COLOR_THEMES, getDueStatus, isProjectNote } from './noteUtils';
+import { PostItDueBadge } from './PostItDueBadge';
+import { PostItProjectBadge } from './PostItProjectBadge';
 import { formatToDDMMYYYY } from '../../utils';
 
 interface PostItCardProps {
   note: PersonalNote;
+  projectName?: string;
+  taskTitle?: string;
   onToggle: (id: string) => void;
   onEdit: (note: PersonalNote) => void;
   onDelete: (id: string) => void;
+  onImportToTimesheet?: (note: PersonalNote) => void;
 }
 
-export const PostItCard: React.FC<PostItCardProps> = ({ note, onToggle, onEdit, onDelete }) => {
+export const PostItCard: React.FC<PostItCardProps> = ({
+  note,
+  projectName,
+  taskTitle,
+  onToggle,
+  onEdit,
+  onDelete,
+  onImportToTimesheet,
+}) => {
   const theme = COLOR_THEMES[note.color || 'yellow'];
   const dueStatus = getDueStatus(note.dueDate, note.isCompleted);
-
-  const getDueBadge = () => {
-    if (note.isCompleted) {
-      return (
-        <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-          <Check size={12} /> เสร็จสิ้น
-        </span>
-      );
-    }
-    if (dueStatus === 'overdue') {
-      return (
-        <span style={{ fontSize: '0.72rem', color: '#dc2626', background: 'rgba(239,68,68,0.15)', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-          <AlertCircle size={12} /> เลยกำหนด
-        </span>
-      );
-    }
-    if (dueStatus === 'due-today') {
-      return (
-        <span style={{ fontSize: '0.72rem', color: '#d97706', background: 'rgba(245,158,11,0.18)', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>
-          ⚡ ครบกำหนดวันนี้
-        </span>
-      );
-    }
-    if (dueStatus === 'due-soon') {
-      return (
-        <span style={{ fontSize: '0.72rem', color: '#ea580c', background: 'rgba(234,88,12,0.15)', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
-          ใกล้ถึงกำหนด
-        </span>
-      );
-    }
-    return null;
-  };
+  const isProject = isProjectNote(note);
+  const canImport = isProject && !note.timesheetId;
 
   return (
     <div
@@ -83,16 +66,24 @@ export const PostItCard: React.FC<PostItCardProps> = ({ note, onToggle, onEdit, 
       />
 
       {/* Header: Note Date & Actions */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', opacity: 0.85, fontWeight: 500 }}>
           <Calendar size={13} />
           <span>วันที่: {formatToDDMMYYYY(note.noteDate)}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          {canImport && onImportToTimesheet && (
+            <button
+              onClick={() => onImportToTimesheet(note)}
+              title="นำเข้าสู่ Timesheet ประจำวัน"
+              style={{ background: 'rgba(6, 199, 85, 0.15)', border: 'none', cursor: 'pointer', padding: '3px 6px', borderRadius: '4px', color: '#15803d', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', fontWeight: 600 }}
+            >
+              <Clock size={12} />
+              <span>ลงเวลา</span>
+            </button>
+          )}
           <button
-            onClick={() => {
-              window.dispatchEvent(new CustomEvent('open-floating-note', { detail: { noteId: note.id } }));
-            }}
+            onClick={() => window.dispatchEvent(new CustomEvent('open-floating-note', { detail: { noteId: note.id } }))}
             title="ปักหมุดลอยบนหน้าจอ"
             style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px', borderRadius: '4px', color: theme.textColor, opacity: 0.75 }}
           >
@@ -114,6 +105,14 @@ export const PostItCard: React.FC<PostItCardProps> = ({ note, onToggle, onEdit, 
           </button>
         </div>
       </div>
+
+      {/* Project & Logged Badges */}
+      <PostItProjectBadge
+        isProject={isProject}
+        projectName={projectName}
+        taskTitle={taskTitle}
+        isLogged={Boolean(note.timesheetId)}
+      />
 
       {/* Title & Checkbox */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
@@ -186,7 +185,7 @@ export const PostItCard: React.FC<PostItCardProps> = ({ note, onToggle, onEdit, 
           <Clock size={13} />
           <span>กำหนด: {note.dueDate ? formatToDDMMYYYY(note.dueDate) : 'ไม่ระบุ'}</span>
         </div>
-        {getDueBadge()}
+        <PostItDueBadge dueStatus={dueStatus} isCompleted={note.isCompleted} />
       </div>
     </div>
   );

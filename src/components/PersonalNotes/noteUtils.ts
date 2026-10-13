@@ -61,6 +61,7 @@ export const COLOR_THEMES: Record<PostItColor, ColorTheme> = {
 };
 
 export type DueStatus = 'completed' | 'none' | 'overdue' | 'due-today' | 'due-soon' | 'upcoming';
+export type NoteCategoryFilter = 'all' | 'project' | 'personal';
 
 export function getDueStatus(
   dueDate?: string,
@@ -82,10 +83,15 @@ export function getDueStatus(
   return 'upcoming';
 }
 
+export function isProjectNote(note: PersonalNote): boolean {
+  return note.workType === 'project' || Boolean(note.projectId);
+}
+
 export function filterAndSortNotes(
   notes: PersonalNote[],
   filter: 'all' | 'active' | 'completed',
-  searchQuery = ''
+  searchQuery = '',
+  categoryFilter: NoteCategoryFilter = 'all'
 ): PersonalNote[] {
   const query = searchQuery.trim().toLowerCase();
 
@@ -93,6 +99,8 @@ export function filterAndSortNotes(
     .filter((note) => {
       if (filter === 'active' && note.isCompleted) return false;
       if (filter === 'completed' && !note.isCompleted) return false;
+      if (categoryFilter === 'project' && !isProjectNote(note)) return false;
+      if (categoryFilter === 'personal' && isProjectNote(note)) return false;
       if (query) {
         const titleMatch = note.title.toLowerCase().includes(query);
         const contentMatch = note.content.toLowerCase().includes(query);

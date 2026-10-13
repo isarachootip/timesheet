@@ -82,7 +82,8 @@ router.get('/api/timesheets', async (req, res) => {
       startTime: ts.start_time || undefined, endTime: ts.end_time || undefined,
       description: ts.description, status: ts.status, approvedBy: ts.approved_by,
       approvedAt: ts.approved_at, imageUrl: ts.image_url || undefined,
-      workResults: ts.work_results || undefined, updatedAt: ts.updated_at || undefined
+      workResults: ts.work_results || undefined, updatedAt: ts.updated_at || undefined,
+      isWfh: Boolean(ts.is_wfh), isPersonal: Boolean(ts.is_personal)
     }));
     res.json(timesheets);
   } catch (err) { res.status(500).json({ error: err.message }); }

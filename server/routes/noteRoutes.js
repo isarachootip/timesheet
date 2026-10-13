@@ -12,6 +12,10 @@ const mapRowToNote = (r) => ({
   dueDate: r.due_date || '',
   color: r.color || 'yellow',
   isCompleted: Boolean(r.is_completed),
+  workType: r.work_type || (r.project_id ? 'project' : 'personal'),
+  projectId: r.project_id || undefined,
+  taskId: r.task_id || undefined,
+  timesheetId: r.timesheet_id || undefined,
   createdAt: r.created_at,
   updatedAt: r.updated_at
 });
@@ -40,7 +44,7 @@ router.get('/api/notes', async (req, res) => {
 // POST /api/notes - create or update a note
 router.post('/api/notes', async (req, res) => {
   const userId = req.headers['x-user-id'] || req.body.userId;
-  const { id, title, content, noteDate, dueDate, color, isCompleted } = req.body;
+  const { id, title, content, noteDate, dueDate, color, isCompleted, workType, projectId, taskId, timesheetId } = req.body;
 
   if (!userId) {
     return res.status(400).json({ error: 'Missing user identification' });
@@ -53,12 +57,13 @@ router.post('/api/notes', async (req, res) => {
   const finalDate = noteDate || new Date().toISOString().split('T')[0];
   const finalColor = color || 'yellow';
   const finalCompleted = Boolean(isCompleted);
+  const finalWorkType = workType || (projectId ? 'project' : 'personal');
 
   try {
     const result = await pool.query(
       `INSERT INTO personal_notes 
-        (id, user_id, title, content, note_date, due_date, color, is_completed, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+        (id, user_id, title, content, note_date, due_date, color, is_completed, work_type, project_id, task_id, timesheet_id, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
        ON CONFLICT (id) DO UPDATE SET 
          title = EXCLUDED.title,
          content = EXCLUDED.content,
@@ -66,9 +71,13 @@ router.post('/api/notes', async (req, res) => {
          due_date = EXCLUDED.due_date,
          color = EXCLUDED.color,
          is_completed = EXCLUDED.is_completed,
+         work_type = EXCLUDED.work_type,
+         project_id = EXCLUDED.project_id,
+         task_id = EXCLUDED.task_id,
+         timesheet_id = EXCLUDED.timesheet_id,
          updated_at = NOW()
        RETURNING *`,
-      [noteId, userId, title.trim(), content || '', finalDate, dueDate || null, finalColor, finalCompleted]
+      [noteId, userId, title.trim(), content || '', finalDate, dueDate || null, finalColor, finalCompleted, finalWorkType, projectId || null, taskId || null, timesheetId || null]
     );
 
     res.json(mapRowToNote(result.rows[0]));
@@ -103,6 +112,38 @@ router.patch('/api/notes/:id/toggle', async (req, res) => {
     res.json(mapRowToNote(result.rows[0]));
   } catch (err) {
     console.error('Error toggling personal note:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /api/notes/:id/link-timesheet - link timesheet entry to note
+router.patch('/api/notes/:id/link-timesheet', async (req, res) => {
+  const { id } = req.params;
+  const userId = req.headers['x-user-id'] || req.body.userId;
+  const { timesheetId, markCompleted = true } = req.body;
+
+  if (!userId) {
+    return res.status(400).json({ error: 'Missing user identification' });
+  }
+
+  try {
+    const result = await pool.query(
+      `UPDATE personal_notes 
+       SET timesheet_id = $1, 
+           is_completed = CASE WHEN $2::boolean THEN TRUE ELSE is_completed END, 
+           updated_at = NOW() 
+       WHERE id = $3 AND user_id = $4 
+       RETURNING *`,
+      [timesheetId || null, Boolean(markCompleted), id, userId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Note not found or unauthorized' });
+    }
+
+    res.json(mapRowToNote(result.rows[0]));
+  } catch (err) {
+    console.error('Error linking timesheet to note:', err);
     res.status(500).json({ error: err.message });
   }
 });

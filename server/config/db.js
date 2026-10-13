@@ -216,6 +216,8 @@ const initDB = async () => {
       ALTER TABLE timesheets ADD COLUMN IF NOT EXISTS work_results TEXT;
       ALTER TABLE timesheets ADD COLUMN IF NOT EXISTS planned_hours NUMERIC;
       ALTER TABLE timesheets ADD COLUMN IF NOT EXISTS updated_at VARCHAR(50);
+      ALTER TABLE timesheets ALTER COLUMN project_id DROP NOT NULL;
+      ALTER TABLE timesheets ADD COLUMN IF NOT EXISTS is_personal BOOLEAN DEFAULT FALSE;
     `);
     await client.query(`
       UPDATE timesheets SET updated_at = COALESCE(approved_at, date) WHERE updated_at IS NULL;
@@ -310,6 +312,10 @@ const initDB = async () => {
         updated_at TIMESTAMP DEFAULT NOW()
       );
       CREATE INDEX IF NOT EXISTS idx_personal_notes_user_id ON personal_notes(user_id);
+      ALTER TABLE personal_notes ADD COLUMN IF NOT EXISTS work_type VARCHAR(20) DEFAULT 'personal';
+      ALTER TABLE personal_notes ADD COLUMN IF NOT EXISTS project_id VARCHAR(50) REFERENCES projects(id) ON DELETE SET NULL;
+      ALTER TABLE personal_notes ADD COLUMN IF NOT EXISTS task_id VARCHAR(50) REFERENCES tasks(id) ON DELETE SET NULL;
+      ALTER TABLE personal_notes ADD COLUMN IF NOT EXISTS timesheet_id VARCHAR(50) REFERENCES timesheets(id) ON DELETE SET NULL;
     `);
 
     // Seed default cost rates if table is empty

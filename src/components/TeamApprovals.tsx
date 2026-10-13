@@ -218,7 +218,7 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
     return age;
   };
 
-  const getProjectName = (id: string) => projects.find(p => p.id === id)?.name || 'Unknown Project';
+  const getProjectName = (id?: string) => id ? (projects.find(p => p.id === id)?.name || 'Unknown Project') : 'งานส่วนตัว / ทั่วไป';
   const getTaskName = (id?: string) => id ? (tasks.find(t => t.id === id)?.title || 'Unknown Task') : 'General';
   const getUserName = (id: string) => users.find(u => u.id === id)?.name || 'Unknown User';
   const getUserAvatar = (id: string) => users.find(u => u.id === id)?.avatar || '';
