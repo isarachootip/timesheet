@@ -1,8 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
 import type { TimesheetEntry, User, GlobalRole, Project, ProjectRole } from '../types';
-import { Check, X, Clock, Award, Users, Plus, Edit, Trash2, Calendar, Home, LayoutGrid, List } from 'lucide-react';
+import { Check, X, Clock, Award, Users, Plus, Edit, Trash2, Calendar, Home, LayoutGrid, List, UserCheck, UserX } from 'lucide-react';
 import { formatToDDMMYYYY, sortTimesheetsByLastUpdate } from '../utils';
 import { CustomDateInput } from './CustomDateInput';
+import {
+  canManageUsers,
+  canAdministerUserStatus,
+  canEditUserProfile,
+  isUserInAnyProject,
+  isUserActive,
+  updateProjectMembershipsOnUserSave,
+  filterUsersByStatus,
+  type UserStatusFilter,
+} from '../utils/userManagementUtils';
 
 interface TeamApprovalsProps {
   users: User[];
@@ -18,6 +28,7 @@ interface TeamApprovalsProps {
 export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, projects, setProjects, tasks, currentUser }: TeamApprovalsProps) => {
   const [activeTab, setActiveTab] = useState<'team' | 'approvals' | 'wfh'>('team');
   const [teamViewMode, setTeamViewMode] = useState<'card' | 'list'>('card');
+  const [statusFilter, setStatusFilter] = useState<UserStatusFilter>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
@@ -329,17 +340,21 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
 
     const userId = editingUser ? editingUser.id : 'u_' + Date.now();
     const skillsArray = skills ? skills.split(',').map(s => s.trim()).filter(s => s.length > 0) : [];
-    
+    const safeRole: GlobalRole = canManageUsers(currentUser)
+      ? globalRole
+      : (editingUser?.globalRole || currentUser.globalRole);
+
     const userData: User = {
       id: userId,
       name,
       email,
-      globalRole,
+      globalRole: safeRole,
       department,
       gender,
       birthday,
       skills: skillsArray,
       avatar: avatar || `https://i.pravatar.cc/150?u=${userId}`,
+      isActive: editingUser ? isUserActive(editingUser) : true,
       ...(password ? { password } : {})
     };
 
@@ -350,47 +365,74 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
       setUsers(prev => [...prev, userData]);
     }
 
-    // 2. Update projects membership
-    setProjects(prevProjects => {
-      return prevProjects.map(proj => {
-        // Remove user from this project if it's not the selected one
-        if (proj.id !== selectedProjectId) {
-          return {
-            ...proj,
-            members: proj.members ? proj.members.filter(m => m.userId !== userId) : []
-          };
-        }
-        
-        // If it is the selected project, add/update the user membership
-        const membersList = proj.members || [];
-        const isAlreadyMember = membersList.some(m => m.userId === userId);
-        
-        const roleToAdd = projectRole === 'Custom' ? customRole : projectRole;
-        
-        if (isAlreadyMember) {
-          return {
-            ...proj,
-            members: membersList.map(m => m.userId === userId ? { ...m, role: roleToAdd } : m)
-          };
-        } else {
-          return {
-            ...proj,
-            members: [...membersList, { userId, role: roleToAdd }]
-          };
-        }
-      });
-    });
+    // 2. Update projects membership (preserving existing project memberships)
+    if (selectedProjectId) {
+      const roleToAdd = projectRole === 'Custom' ? customRole : projectRole;
+      setProjects(prevProjects =>
+        updateProjectMembershipsOnUserSave(prevProjects, userId, selectedProjectId, roleToAdd)
+      );
+    }
 
     setIsModalOpen(false);
     showToast(editingUser ? '✅ อัปเดตข้อมูลพนักงานสำเร็จ!' : '✅ เพิ่มพนักงานใหม่สำเร็จ!');
   };
 
-  const handleDeleteUser = (id: string) => {
-    if (confirm('Are you sure you want to remove this employee?')) {
-      setUsers(prev => prev.filter(u => u.id !== id));
+  const handleToggleUserStatus = async (user: User) => {
+    if (!canAdministerUserStatus(currentUser, user)) {
+      return showToast('เฉพาะ Admin เท่านั้นที่สามารถเปิด/ระงับการใช้งานผู้ใช้งานได้', 'error');
+    }
+    const nextActive = !isUserActive(user);
+    try {
+      const res = await fetch(`/api/users/${user.id}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Id': currentUser.id,
+        },
+        body: JSON.stringify({ isActive: nextActive }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        return showToast(err.error || 'ไม่สามารถเปลี่ยนสถานะผู้ใช้งานได้', 'error');
+      }
+      setUsers(prev => prev.map(u => (u.id === user.id ? { ...u, isActive: nextActive } : u)));
+      showToast(
+        nextActive
+          ? `✅ เปิดใช้งาน (Enable) ${user.name} สำเร็จ!`
+          : `⏸️ ปรับสถานะ ${user.name} เป็น Inactive แล้ว`,
+        nextActive ? 'success' : 'error'
+      );
+    } catch (err) {
+      console.error('Error toggling user status:', err);
+      showToast('เกิดข้อผิดพลาดในการเปลี่ยนสถานะผู้ใช้งาน', 'error');
+    }
+  };
+
+  const handleDeleteUser = (user: User) => {
+    if (!canAdministerUserStatus(currentUser, user)) {
+      return showToast('เฉพาะ Admin เท่านั้นที่สามารถลบผู้ใช้งานได้', 'error');
+    }
+
+    if (isUserInAnyProject(user.id, projects)) {
+      if (isUserActive(user)) {
+        if (confirm(`ผู้ใช้งาน "${user.name}" ยังสังกัดอยู่ในโปรเจกต์ จึงไม่สามารถลบถาวรได้\nต้องการปรับสถานะเป็น Inactive (ระงับการใช้งาน) แทนหรือไม่?`)) {
+          handleToggleUserStatus(user);
+        }
+      } else {
+        alert(`ไม่สามารถลบถาวร "${user.name}" ได้เนื่องจากยังผูกอยู่ในโปรเจกต์ (สามารถลบถาวรได้หลังจากโปรเจกต์ถูกลบแล้ว)`);
+      }
+      return;
+    }
+
+    if (confirm(`ยืนยันการลบผู้ใช้งาน "${user.name}" ออกจากระบบอย่างถาวรหรือไม่?`)) {
+      setUsers(prev => prev.filter(u => u.id !== user.id));
       showToast('🗑️ ลบพนักงานออกจากระบบแล้ว', 'error');
     }
   };
+
+  const filteredUsers = filterUsersByStatus(users, statusFilter);
+  const activeCount = users.filter(u => isUserActive(u)).length;
+  const inactiveCount = users.filter(u => !isUserActive(u)).length;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -411,13 +453,46 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
       {/* Top Header */}
       <div className="flex-between" style={{ flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h1 className="text-gradient" style={{ marginBottom: '0.5rem' }}>Team & Approvals</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>Manage team members and approve timesheet submissions.</p>
+          <h1 className="text-gradient" style={{ marginBottom: '0.5rem' }}>Team & User Management</h1>
+          <p style={{ color: 'var(--text-secondary)' }}>Manage team members, active/inactive user status, and timesheet approvals.</p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           {activeTab === 'team' && (
             <>
+              {/* Status Filter */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                background: 'var(--bg-tertiary)',
+                padding: '0.25rem',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border-color)'
+              }}>
+                {([
+                  { key: 'all', label: `All (${users.length})` },
+                  { key: 'active', label: `Active (${activeCount})` },
+                  { key: 'inactive', label: `Inactive (${inactiveCount})` },
+                ] as const).map(tab => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setStatusFilter(tab.key)}
+                    style={{
+                      padding: '0.45rem 0.75rem',
+                      borderRadius: 'calc(var(--radius-md) - 2px)',
+                      border: 'none',
+                      background: statusFilter === tab.key ? 'var(--accent-primary)' : 'transparent',
+                      color: statusFilter === tab.key ? '#ffffff' : 'var(--text-secondary)',
+                      fontWeight: statusFilter === tab.key ? 600 : 400,
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
               {/* View Switcher */}
               <div style={{ 
                 display: 'flex', 
@@ -472,20 +547,22 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                 </button>
               </div>
 
-              <button onClick={openAddModal} style={{ 
-                background: 'var(--accent-primary)', 
-                color: 'white', 
-                border: 'none', 
-                padding: '0.75rem 1.5rem', 
-                borderRadius: 'var(--radius-md)', 
-                fontWeight: 500, 
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-              }} className="hover-lift">
-                <Plus size={18} /> Add Employee
-              </button>
+              {canManageUsers(currentUser) && (
+                <button onClick={openAddModal} style={{ 
+                  background: 'var(--accent-primary)', 
+                  color: 'white', 
+                  border: 'none', 
+                  padding: '0.75rem 1.5rem', 
+                  borderRadius: 'var(--radius-md)', 
+                  fontWeight: 500, 
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }} className="hover-lift">
+                  <Plus size={18} /> Add Employee
+                </button>
+              )}
             </>
           )}
         </div>
@@ -561,7 +638,8 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
         teamViewMode === 'card' ? (
           /* Team Directory - Card View */
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
-            {users.map(user => {
+            {filteredUsers.map(user => {
+              const active = isUserActive(user);
               const userProjectRoles = projects
                 .filter(p => p.members && p.members.some((m: any) => m.userId === user.id))
                 .map(p => {
@@ -575,11 +653,26 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                 });
 
                return (
-                <div key={user.id} className="glass-panel hover-lift team-member-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', position: 'relative' }}>
+                <div key={user.id} className="glass-panel hover-lift team-member-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', position: 'relative', opacity: active ? 1 : 0.65 }}>
                   <div className="member-card-header" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <img src={user.avatar} alt={user.name} style={{ width: '56px', height: '56px', borderRadius: '50%' }} />
+                    <img src={user.avatar} alt={user.name} style={{ width: '56px', height: '56px', borderRadius: '50%', filter: active ? 'none' : 'grayscale(80%)' }} />
                     <div className="member-info" style={{ flex: 1, minWidth: 0 }}>
-                      <h3 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>{user.name}</h3>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.25rem' }}>
+                        <h3 style={{ fontSize: '1.1rem', margin: 0 }}>{user.name}</h3>
+                        {!active && (
+                          <span style={{
+                            fontSize: '0.68rem',
+                            padding: '0.12rem 0.45rem',
+                            borderRadius: 'var(--radius-sm)',
+                            fontWeight: 700,
+                            background: 'rgba(148, 163, 184, 0.2)',
+                            color: '#94a3b8',
+                            border: '1px solid rgba(148, 163, 184, 0.35)'
+                          }}>
+                            Inactive
+                          </span>
+                        )}
+                      </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
                         <span style={{ 
                           fontSize: '0.7rem', 
@@ -642,12 +735,38 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                       )}
                     </div>
                     <div className="member-actions" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      <button onClick={() => openEditModal(user)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-                        <Edit size={14} />
-                      </button>
-                      <button onClick={() => handleDeleteUser(user.id)} style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer' }}>
-                        <Trash2 size={14} />
-                      </button>
+                      {canEditUserProfile(currentUser, user) && (
+                        <button
+                          onClick={() => openEditModal(user)}
+                          title="แก้ไขข้อมูล (Edit)"
+                          style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                        >
+                          <Edit size={15} />
+                        </button>
+                      )}
+                      {canAdministerUserStatus(currentUser, user) && (
+                        <>
+                          <button
+                            onClick={() => handleToggleUserStatus(user)}
+                            title={active ? 'ระงับการใช้งาน (Set Inactive)' : 'เปิดใช้งาน (Enable User)'}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: active ? '#f59e0b' : '#10b981',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {active ? <UserX size={15} /> : <UserCheck size={15} />}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(user)}
+                            title={isUserInAnyProject(user.id, projects) ? 'อยู่ในโปรเจกต์ (กดเพื่อปรับเป็น Inactive)' : 'ลบผู้ใช้งานถาวร (Delete)'}
+                            style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer' }}
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -691,7 +810,8 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                 </tr>
               </thead>
               <tbody>
-                {users.map((user, idx) => {
+                {filteredUsers.map((user, idx) => {
+                  const active = isUserActive(user);
                   const userProjectRoles = projects
                     .filter(p => p.members && p.members.some((m: any) => m.userId === user.id))
                     .map(p => {
@@ -703,12 +823,26 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                     });
 
                   return (
-                    <tr key={user.id} style={{ borderBottom: '1px solid var(--border-color)', background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)' }} className="table-row-hover">
+                    <tr key={user.id} style={{ borderBottom: '1px solid var(--border-color)', background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)', opacity: active ? 1 : 0.65 }} className="table-row-hover">
                       <td style={{ padding: '0.875rem 1rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                          <img src={user.avatar} alt={user.name} style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover' }} />
+                          <img src={user.avatar} alt={user.name} style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover', filter: active ? 'none' : 'grayscale(80%)' }} />
                           <div>
-                            <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{user.name}</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{user.name}</span>
+                              {!active && (
+                                <span style={{
+                                  fontSize: '0.65rem',
+                                  padding: '0.1rem 0.4rem',
+                                  borderRadius: '4px',
+                                  fontWeight: 700,
+                                  background: 'rgba(148, 163, 184, 0.2)',
+                                  color: '#94a3b8'
+                                }}>
+                                  Inactive
+                                </span>
+                              )}
+                            </div>
                             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{user.email}</div>
                           </div>
                         </div>
@@ -766,13 +900,39 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                         </div>
                       </td>
                       <td style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
-                          <button onClick={() => openEditModal(user)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-                            <Edit size={16} />
-                          </button>
-                          <button onClick={() => handleDeleteUser(user.id)} style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer' }}>
-                            <Trash2 size={16} />
-                          </button>
+                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', alignItems: 'center' }}>
+                          {canEditUserProfile(currentUser, user) && (
+                            <button
+                              onClick={() => openEditModal(user)}
+                              title="แก้ไขข้อมูล (Edit)"
+                              style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                            >
+                              <Edit size={16} />
+                            </button>
+                          )}
+                          {canAdministerUserStatus(currentUser, user) && (
+                            <>
+                              <button
+                                onClick={() => handleToggleUserStatus(user)}
+                                title={active ? 'ระงับการใช้งาน (Set Inactive)' : 'เปิดใช้งาน (Enable User)'}
+                                style={{
+                                  background: 'transparent',
+                                  border: 'none',
+                                  color: active ? '#f59e0b' : '#10b981',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                {active ? <UserX size={16} /> : <UserCheck size={16} />}
+                              </button>
+                              <button
+                                onClick={() => handleDeleteUser(user)}
+                                title={isUserInAnyProject(user.id, projects) ? 'อยู่ในโปรเจกต์ (กดเพื่อปรับเป็น Inactive)' : 'ลบผู้ใช้งานถาวร (Delete)'}
+                                style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer' }}
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1068,7 +1228,8 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                 <select 
                   value={globalRole} 
                   onChange={e => setGlobalRole(e.target.value as GlobalRole)}
-                  style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
+                  disabled={!canManageUsers(currentUser)}
+                  style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none', opacity: canManageUsers(currentUser) ? 1 : 0.6 }}
                 >
                   <option value="Employee">Employee</option>
                   <option value="Manager">Manager</option>
@@ -1082,7 +1243,8 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                 <select 
                   value={selectedProjectId} 
                   onChange={e => setSelectedProjectId(e.target.value)}
-                  style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
+                  disabled={!canManageUsers(currentUser)}
+                  style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none', opacity: canManageUsers(currentUser) ? 1 : 0.6 }}
                 >
                   <option value="">None</option>
                   {projects.map(proj => (

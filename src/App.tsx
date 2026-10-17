@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUsers, useProjects, useTasks, useTimesheets, useTaskTemplates, useSprints, useReleases, usePermissionSchemes, useProjectWorkflows, useCostRates, useSystemSettings } from './hooks/useAppQueries';
-import { LayoutDashboard, CheckSquare, Clock, Users, Settings as SettingsIcon, LogOut, Briefcase, BarChart3, Menu, X, CalendarRange, Bell, AlertTriangle, AlertCircle, CalendarClock, HelpCircle, MessageSquare, Wrench, Sun, Moon, StickyNote } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, Clock, Users, Settings as SettingsIcon, LogOut, Briefcase, BarChart3, Menu, X, CalendarRange, Bell, AlertTriangle, AlertCircle, CalendarClock, HelpCircle, MessageSquare, Sun, Moon, StickyNote } from 'lucide-react';
 import { Login } from './components/Login';
 import ChatWidget from './components/ChatWidget';
 
@@ -16,7 +16,6 @@ const Settings = lazy(() => import('./components/Settings').then(m => ({ default
 const ProjectPlan = lazy(() => import('./components/ProjectPlan').then(m => ({ default: m.ProjectPlan })));
 const ProjectChat = lazy(() => import('./components/ProjectChat').then(m => ({ default: m.ProjectChat })));
 const KnowledgeBase = lazy(() => import('./components/KnowledgeBase'));
-const TechnicianMatrix = lazy(() => import('./components/TechnicianMatrix').then(m => ({ default: m.TechnicianMatrix })));
 const PersonalNotes = lazy(() => import('./components/PersonalNotes/PersonalNotes').then(m => ({ default: m.PersonalNotes })));
 const FloatingPostIt = lazy(() => import('./components/PersonalNotes/FloatingPostIt').then(m => ({ default: m.FloatingPostIt })));
 
@@ -298,8 +297,7 @@ const AppLayout = ({ children, currentUser, tasks, onLogout, theme, onToggleThem
           <SidebarItem icon={Clock} label="Timesheet" path="/timesheet" />
           <SidebarItem icon={StickyNote} label="Post-it (ส่วนตัว)" path="/notes" />
           <SidebarItem icon={MessageSquare} label="Team Chat" path="/chat" badgeCount={unreadChatCount} />
-          <SidebarItem icon={Users} label="Team" path="/team" />
-          <SidebarItem icon={Wrench} label="ข้อมูลช่าง & Skill Matrix" path="/technicians" />
+          <SidebarItem icon={Users} label="Team & Users" path="/team" />
           <SidebarItem icon={BarChart3} label="Reports" path="/reports" />
           <SidebarItem icon={SettingsIcon} label="Settings" path="/settings" />
           <SidebarItem icon={HelpCircle} label="Help / FAQ" path="/help" />
@@ -500,6 +498,7 @@ function App() {
   const [pendingTsTask, setPendingTsTask] = useState<Task | null>(null);
 
   useEffect(() => {
+    localStorage.removeItem('nt_technicians_data');
     const params = new URLSearchParams(window.location.search);
     const userParam = params.get('user');
     if (userParam) {
@@ -584,6 +583,8 @@ function App() {
                 const err = await res.json();
                 alert(err.error || 'Failed to delete project');
                 fetchInitialData();
+              } else {
+                queryClient.invalidateQueries({ queryKey: ['users'] });
               }
             });
         }
@@ -988,7 +989,6 @@ function App() {
             <Route path="/notes" element={<PersonalNotes currentUser={currentUser} />} />
             <Route path="/chat" element={<ProjectChat projects={projects} users={users} currentUser={currentUser} systemSettings={systemSettings} />} />
             <Route path="/team" element={<TeamApprovals users={users} setUsers={handleSetUsers} timesheets={timesheets} setTimesheets={handleSetTimesheets} projects={projects} setProjects={handleSetProjects} tasks={tasks} currentUser={currentUser} />} />
-            <Route path="/technicians" element={<TechnicianMatrix />} />
             <Route path="/reports" element={<Reports timesheets={timesheets} projects={projects} users={users} currentUser={currentUser} tasks={tasks} costRates={costRates} sprints={sprints} />} />
             <Route path="/settings" element={<Settings taskTemplates={taskTemplates} setTaskTemplates={handleSetTaskTemplates} permissionSchemes={permissionSchemes} setPermissionSchemes={handleSetPermissionSchemes} currentUser={currentUser} costRates={costRates} setCostRates={handleSetCostRates} systemSettings={systemSettings} setSystemSettings={setSystemSettings} fetchInitialData={fetchInitialData} />} />
             <Route path="/help" element={<KnowledgeBase currentUser={currentUser} />} />

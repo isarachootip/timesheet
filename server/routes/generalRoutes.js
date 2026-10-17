@@ -38,7 +38,8 @@ router.get('/api/users', async (req, res) => {
     const users = usersRes.rows.map(u => ({
       id: u.id, name: u.name, email: u.email, avatar: u.avatar,
       globalRole: u.global_role, department: u.department, gender: u.gender,
-      birthday: u.birthday, skills: u.skills, wfhDays: u.wfh_days || []
+      birthday: u.birthday, skills: u.skills, wfhDays: u.wfh_days || [],
+      isActive: u.is_active !== false
     }));
     res.json(users);
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -194,7 +195,8 @@ router.get('/api/initial-data', async (req, res) => {
     const users = usersRes.rows.map(u => ({
       id: u.id, name: u.name, email: u.email, avatar: u.avatar,
       globalRole: u.global_role, department: u.department, gender: u.gender,
-      birthday: u.birthday, skills: u.skills, wfhDays: u.wfh_days || []
+      birthday: u.birthday, skills: u.skills, wfhDays: u.wfh_days || [],
+      isActive: u.is_active !== false
     }));
 
     const projects = projectsRes.rows.map(p => ({

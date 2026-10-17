@@ -501,6 +501,21 @@ router.delete('/api/projects/:id', async (req, res) => {
     try {
       await client.query('BEGIN');
 
+      // Find members of the project being deleted and check if they remain in any other project
+      const targetProjRes = await client.query('SELECT members FROM projects WHERE id = $1', [id]);
+      const otherProjsRes = await client.query('SELECT members FROM projects WHERE id != $1', [id]);
+      const targetMembers = Array.isArray(targetProjRes.rows[0]?.members) ? targetProjRes.rows[0].members : [];
+      const activeMemberIdsInOtherProjs = new Set();
+      for (const row of otherProjsRes.rows) {
+        const mems = Array.isArray(row.members) ? row.members : [];
+        for (const m of mems) {
+          if (m && m.userId) activeMemberIdsInOtherProjs.add(m.userId);
+        }
+      }
+      const userIdsToDeactivate = targetMembers
+        .map(m => m?.userId)
+        .filter(uid => uid && !activeMemberIdsInOtherProjs.has(uid));
+
       // 1. Delete task_snapshots via project_baselines
       await client.query(
         `DELETE FROM task_snapshots WHERE baseline_id IN (SELECT id FROM project_baselines WHERE project_id = $1)`,
@@ -520,9 +535,16 @@ router.delete('/api/projects/:id', async (req, res) => {
       await client.query('DELETE FROM project_workflows WHERE project_id = $1', [id]);
       // 8. Delete the project itself
       await client.query('DELETE FROM projects WHERE id = $1', [id]);
+      // 9. Mark users who were only in this project as Inactive (except Admin)
+      if (userIdsToDeactivate.length > 0) {
+        await client.query(
+          `UPDATE users SET is_active = FALSE WHERE id = ANY($1::varchar[]) AND global_role != 'Admin'`,
+          [userIdsToDeactivate]
+        );
+      }
 
       await client.query('COMMIT');
-      res.json({ success: true });
+      res.json({ success: true, deactivatedUserIds: userIdsToDeactivate });
     } catch (err) {
       await client.query('ROLLBACK');
       throw err;

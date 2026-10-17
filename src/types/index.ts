@@ -17,6 +17,7 @@ export interface User {
   skills?: string[];
   password?: string;
   wfhDays?: string[];
+  isActive?: boolean;
 }
 
 export interface ProjectMember {

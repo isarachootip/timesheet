@@ -110,6 +110,10 @@ router.get('/api/auth/line/callback', async (req, res) => {
       // User not pre-registered in database
       return res.redirect(`${clientOrigin}/?error=unauthorized&email=${encodeURIComponent(lineEmail || '')}`);
     }
+
+    if (user.is_active === false) {
+      return res.redirect(`${clientOrigin}/?error=${encodeURIComponent('บัญชีผู้ใช้งานนี้ถูกระงับชั่วคราว (Inactive) กรุณาติดต่อ Admin')}`);
+    }
     
     // Map DB columns to camelCase JS object
     const userData = {
@@ -121,7 +125,8 @@ router.get('/api/auth/line/callback', async (req, res) => {
       department: user.department,
       gender: user.gender,
       birthday: user.birthday,
-      skills: user.skills
+      skills: user.skills,
+      isActive: user.is_active !== false
     };
     
     // Redirect back to frontend success route
@@ -148,6 +153,10 @@ router.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
+    if (user.is_active === false) {
+      return res.status(403).json({ error: 'บัญชีผู้ใช้งานนี้ถูกระงับชั่วคราว (Inactive) กรุณาติดต่อ Admin' });
+    }
+
     const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
     
     if (user.password_hash && user.password_hash !== passwordHash) {
@@ -172,7 +181,8 @@ router.post('/api/auth/login', async (req, res) => {
       department: user.department,
       gender: user.gender || '',
       birthday: user.birthday || '',
-      skills: user.skills || []
+      skills: user.skills || [],
+      isActive: user.is_active !== false
     };
 
     res.json(userData);
