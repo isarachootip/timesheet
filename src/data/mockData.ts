@@ -38,7 +38,7 @@ export const mockUsers: User[] = [
 export const mockProjects: Project[] = [
   {
     id: 'p1',
-    name: 'NexTime Internal Tool',
+    name: 'ChronoLog Internal Tool',
     description: 'Developing the internal project and time management system.',
     status: 'Active',
     startDate: '2026-06-01',

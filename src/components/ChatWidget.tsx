@@ -12,7 +12,7 @@ const ChatWidget: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: 'สวัสดีครับ NexTime Assistant ยินดีให้บริการ มีอะไรให้ผมช่วยเหลือไหมครับ?',
+      text: 'สวัสดีครับ ChronoLog Assistant ยินดีให้บริการ มีอะไรให้ผมช่วยเหลือไหมครับ?',
       sender: 'bot',
       timestamp: new Date(),
     },
@@ -117,7 +117,7 @@ const ChatWidget: React.FC = () => {
             <Bot size={20} />
           </div>
           <div>
-            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>NexTime Assistant</h3>
+            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>ChronoLog Assistant</h3>
             <p style={{ margin: 0, fontSize: '12px', opacity: 0.9 }}>Online</p>
           </div>
         </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
-const STORAGE_KEY_OPEN = 'nextime_floating_note_open';
-const STORAGE_KEY_NOTE_ID = 'nextime_floating_note_id';
+const STORAGE_KEY_OPEN = 'chronolog_floating_note_open';
+const STORAGE_KEY_NOTE_ID = 'chronolog_floating_note_id';
 
 export function useFloatingNotes(availableNoteIds: string[] = []) {
   const [isOpen, setIsOpen] = useState<boolean>(() => {

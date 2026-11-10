@@ -1,12 +1,12 @@
 # System Architecture & Database Schema Report
-**ระบบ NexTime — Timesheet & Project Management System**
+**ระบบ ChronoLog — Timesheet & Project Management System**
 **ผู้วิเคราะห์:** agent_sa (Systems Analyst)  
 **วันที่รายงาน:** 16 มิถุนายน 2026
 
 ---
 
 ## 📋 1. บทสรุปสำหรับผู้บริหาร (Executive Summary)
-ระบบ **NexTime** คือเว็บแอปพลิเคชันเพื่อการจัดการทรัพยากรบุคคลและโครงการภายในองค์กร โดยเน้นที่การบันทึกชั่วโมงทำงาน (Timesheet Log), แผนงานโครงการแบบแกนต์ชาร์ต (Project Plan & Gantt Chart), และบอร์ดงาน Kanban (Kanban Board) 
+ระบบ **ChronoLog** คือเว็บแอปพลิเคชันเพื่อการจัดการทรัพยากรบุคคลและโครงการภายในองค์กร โดยเน้นที่การบันทึกชั่วโมงทำงาน (Timesheet Log), แผนงานโครงการแบบแกนต์ชาร์ต (Project Plan & Gantt Chart), และบอร์ดงาน Kanban (Kanban Board) 
 
 ระบบถูกออกแบบมาให้มีความมั่นคงปลอดภัยสูงผ่านการยืนยันตัวตนด้วย **LINE Login** ร่วมกับการตรวจสอบสิทธิ์แบบสองปัจจัย (**2-Factor Authentication - OTP** ผ่านอีเมลบริษัท) พร้อมความสามารถในการส่งอีเมลแจ้งเตือนอัตโนมัติแบบ **Asynchronous (Non-blocking)** และระบบ **Git Integration** เพื่ออัปเดตสถานะงานผ่าน Webhook อัตโนมัติ
 
@@ -253,7 +253,7 @@ c:\atgv\time_sheet\
 
 ## 📊 5. แผนผังโครงสร้างฐานข้อมูล (Entity Relationship Diagram - ERD)
 
-แผนผังต่อไปนี้แสดงความสัมพันธ์ (Relational Integrity) ระหว่างตารางทั้งหมดในฐานข้อมูลระบบ NexTime:
+แผนผังต่อไปนี้แสดงความสัมพันธ์ (Relational Integrity) ระหว่างตารางทั้งหมดในฐานข้อมูลระบบ ChronoLog:
 
 ```mermaid
 erDiagram
@@ -379,4 +379,4 @@ erDiagram
 
 ---
 > [!IMPORTANT]
-> ระบบ NexTime ได้ทำโครงสร้างแยกบทบาทเป็น 2 ระดับอย่างชัดเจน คือ **Global Role (Admin/Owner/Employee)** และ **Project Role (PM/Lead/Member)** ข้อมูลตารางความสัมพันธ์จึงได้รับการตรวจสอบคีย์ร่วมกันเพื่อป้องกันความปลอดภัยไม่ให้ข้อมูลรั่วไหลข้ามโครงการโดยเด็ดขาด
+> ระบบ ChronoLog ได้ทำโครงสร้างแยกบทบาทเป็น 2 ระดับอย่างชัดเจน คือ **Global Role (Admin/Owner/Employee)** และ **Project Role (PM/Lead/Member)** ข้อมูลตารางความสัมพันธ์จึงได้รับการตรวจสอบคีย์ร่วมกันเพื่อป้องกันความปลอดภัยไม่ให้ข้อมูลรั่วไหลข้ามโครงการโดยเด็ดขาด

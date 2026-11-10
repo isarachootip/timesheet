@@ -1,7 +1,7 @@
 (function() {
   // Prevent multiple initializations
-  if (window.NexTimeChatWidget) return;
-  window.NexTimeChatWidget = true;
+  if (window.ChronoLogChatWidget) return;
+  window.ChronoLogChatWidget = true;
 
   // Derive the backend URL from this script's src attribute
   var scriptTag = document.currentScript;
@@ -17,7 +17,7 @@
 
   // Create Container
   var container = document.createElement('div');
-  container.id = 'nextime-chat-container';
+  container.id = 'chronolog-chat-container';
   container.style.position = 'fixed';
   container.style.bottom = '20px';
   container.style[config.position] = '20px';

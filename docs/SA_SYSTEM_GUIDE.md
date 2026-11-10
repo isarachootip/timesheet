@@ -1,7 +1,7 @@
-# 📘 NexTime — System Analyst & Architecture Guide (คู่มือวิเคราะห์และสถาปัตยกรรมระบบ)
+# 📘 ChronoLog — System Analyst & Architecture Guide (คู่มือวิเคราะห์และสถาปัตยกรรมระบบ)
 
 > **เอกสารสำหรับ:** System Analyst (SA), Software Engineer, Solutions Architect, Database Administrator (DBA), System Administrator  
-> **เวอร์ชันระบบ:** NexTime Enterprise v2.5  
+> **เวอร์ชันระบบ:** ChronoLog Enterprise v2.5  
 > **ภาษา/เทคโนโลยี:** React 18 + TypeScript + Vite | Node.js (Express ES Modules) | PostgreSQL 15+ | Docker / Nixpacks  
 > **วันที่จัดทำ:** สิงหาคม 2026  
 
@@ -335,7 +335,7 @@ GET      /api/health                    -> Health Check สถานะ Node & P
 
 ### 4.1 Two-Tiered Role System (โครงสร้างสิทธิ์ 2 ระดับ)
 
-ระบบ NexTime แยกความรับผิดชอบของสิทธิ์อย่างเคร่งครัด:
+ระบบ ChronoLog แยกความรับผิดชอบของสิทธิ์อย่างเคร่งครัด:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -556,4 +556,4 @@ SA สามารถตรวจสอบสถานะการทำงา�
 - ระบบจะทำการลบข้อมูลการปฏิบัติงาน (`tasks`, `timesheets`, `sprints`, `releases`, `baselines`) โดยคงข้อมูลผู้ใช้ (`users`), โครงการ (`projects`), แผนผังสิทธิ์ (`permission_schemes`), และอัตราค่าจ้าง (`cost_rates`) ไว้อย่างปลอดภัย
 
 ---
-*เอกสารนี้จัดทำขึ้นสำหรับทีมเทคนิคและ System Analyst ของระบบ NexTime สงวนลิขสิทธิ์ พ.ศ. 2569*
+*เอกสารนี้จัดทำขึ้นสำหรับทีมเทคนิคและ System Analyst ของระบบ ChronoLog สงวนลิขสิทธิ์ พ.ศ. 2569*

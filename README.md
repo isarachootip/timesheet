@@ -1,6 +1,6 @@
-# ⏱️ NexTime — Project & Timesheet Management System
+# ⏱️ ChronoLog — Project & Timesheet Management System
 
-> **NexTime** เป็นระบบเว็บแอปพลิเคชันระดับองค์กรสำหรับบริหารจัดการโครงการ (Project Management), บันทึกเวลาทำงาน (Timesheet Logging), วางแผนการทำงานแบบอไจล์ (Agile Kanban Board, Sprints & Releases), และการตรวจสอบอนุมัติเวลางานของทีมงานอย่างมีประสิทธิภาพ มาพร้อมระบบ **Chatbot** ผู้ช่วยอัจฉริยะ, **Permission Schemes** สำหรับปรับแต่งสิทธิ์การใช้งานแบบยืดหยุ่น, **Cost Rates** สำหรับคำนวณต้นทุนโครงการ, **Project Baselines** สำหรับเปรียบเทียบแผนงาน และ **Notification Bell** สำหรับแจ้งเตือนงานที่ครบกำหนด พร้อมดีไซน์สุดพรีเมียมในรูปแบบ Dark Mode และ Glassmorphism
+> **ChronoLog** เป็นระบบเว็บแอปพลิเคชันระดับองค์กรสำหรับบริหารจัดการโครงการ (Project Management), บันทึกเวลาทำงาน (Timesheet Logging), วางแผนการทำงานแบบอไจล์ (Agile Kanban Board, Sprints & Releases), และการตรวจสอบอนุมัติเวลางานของทีมงานอย่างมีประสิทธิภาพ มาพร้อมระบบ **Chatbot** ผู้ช่วยอัจฉริยะ, **Permission Schemes** สำหรับปรับแต่งสิทธิ์การใช้งานแบบยืดหยุ่น, **Cost Rates** สำหรับคำนวณต้นทุนโครงการ, **Project Baselines** สำหรับเปรียบเทียบแผนงาน และ **Notification Bell** สำหรับแจ้งเตือนงานที่ครบกำหนด พร้อมดีไซน์สุดพรีเมียมในรูปแบบ Dark Mode และ Glassmorphism
 
 ---
 

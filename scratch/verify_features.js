@@ -17,7 +17,7 @@ const pool = new pg.Pool(
 );
 
 async function runVerification() {
-  console.log('--- NexTime Jira-like Features Database Verification ---');
+  console.log('--- ChronoLog Jira-like Features Database Verification ---');
   let client;
   try {
     client = await pool.connect();

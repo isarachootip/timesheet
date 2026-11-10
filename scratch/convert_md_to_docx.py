@@ -72,7 +72,7 @@ def render_inline_formatting(paragraph, text, default_font_size=11, default_colo
             run.font.color.rgb = default_color
             run.font.name = 'Calibri'
 
-def convert_markdown_to_docx(md_path, docx_path, doc_title="NexTime Documentation"):
+def convert_markdown_to_docx(md_path, docx_path, doc_title="ChronoLog Documentation"):
     with open(md_path, 'r', encoding='utf-8') as f:
         lines = f.readlines()
 
@@ -356,11 +356,11 @@ if __name__ == '__main__':
     base_dir = r"c:\atgv\time_sheet"
     
     docs_to_convert = [
-        (os.path.join(base_dir, "docs", "SA_SYSTEM_GUIDE.md"), os.path.join(base_dir, "docs", "NexTime_SA_System_Guide.docx")),
-        (os.path.join(base_dir, "docs", "TRAINER_MANUAL.md"), os.path.join(base_dir, "docs", "NexTime_Trainer_Manual.docx")),
-        (os.path.join(base_dir, "user_manual.md"), os.path.join(base_dir, "NexTime_User_Manual.docx")),
-        (os.path.join(base_dir, "docs", "SA_SYSTEM_GUIDE.md"), os.path.join(base_dir, "NexTime_SA_System_Guide.docx")),
-        (os.path.join(base_dir, "docs", "TRAINER_MANUAL.md"), os.path.join(base_dir, "NexTime_Trainer_Manual.docx")),
+        (os.path.join(base_dir, "docs", "SA_SYSTEM_GUIDE.md"), os.path.join(base_dir, "docs", "ChronoLog_SA_System_Guide.docx")),
+        (os.path.join(base_dir, "docs", "TRAINER_MANUAL.md"), os.path.join(base_dir, "docs", "ChronoLog_Trainer_Manual.docx")),
+        (os.path.join(base_dir, "user_manual.md"), os.path.join(base_dir, "ChronoLog_User_Manual.docx")),
+        (os.path.join(base_dir, "docs", "SA_SYSTEM_GUIDE.md"), os.path.join(base_dir, "ChronoLog_SA_System_Guide.docx")),
+        (os.path.join(base_dir, "docs", "TRAINER_MANUAL.md"), os.path.join(base_dir, "ChronoLog_Trainer_Manual.docx")),
     ]
 
     for md_file, docx_file in docs_to_convert:

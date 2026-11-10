@@ -47,11 +47,11 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
       faqs: [
         {
           id: 'q0',
-          question: 'What are the main features of NexTime?',
+          question: 'What are the main features of ChronoLog?',
           icon: Star,
           answer: (
             <div>
-              <p style={{ marginBottom: '0.5rem' }}>NexTime is a comprehensive project and resource management system. Here are the core features:</p>
+              <p style={{ marginBottom: '0.5rem' }}>ChronoLog is a comprehensive project and resource management system. Here are the core features:</p>
               <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
                 <li style={{ marginBottom: '0.25rem' }}><strong>Agile Task Management:</strong> Kanban boards, Backlog grooming, and Sprints for managing Stories, Tasks, and Bugs with Story Points (SP).</li>
                 <li style={{ marginBottom: '0.25rem' }}><strong>Gantt Chart & Timeline:</strong> Visual project planning to see overlapping tasks and bottlenecks.</li>
@@ -247,7 +247,7 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
           icon: Users,
           answer: (
             <div>
-              <p style={{ marginBottom: '0.5rem' }}>Project visibility in NexTime is restricted by user roles and membership:</p>
+              <p style={{ marginBottom: '0.5rem' }}>Project visibility in ChronoLog is restricted by user roles and membership:</p>
               <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
                 <li style={{ marginBottom: '0.25rem' }}><strong>Global Admins & Managers:</strong> Can view all projects, plans, tasks, and sprints automatically.</li>
                 <li style={{ marginBottom: '0.25rem' }}><strong>Employees & Users:</strong> Can only see projects (including their tasks and sprints) where they are listed as members.</li>
@@ -262,7 +262,7 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
           icon: Shield,
           answer: (
             <div>
-              <p style={{ marginBottom: '0.5rem' }}>NexTime manages access via two levels of roles: <strong>Global Roles</strong> (system level) and <strong>Project Roles</strong> (project level, such as PM, Dev, Tester, SA):</p>
+              <p style={{ marginBottom: '0.5rem' }}>ChronoLog manages access via two levels of roles: <strong>Global Roles</strong> (system level) and <strong>Project Roles</strong> (project level, such as PM, Dev, Tester, SA):</p>
               <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.75rem' }}>
                 <li style={{ marginBottom: '0.25rem' }}><strong>Admin:</strong> Full system access, including editing system configurations, managing all projects, tasks, timesheets, and permissions.</li>
                 <li style={{ marginBottom: '0.25rem' }}><strong>Manager:</strong> Administrative access to manage all projects, tasks, baselines, and approve/delete timesheets across the system. Cannot edit core system settings.</li>
@@ -449,7 +449,7 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
           icon: Zap,
           answer: (
             <div>
-              <p style={{ marginBottom: '0.5rem' }}>NexTime has a smart automation that <strong>automatically creates a draft Timesheet record</strong> when a task is moved to <em>"In Progress"</em>:</p>
+              <p style={{ marginBottom: '0.5rem' }}>ChronoLog has a smart automation that <strong>automatically creates a draft Timesheet record</strong> when a task is moved to <em>"In Progress"</em>:</p>
               <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
                 <li style={{ marginBottom: '0.25rem' }}><strong>Trigger:</strong> Moving a task to <strong>"In Progress"</strong> on the Board (drag-and-drop or dropdown) triggers the automation.</li>
                 <li style={{ marginBottom: '0.25rem' }}><strong>What it creates:</strong> A new Timesheet entry pre-filled with — the task's Start Date, Estimated Hours, the linked project, and your user account — saved in <strong>Draft</strong> status.</li>
@@ -535,11 +535,11 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
       faqs: [
         {
           id: 'q0',
-          question: 'ฟีเจอร์หลักของระบบ NexTime มีอะไรบ้าง?',
+          question: 'ฟีเจอร์หลักของระบบ ChronoLog มีอะไรบ้าง?',
           icon: Star,
           answer: (
             <div>
-              <p style={{ marginBottom: '0.5rem' }}>NexTime เป็นระบบบริหารจัดการโปรเจกต์และทรัพยากรบุคคลแบบครบวงจร โดยมีฟีเจอร์เด่นดังนี้ครับ:</p>
+              <p style={{ marginBottom: '0.5rem' }}>ChronoLog เป็นระบบบริหารจัดการโปรเจกต์และทรัพยากรบุคคลแบบครบวงจร โดยมีฟีเจอร์เด่นดังนี้ครับ:</p>
               <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
                 <li style={{ marginBottom: '0.25rem' }}><strong>Agile Task Management:</strong> จัดการงานด้วย Kanban Board, จัดลำดับ Backlog, และวางแผน Sprint พร้อมประเมินความยากด้วย Story Points (SP)</li>
                 <li style={{ marginBottom: '0.25rem' }}><strong>Gantt Chart & Timeline:</strong> ดูแผนงานระยะยาวแบบปฏิทิน เพื่อป้องกันคอขวดและงานทับซ้อน</li>
@@ -735,7 +735,7 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
           icon: Users,
           answer: (
             <div>
-              <p style={{ marginBottom: '0.5rem' }}>การเข้าถึงโครงการในระบบ NexTime ถูกควบคุมด้วยสิทธิ์และรายชื่อสมาชิกของโปรเจกต์นั้น ๆ ครับ:</p>
+              <p style={{ marginBottom: '0.5rem' }}>การเข้าถึงโครงการในระบบ ChronoLog ถูกควบคุมด้วยสิทธิ์และรายชื่อสมาชิกของโปรเจกต์นั้น ๆ ครับ:</p>
               <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
                 <li style={{ marginBottom: '0.25rem' }}><strong>Admin และ Manager:</strong> จะมองเห็นทุกโครงการ ทุกงาน และทุกสปรินต์ในระบบโดยอัตโนมัติ</li>
                 <li style={{ marginBottom: '0.25rem' }}><strong>Employee และ User (พนักงานทั่วไป):</strong> จะมองเห็นเฉพาะโครงการ งาน และสปรินต์ที่ตนเองมีชื่อเป็นสมาชิกโปรเจกต์เท่านั้น</li>
@@ -750,7 +750,7 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
           icon: Shield,
           answer: (
             <div>
-              <p style={{ marginBottom: '0.5rem' }}>ระบบ NexTime แบ่งบทบาทออกเป็น 2 ระดับ คือ <strong>Global Role (สิทธิ์ระดับระบบ)</strong> และ <strong>Project Role (บทบาทในโครงการ เช่น PM, Dev, Tester, SA)</strong> เพื่อควบคุมสิทธิ์ดังนี้ครับ:</p>
+              <p style={{ marginBottom: '0.5rem' }}>ระบบ ChronoLog แบ่งบทบาทออกเป็น 2 ระดับ คือ <strong>Global Role (สิทธิ์ระดับระบบ)</strong> และ <strong>Project Role (บทบาทในโครงการ เช่น PM, Dev, Tester, SA)</strong> เพื่อควบคุมสิทธิ์ดังนี้ครับ:</p>
               <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.75rem' }}>
                 <li style={{ marginBottom: '0.25rem' }}><strong>Admin (ผู้ดูแลระบบสูงสุด):</strong> สามารถเข้าถึงและจัดการข้อมูลทุกอย่างในระบบ ตั้งค่าการทำงาน จัดการโครงการ งาน ใบลงเวลา และสิทธิ์สมาชิกได้ทั้งหมด</li>
                 <li style={{ marginBottom: '0.25rem' }}><strong>Manager (ผู้จัดการระบบ):</strong> มีสิทธิ์จัดการโครงการ แผนงาน (Baselines) งาน และสปรินต์ รวมถึงอนุมัติหรือลบใบลงเวลาได้ทั้งหมด แต่ไม่สามารถแก้ไขส่วนตั้งค่าหลักของระบบ (System Config) ได้</li>
@@ -937,7 +937,7 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
           icon: Zap,
           answer: (
             <div>
-              <p style={{ marginBottom: '0.5rem' }}>NexTime มีระบบ Automation ที่ <strong>สร้าง Timesheet record แบบร่าง (Draft) ให้อัตโนมัติ</strong> เมื่อคุณเลื่อน task ไปที่ status <em>"In Progress"</em> ครับ:</p>
+              <p style={{ marginBottom: '0.5rem' }}>ChronoLog มีระบบ Automation ที่ <strong>สร้าง Timesheet record แบบร่าง (Draft) ให้อัตโนมัติ</strong> เมื่อคุณเลื่อน task ไปที่ status <em>"In Progress"</em> ครับ:</p>
               <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '0.5rem' }}>
                 <li style={{ marginBottom: '0.25rem' }}><strong>เงื่อนไขที่ trigger:</strong> การย้าย task จาก status ใดก็ตาม ไปที่ <strong>"In Progress"</strong> บนหน้า Board (ลาก-วาง หรือเปลี่ยนจาก dropdown) จะเป็น trigger ของระบบนี้</li>
                 <li style={{ marginBottom: '0.25rem' }}><strong>ข้อมูลที่สร้าง:</strong> Timesheet entry ถูกสร้างขึ้นพร้อมข้อมูล — วันที่เริ่มงาน (Start Date ของ task), ชั่วโมงประมาณการ (Estimated Hours), โปรเจกต์ที่ task สังกัด และบัญชีผู้ใช้ของคุณ — โดยบันทึกในสถานะ <strong>Draft</strong></li>

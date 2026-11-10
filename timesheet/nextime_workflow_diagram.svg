@@ -1,12 +1,12 @@
 <svg viewBox="0 0 900 720" xmlns="http://www.w3.org/2000/svg" role="img" font-family="Arial, sans-serif">
-  <title>NexTime Workflow Diagram</title>
-  <desc>ขั้นตอนการทำงานใน NexTime ตั้งแต่สร้าง Project, Project Plan, Task จนถึง Timesheet</desc>
+  <title>ChronoLog Workflow Diagram</title>
+  <desc>ขั้นตอนการทำงานใน ChronoLog ตั้งแต่สร้าง Project, Project Plan, Task จนถึง Timesheet</desc>
 
   <!-- Background -->
   <rect width="900" height="720" fill="#f8f9fa" rx="12"/>
 
   <!-- Title -->
-  <text x="450" y="36" text-anchor="middle" font-size="17" font-weight="700" fill="#1a1a2e">NexTime — Workflow การทำงาน</text>
+  <text x="450" y="36" text-anchor="middle" font-size="17" font-weight="700" fill="#1a1a2e">ChronoLog — Workflow การทำงาน</text>
 
   <!-- PHASE LABELS -->
   <rect x="20" y="58" width="148" height="24" rx="6" fill="#4361ee" opacity="0.15"/>

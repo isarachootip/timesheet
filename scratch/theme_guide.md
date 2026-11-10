@@ -1,7 +1,7 @@
 # 🌌 คู่มือระบบการออกแบบ: Cyber-Neon Glassmorphism Theme Guide
-## ระบบบันทึกเวลาทำงาน NexTime (NexTime Time Tracking System)
+## ระบบบันทึกเวลาทำงาน ChronoLog (ChronoLog Time Tracking System)
 
-คู่มือฉบับนี้จัดทำขึ้นเพื่อให้นักพัฒนาซอฟต์แวร์และผู้ดูแลระบบเข้าใจหลักการออกแบบ ดีไซน์ซิสเต็ม (Design System) และตัวแปรสไตล์ชีทใหม่ของระบบ **NexTime** ซึ่งใช้รูปแบบ **Premium Dark Mode ร่วมกับ Cyber-Neon Glassmorphism** ที่เน้นความล้ำสมัย (Futuristic), ความโปร่งใสของวัสดุคล้ายกระจกฝ้า (Frosted Glass), และแสงเรืองนีออนโทนคู่ (Electric Cyan & Vibrant Magenta) เพื่อเพิ่มประสบการณ์การใช้งานที่พรีเมียมและสวยงามยิ่งขึ้น
+คู่มือฉบับนี้จัดทำขึ้นเพื่อให้นักพัฒนาซอฟต์แวร์และผู้ดูแลระบบเข้าใจหลักการออกแบบ ดีไซน์ซิสเต็ม (Design System) และตัวแปรสไตล์ชีทใหม่ของระบบ **ChronoLog** ซึ่งใช้รูปแบบ **Premium Dark Mode ร่วมกับ Cyber-Neon Glassmorphism** ที่เน้นความล้ำสมัย (Futuristic), ความโปร่งใสของวัสดุคล้ายกระจกฝ้า (Frosted Glass), และแสงเรืองนีออนโทนคู่ (Electric Cyan & Vibrant Magenta) เพื่อเพิ่มประสบการณ์การใช้งานที่พรีเมียมและสวยงามยิ่งขึ้น
 
 ---
 
@@ -217,7 +217,7 @@ export default function ClockInPanel() {
   return (
     <div className="glass-panel hover-lift" style={{ padding: '2rem', maxWidth: '450px', margin: '2rem auto' }}>
       <h2 style={{ marginBottom: '0.5rem', textAlign: 'center' }}>
-        บันทึกเวลาทำงาน <span className="text-gradient">NexTime</span>
+        บันทึกเวลาทำงาน <span className="text-gradient">ChronoLog</span>
       </h2>
       <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--fs-sm)', textAlign: 'center', marginBottom: '1.5rem' }}>
         กดปุ่มด้านล่างเพื่อ Clock In / Clock Out ของวันนี้
@@ -228,7 +228,7 @@ export default function ClockInPanel() {
         <div>
           <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: 'var(--fs-sm)' }}>เลือกโครงการที่รับผิดชอบ</label>
           <select className="glass-select" style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
-            <option value="proj-1">NexTime Redesign Project</option>
+            <option value="proj-1">ChronoLog Redesign Project</option>
             <option value="proj-2">Enterprise HR Suite Integration</option>
           </select>
         </div>
@@ -257,5 +257,5 @@ export default function ClockInPanel() {
 ```
 
 ---
-**จัดทำโดย:** ระบบจัดเตรียมคู่มือการอบรมดีไซน์ NexTime (agent_trainer)  
+**จัดทำโดย:** ระบบจัดเตรียมคู่มือการอบรมดีไซน์ ChronoLog (agent_trainer)  
 **อัปเดตล่าสุด:** 16 มิถุนายน 2026

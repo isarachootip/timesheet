@@ -1,4 +1,4 @@
-# NexTime — System Setup & Reference Guide
+# ChronoLog — System Setup & Reference Guide
 
 > อัปเดตล่าสุด: 2026-06-11  
 > โปรเจกต์: ระบบบันทึกเวลาและจัดการโปรเจกต์ภายในองค์กร

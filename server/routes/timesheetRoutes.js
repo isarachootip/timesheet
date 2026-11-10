@@ -64,11 +64,11 @@ router.post('/api/timesheets', async (req, res) => {
               const pm = pmRes.rows[0];
               if (pm && pm.email) {
                 // Send email to PM
-                const subject = `[NexTime] Timesheet Pending Approval: ${employee.name} - ${project.name}`;
+                const subject = `[ChronoLog] Timesheet Pending Approval: ${employee.name} - ${project.name}`;
                 const html = `
                   <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px; background-color: #fdfdfd;">
                     <div style="text-align: center; border-bottom: 2px solid #06C755; padding-bottom: 15px; margin-bottom: 20px;">
-                      <h2 style="color: #333; margin: 0;">NexTime Project Management</h2>
+                      <h2 style="color: #333; margin: 0;">ChronoLog Project Management</h2>
                       <span style="color: #666; font-size: 0.9em;">Timesheet Approval Request</span>
                     </div>
                     <p>Dear <strong>${pm.name}</strong>,</p>
@@ -95,7 +95,7 @@ router.post('/api/timesheets', async (req, res) => {
                       <a href="https://vibeproject.online" style="background-color: #06C755; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">View Team Approvals</a>
                     </div>
                     <hr style="border: 0; border-top: 1px solid #eee; margin-top: 30px;" />
-                    <p style="font-size: 0.8em; color: #999; text-align: center;">This is an automated email from NexTime. Please do not reply directly to this message.</p>
+                    <p style="font-size: 0.8em; color: #999; text-align: center;">This is an automated email from ChronoLog. Please do not reply directly to this message.</p>
                   </div>
                 `;
                 await sendEmail({ to: pm.email, subject, html });
@@ -115,11 +115,11 @@ router.post('/api/timesheets', async (req, res) => {
               const isApproved = status === 'Approved';
               const statusColor = isApproved ? '#06C755' : '#ff4d4f';
               
-              const subject = `[NexTime] Timesheet ${status}: ${project.name}`;
+              const subject = `[ChronoLog] Timesheet ${status}: ${project.name}`;
               const html = `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px; background-color: #fdfdfd;">
                   <div style="text-align: center; border-bottom: 2px solid ${statusColor}; padding-bottom: 15px; margin-bottom: 20px;">
-                    <h2 style="color: #333; margin: 0;">NexTime Project Management</h2>
+                    <h2 style="color: #333; margin: 0;">ChronoLog Project Management</h2>
                     <span style="color: ${statusColor}; font-size: 1.1em; font-weight: bold;">Timesheet Entry ${status}</span>
                   </div>
                   <p>Dear <strong>${employee.name}</strong>,</p>
@@ -146,7 +146,7 @@ router.post('/api/timesheets', async (req, res) => {
                     <a href="https://vibeproject.online" style="background-color: #007bff; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">View My Timesheet</a>
                   </div>
                   <hr style="border: 0; border-top: 1px solid #eee; margin-top: 30px;" />
-                  <p style="font-size: 0.8em; color: #999; text-align: center;">This is an automated email from NexTime. Please do not reply directly to this message.</p>
+                  <p style="font-size: 0.8em; color: #999; text-align: center;">This is an automated email from ChronoLog. Please do not reply directly to this message.</p>
                 </div>
               `;
               await sendEmail({ to: employee.email, subject, html });

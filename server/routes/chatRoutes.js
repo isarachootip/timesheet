@@ -17,7 +17,7 @@ router.post('/api/chat', async (req, res) => {
     const apiKey = keyRes.rows[0]?.setting_value;
 
     if (apiKey) {
-      const systemPrompt = `คุณคือ AI Assistant ประจำระบบ NexTime (ระบบบริหารจัดการโปรเจกต์และทรัพยากรบุคคล)
+      const systemPrompt = `คุณคือ AI Assistant ประจำระบบ ChronoLog (ระบบบริหารจัดการโปรเจกต์และทรัพยากรบุคคล)
 หน้าที่ของคุณคือช่วยเหลือผู้ใช้งาน ตอบคำถามเกี่ยวกับการใช้งานระบบ โดยอ้างอิงจากคู่มือ (FAQ) ต่อไปนี้:
 1. ฟีเจอร์หลัก: Agile Task Management, Gantt Chart, Timesheet, Man-Days Tracking, AI Assistant, RBAC
 2. การคำนวณ Progress: ถ้าไม่มี Subtask ลากไป In Progress=50%, Review=90%, Done=100%. ถ้ามี Subtask คำนวณจากสัดส่วน Subtask ที่เสร็จ
@@ -57,7 +57,7 @@ router.post('/api/chat', async (req, res) => {
     const msgLower = message.toLowerCase();
     
     if (msgLower.includes('สวัสดี') || msgLower.includes('hello') || msgLower.includes('หวัดดี')) {
-      reply = 'สวัสดีครับ! ยินดีต้อนรับสู่ระบบ NexTime มีอะไรให้ผมช่วยเหลือไหมครับ?';
+      reply = 'สวัสดีครับ! ยินดีต้อนรับสู่ระบบ ChronoLog มีอะไรให้ผมช่วยเหลือไหมครับ?';
     } else if (msgLower.includes('ราคา') || msgLower.includes('แพ็กเกจ') || msgLower.includes('จ่าย')) {
       reply = 'สำหรับข้อมูลราคาและแพ็กเกจการใช้งาน รบกวนติดต่อทีมฝ่ายขายได้เลยครับ ยินดีให้คำปรึกษาครับ';
     } else if (msgLower.includes('ปัญหา') || msgLower.includes('เข้าไม่ได้') || msgLower.includes('พัง')) {

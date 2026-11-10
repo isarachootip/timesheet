@@ -1,4 +1,4 @@
--- Database schema for NexTime application
+-- Database schema for ChronoLog application
 
 -- 1. Users Table
 CREATE TABLE IF NOT EXISTS users (
