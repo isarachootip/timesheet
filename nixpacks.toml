@@ -1,8 +1,15 @@
 # Nixpacks configuration to build and run the full-stack Node.js server
 providers = ["node"]
 
+[variables]
+NPM_CONFIG_PRODUCTION = "false"
+NODE_OPTIONS = "--max-old-space-size=2048"
+
+[phases.install]
+cmds = ["npm ci --include=dev --no-audit --no-fund"]
+
 [phases.build]
-cmds = ["npm install", "npm run build"]
+cmds = ["npm run build"]
 
 [start]
 cmd = "node server.js"

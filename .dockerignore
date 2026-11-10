@@ -1,0 +1,14 @@
+.git
+node_modules
+dist
+.env
+.env.*
+*.log
+*.dump
+*.sql
+*.docx
+*.pptx
+user_manual.html
+scratch/
+docs/
+timesheet/
