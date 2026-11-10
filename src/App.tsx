@@ -274,12 +274,12 @@ const AppLayout = ({ children, currentUser, tasks, onLogout, theme, onToggleThem
 
       {/* Sidebar */}
       <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
-        <div style={{ padding: '1.25rem 1.25rem', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+        <div className="sidebar-brand">
           <ChronoTrackBrand size="sm" />
           <button 
             className="mobile-close-btn"
             onClick={() => setIsSidebarOpen(false)}
-            style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'none', alignItems: 'center', justifyContent: 'center' }}
+            style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'none', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
           >
             <X size={20} />
           </button>

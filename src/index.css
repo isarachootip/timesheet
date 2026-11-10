@@ -170,6 +170,18 @@ a:hover {
   z-index: 10;
 }
 
+.sidebar-brand {
+  height: 72px;
+  min-height: 72px;
+  padding: 0 1.25rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  overflow: hidden;
+}
+
 .main-content {
   flex: 1;
   display: flex;
@@ -220,28 +232,8 @@ table, th, td {
   font-size: var(--fs-base) !important;
 }
 
-.sidebar, .sidebar a, .sidebar span:not(.chronotrack-brand-subtitle) {
+.sidebar, .sidebar a, .sidebar span {
   font-size: var(--fs-base) !important;
-}
-
-.chronotrack-brand-title-sm {
-  font-size: 1.05rem !important;
-  line-height: 1.15 !important;
-}
-
-.chronotrack-brand-subtitle-sm {
-  font-size: 0.5rem !important;
-  line-height: 1.1 !important;
-}
-
-.chronotrack-brand-title-lg {
-  font-size: 1.5rem !important;
-  line-height: 1.15 !important;
-}
-
-.chronotrack-brand-subtitle-lg {
-  font-size: 0.65rem !important;
-  line-height: 1.1 !important;
 }
 
 input, select, textarea {
@@ -329,6 +321,12 @@ input, select, textarea {
 
   .mobile-menu-btn {
     display: flex !important;
+  }
+
+  .sidebar-brand {
+    height: 60px;
+    min-height: 60px;
+    padding: 0 1rem;
   }
 
   .header {
