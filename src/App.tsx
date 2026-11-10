@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useUsers, useProjects, useTasks, useTimesheets, useTaskTemplates, useSprints, useReleases, usePermissionSchemes, useProjectWorkflows, useCostRates, useSystemSettings } from './hooks/useAppQueries';
 import { LayoutDashboard, CheckSquare, Clock, Users, Settings as SettingsIcon, LogOut, Briefcase, BarChart3, Menu, X, CalendarRange, Bell, AlertTriangle, AlertCircle, CalendarClock, HelpCircle, MessageSquare, Sun, Moon, StickyNote } from 'lucide-react';
 import { Login } from './components/Login';
-import { ChronoTrackLogo } from './components/ChronoTrackLogo';
+import { ChronoTrackBrand } from './components/ChronoTrackLogo';
 import ChatWidget from './components/ChatWidget';
 
 const Dashboard = lazy(() => import('./components/Dashboard').then(m => ({ default: m.Dashboard })));
@@ -274,11 +274,8 @@ const AppLayout = ({ children, currentUser, tasks, onLogout, theme, onToggleThem
 
       {/* Sidebar */}
       <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
-        <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-            <ChronoTrackLogo size={36} />
-            <h1 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }} className="text-gradient">ChronoTrack</h1>
-          </div>
+        <div style={{ padding: '1.25rem 1.25rem', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+          <ChronoTrackBrand size="sm" />
           <button 
             className="mobile-close-btn"
             onClick={() => setIsSidebarOpen(false)}
