@@ -1,4 +1,4 @@
--- Database schema for ChronoLog application
+-- Database schema for ChronoTrack application
 
 -- 1. Users Table
 CREATE TABLE IF NOT EXISTS users (

@@ -661,7 +661,7 @@ export const Settings = ({
           <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)' }}>Commit Message Format Guide</h3>
             <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-              ChronoLog scans your commit messages for Task IDs (e.g. <code>[t1]</code> or <code>#t1</code>) and transitions them based on keywords.
+              ChronoTrack scans your commit messages for Task IDs (e.g. <code>[t1]</code> or <code>#t1</code>) and transitions them based on keywords.
             </p>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem', textAlign: 'left', marginTop: '0.5rem' }}>
               <thead>

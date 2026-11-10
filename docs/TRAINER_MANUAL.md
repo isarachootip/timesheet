@@ -1,7 +1,7 @@
-# 🎓 ChronoLog — Trainer & End-User Training Manual (คู่มือการอบรมและฝึกปฏิบัติระบบ)
+# 🎓 ChronoTrack — Trainer & End-User Training Manual (คู่มือการอบรมและฝึกปฏิบัติระบบ)
 
 > **เอกสารสำหรับ:** วิทยากรฝึกอบรม (Trainers), ผู้จัดการโครงการ (PM), หัวหน้างาน (Team Lead), พนักงานผู้ใช้งานทั่วไป (Employees), และผู้บริหาร (Executives)  
-> **ระบบ:** ChronoLog Enterprise (Project Management & Timesheet System)  
+> **ระบบ:** ChronoTrack Enterprise (Project Management & Timesheet System)  
 > **วัตถุประสงค์:** ใช้เป็นคู่มือหลักในการจัดหลักสูตรฝึกอบรม (Courseware), การทำ Workshop ภาคปฏิบัติ, และเป็นเอกสารอ้างอิงการใช้งานรายบุคคล  
 
 ---
@@ -202,7 +202,7 @@ graph TD
 
 ### 2.4 การวิเคราะห์ความคลาดเคลื่อนของแผนงาน (Drift & Slippage Analysis)
 
-เมื่อทีมงานปฏิบัติงานจริงและมีการเลื่อนกำหนดส่งงาน ระบบ ChronoLog จะคำนวณความคลาดเคลื่อนให้อัตโนมัติ:
+เมื่อทีมงานปฏิบัติงานจริงและมีการเลื่อนกำหนดส่งงาน ระบบ ChronoTrack จะคำนวณความคลาดเคลื่อนให้อัตโนมัติ:
 
 ![Drift Analysis](docs/screenshots/baseline_drift.png)
 
@@ -326,7 +326,7 @@ $$\text{Project Actual Cost} = \sum (\text{Approved Hours} \times \text{Labor Ho
 ### 🧪 LAB 1: สำหรับพนักงาน (Time Logging & Board Movement)
 - **โจทย์:** 
   1. ล็อกอินเข้าสู่ระบบด้วยชื่อตนเอง
-  2. ไปที่โครงการ `ChronoLog Internal Tool` $\rightarrow$ หาการ์ดงานของตนเองในคอลัมน์ `To Do` แล้วลากไปยัง `In Progress`
+  2. ไปที่โครงการ `ChronoTrack Internal Tool` $\rightarrow$ หาการ์ดงานของตนเองในคอลัมน์ `To Do` แล้วลากไปยัง `In Progress`
   3. ไปที่เมนู **Timesheet** บันทึกการลงเวลา 8 ชั่วโมง สำหรับงานดังกล่าว ระบุรายละเอียดผลงานและติ๊ก WFH
   4. กลับไปที่หน้า **Dashboard** ตรวจสอบว่าจำนวนชั่วโมงสะสมในสัปดาห์นี้อัปเดตถูกต้องหรือไม่
 - **เกณฑ์การผ่าน:** รายการ Timesheet ขึ้นสถานะ `Pending` และการ์ดงานอยู่คอลัมน์ `In Progress`
@@ -363,4 +363,4 @@ $$\text{Project Actual Cost} = \sum (\text{Approved Hours} \times \text{Labor Ho
    - *คำแนะนำสำหรับวิทยากร:* ให้ตรวจสอบว่าพิมพ์ `@` แล้วเลือกชื่อจาก Dropdown ถูกต้องหรือไม่ และเพื่อนคนนั้นเปิดดูหน้าจอระบบอยู่หรือไม่ (ระบบจะ Polling แจ้งเตือนทุกๆ 5 วินาที)
 
 ---
-*เอกสารหลักสูตรการฝึกอบรมระบบ ChronoLog จัดทำโดยทีมวิทยากรและ System Analyst พ.ศ. 2569*
+*เอกสารหลักสูตรการฝึกอบรมระบบ ChronoTrack จัดทำโดยทีมวิทยากรและ System Analyst พ.ศ. 2569*

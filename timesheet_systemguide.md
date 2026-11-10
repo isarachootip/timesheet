@@ -1,7 +1,7 @@
-# ChronoLog System Guide / คู่มือการใช้งานระบบ ChronoLog
+# ChronoTrack System Guide / คู่มือการใช้งานระบบ ChronoTrack
 
-Welcome to the ChronoLog System Guide. This document provides a comprehensive overview of all system features, roles, and functionalities.
-ยินดีต้อนรับสู่คู่มือการใช้งานระบบ ChronoLog เอกสารฉบับนี้อธิบายภาพรวมและคำแนะนำการใช้งานฟีเจอร์ บทบาทหน้าที่ และฟังก์ชันการทำงานทั้งหมดของระบบอย่างครบถ้วน
+Welcome to the ChronoTrack System Guide. This document provides a comprehensive overview of all system features, roles, and functionalities.
+ยินดีต้อนรับสู่คู่มือการใช้งานระบบ ChronoTrack เอกสารฉบับนี้อธิบายภาพรวมและคำแนะนำการใช้งานฟีเจอร์ บทบาทหน้าที่ และฟังก์ชันการทำงานทั้งหมดของระบบอย่างครบถ้วน
 
 ---
 
@@ -58,7 +58,7 @@ Tasks can be organized into hierarchy levels to track milestone completion:
 
 ## 4. Timesheet Logging & Approvals / การบันทึกเวลาและการอนุมัติ
 
-ChronoLog locks in logged time data while providing options for administrative corrections:
+ChronoTrack locks in logged time data while providing options for administrative corrections:
 ระบบอำนวยความสะดวกในการบันทึกเวลาพร้อมทั้งควบคุมความถูกต้องของชั่วโมงปฏิบัติงาน:
 
 *   **Draft & Pending Status**: Logged hours are drafted or submitted as pending for PM approval. Users can edit or delete these entries freely.

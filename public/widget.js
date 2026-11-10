@@ -1,7 +1,7 @@
 (function() {
   // Prevent multiple initializations
-  if (window.ChronoLogChatWidget) return;
-  window.ChronoLogChatWidget = true;
+  if (window.ChronoTrackChatWidget) return;
+  window.ChronoTrackChatWidget = true;
 
   // Derive the backend URL from this script's src attribute
   var scriptTag = document.currentScript;
@@ -17,7 +17,7 @@
 
   // Create Container
   var container = document.createElement('div');
-  container.id = 'chronolog-chat-container';
+  container.id = 'chronotrack-chat-container';
   container.style.position = 'fixed';
   container.style.bottom = '20px';
   container.style[config.position] = '20px';

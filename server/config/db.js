@@ -450,7 +450,7 @@ const initDB = async () => {
       const mockProjects = [
         {
           id: 'p1',
-          name: 'ChronoLog Internal Tool',
+          name: 'ChronoTrack Internal Tool',
           description: 'Developing the internal project and time management system.',
           status: 'Active',
           startDate: '2026-06-01',

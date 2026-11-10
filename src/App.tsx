@@ -278,7 +278,7 @@ const AppLayout = ({ children, currentUser, tasks, onLogout, theme, onToggleThem
             <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Clock size={20} color="white" />
             </div>
-            <h1 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }} className="text-gradient">ChronoLog</h1>
+            <h1 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }} className="text-gradient">ChronoTrack</h1>
           </div>
           <button 
             className="mobile-close-btn"
