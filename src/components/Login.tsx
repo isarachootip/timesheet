@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Clock, Shield, ArrowRight } from 'lucide-react';
+import { Shield, ArrowRight } from 'lucide-react';
+import { ChronoTrackLogo } from './ChronoTrackLogo';
 import type { User } from '../types';
 
 interface LoginProps {
@@ -107,9 +108,7 @@ export const Login = ({ onLogin, availableUsers }: LoginProps) => {
       }}>
         {/* Logo */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', textAlign: 'center' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--shadow-md)' }}>
-            <Clock size={28} color="white" />
-          </div>
+          <ChronoTrackLogo size={64} />
           <h1 className="text-gradient" style={{ fontSize: '2rem', fontWeight: 800 }}>ChronoTrack</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Project & Timesheet Management System</p>
         </div>
