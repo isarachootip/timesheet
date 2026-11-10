@@ -220,8 +220,28 @@ table, th, td {
   font-size: var(--fs-base) !important;
 }
 
-.sidebar, .sidebar a, .sidebar span {
+.sidebar, .sidebar a, .sidebar span:not(.chronotrack-brand-subtitle) {
   font-size: var(--fs-base) !important;
+}
+
+.chronotrack-brand-title-sm {
+  font-size: 1.05rem !important;
+  line-height: 1.15 !important;
+}
+
+.chronotrack-brand-subtitle-sm {
+  font-size: 0.5rem !important;
+  line-height: 1.1 !important;
+}
+
+.chronotrack-brand-title-lg {
+  font-size: 1.5rem !important;
+  line-height: 1.15 !important;
+}
+
+.chronotrack-brand-subtitle-lg {
+  font-size: 0.65rem !important;
+  line-height: 1.1 !important;
 }
 
 input, select, textarea {

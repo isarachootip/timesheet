@@ -16,7 +16,7 @@ const MAJOR_ANGLES = [0, 90, 180, 270];
 const MINOR_ANGLES = [30, 60, 120, 150, 210, 240, 300, 330];
 
 export const ChronoTrackLogo: React.FC<ChronoTrackLogoProps> = ({
-  size = 42,
+  size = 40,
   className,
   style,
 }) => {
@@ -133,11 +133,12 @@ export const ChronoTrackBrand: React.FC<ChronoTrackBrandProps> = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: isLg ? 'center' : 'flex-start',
-        gap: isLg ? '1rem' : '0.7rem',
+        gap: isLg ? '0.9rem' : '0.6rem',
+        maxWidth: '100%',
         ...style,
       }}
     >
-      <ChronoTrackLogo size={isLg ? 64 : 42} />
+      <ChronoTrackLogo size={isLg ? 60 : 40} />
       <div
         style={{
           display: 'flex',
@@ -147,14 +148,14 @@ export const ChronoTrackBrand: React.FC<ChronoTrackBrandProps> = ({
           paddingTop: '2px',
         }}
       >
-        <h1
+        <div
+          className={isLg ? 'chronotrack-brand-title-lg' : 'chronotrack-brand-title-sm'}
           style={{
             margin: 0,
-            fontSize: isLg ? '1.45rem' : '1.02rem',
+            fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif",
             fontWeight: 500,
-            letterSpacing: '0.16em',
-            paddingLeft: '0.16em',
-            lineHeight: 1.15,
+            letterSpacing: '0.15em',
+            paddingLeft: '0.15em',
             textTransform: 'uppercase',
             backgroundImage:
               'linear-gradient(90deg, #B59571 0%, #DFC39D 25%, #F6E6CF 50%, #C6A47E 78%, #9E805D 100%)',
@@ -165,23 +166,23 @@ export const ChronoTrackBrand: React.FC<ChronoTrackBrandProps> = ({
           }}
         >
           CHRONOTRACK
-        </h1>
-        <span
+        </div>
+        <div
+          className={`chronotrack-brand-subtitle ${isLg ? 'chronotrack-brand-subtitle-lg' : 'chronotrack-brand-subtitle-sm'}`}
           style={{
-            marginTop: isLg ? '0.32rem' : '0.22rem',
-            fontSize: isLg ? '0.65rem' : '0.48rem',
+            marginTop: isLg ? '0.3rem' : '0.2rem',
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
             fontWeight: 400,
-            letterSpacing: '0.25em',
-            paddingLeft: '0.25em',
-            lineHeight: 1.1,
+            letterSpacing: '0.22em',
+            paddingLeft: '0.22em',
             textTransform: 'uppercase',
             color: 'var(--text-primary)',
-            opacity: 0.92,
+            opacity: 0.9,
             whiteSpace: 'nowrap',
           }}
         >
           PROJECT MANAGEMENT
-        </span>
+        </div>
       </div>
     </div>
   );
