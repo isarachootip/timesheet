@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { Task, TaskStatus, TaskPriority, Project, User, Sprint, Release, TaskCommit } from '../types';
 import { formatToDDMMYYYY } from '../utils';
 import { CustomDateInput } from './CustomDateInput';
+import { OutlookImportModal } from './OutlookImport/OutlookImportModal';
 import { Plus, Filter, Clock, X, Edit, Trash2, GripVertical, Calendar, Bug, FileText, CheckSquare, Layers, GitBranch, GitCommit, ChevronRight, ChevronDown, BarChart3, CalendarRange } from 'lucide-react';
 import {
   DndContext,
@@ -1196,6 +1197,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
   }, [selectedProject, sprints, selectedSprint]);
   const [moreDropdownOpen, setMoreDropdownOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isOutlookModalOpen, setIsOutlookModalOpen] = useState(() => new URLSearchParams(window.location.search).get('outlook_connected') === '1');
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [commits, setCommits] = useState<TaskCommit[]>([]);
 
@@ -2062,6 +2064,25 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
               </select>
             </div>
           )}
+          <button
+            onClick={() => setIsOutlookModalOpen(true)}
+            style={{
+              background: 'rgba(0, 120, 212, 0.15)',
+              color: '#38bdf8',
+              border: '1px solid rgba(0, 120, 212, 0.45)',
+              padding: '0.75rem 1.25rem',
+              borderRadius: 'var(--radius-md)',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+            }}
+            className="hover-lift"
+            title="Import Tasks from Microsoft Outlook Calendar"
+          >
+            <Calendar size={18} /> Import from Outlook
+          </button>
           <button
             onClick={openAddModal}
             style={{
@@ -4338,6 +4359,16 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
           </div>
         </div>
       )}
+
+      <OutlookImportModal
+        isOpen={isOutlookModalOpen}
+        onClose={() => setIsOutlookModalOpen(false)}
+        projects={projects}
+        users={users}
+        currentUser={currentUser}
+        defaultProjectId={selectedProject}
+        returnPath="/tasks"
+      />
     </div>
   );
 };

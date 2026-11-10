@@ -98,6 +98,7 @@ export interface Task {
   storyPoints?: number;
   issueType?: 'Bug' | 'Story' | 'Task' | 'Sub-task';
   updatedAt?: string;
+  outlookEventId?: string;
 }
 
 export interface TaskTemplate {

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { Users, Plus, X, Edit, Trash2, GitBranch, MessageSquare, LayoutGrid, List } from 'lucide-react';
+import { Users, Plus, X, Edit, Trash2, GitBranch, MessageSquare, LayoutGrid, List, Calendar } from 'lucide-react';
 import type { User, Project, ProjectStatus, ProjectRole, Task, PermissionScheme, ProjectWorkflow } from '../types';
 import { formatToDDMMYYYY } from '../utils';
 import { CustomDateInput } from './CustomDateInput';
+import { OutlookImportModal } from './OutlookImport/OutlookImportModal';
 
 interface ProjectsProps {
   projects: Project[];
@@ -48,6 +49,7 @@ export const Projects = ({
   }, [location]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isOutlookModalOpen, setIsOutlookModalOpen] = useState(() => new URLSearchParams(window.location.search).get('outlook_connected') === '1');
   const [editingProject, setEditingProject] = useState<Project | null>(null);
 
   // Form states
@@ -364,6 +366,26 @@ export const Projects = ({
               <span>List</span>
             </button>
           </div>
+
+          <button
+            onClick={() => setIsOutlookModalOpen(true)}
+            style={{
+              background: 'rgba(0, 120, 212, 0.15)',
+              color: '#38bdf8',
+              border: '1px solid rgba(0, 120, 212, 0.45)',
+              padding: '0.75rem 1.25rem',
+              borderRadius: 'var(--radius-md)',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+            }}
+            className="hover-lift"
+            title="Import Tasks from Microsoft Outlook Calendar"
+          >
+            <Calendar size={18} /> Import from Outlook
+          </button>
 
           {canCreateProject() && (
             <button onClick={openAddModal} style={{ 
@@ -1093,6 +1115,17 @@ export const Projects = ({
             </div>
           </div>
         </div>
+      )}
+
+      {currentUser && (
+        <OutlookImportModal
+          isOpen={isOutlookModalOpen}
+          onClose={() => setIsOutlookModalOpen(false)}
+          projects={projects}
+          users={users}
+          currentUser={currentUser}
+          returnPath="/projects"
+        />
       )}
     </div>
   );

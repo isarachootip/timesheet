@@ -67,7 +67,8 @@ router.get('/api/tasks', async (req, res) => {
       estimatedHours: parseFloat(t.estimated_hours || '0'), createdAt: t.created_at,
       parentId: t.parent_id, startDate: t.start_date, endDate: t.end_date,
       sprintId: t.sprint_id, releaseId: t.release_id, storyPoints: t.story_points || 0,
-      issueType: t.issue_type || 'Task', updatedAt: t.updated_at || t.created_at
+      issueType: t.issue_type || 'Task', updatedAt: t.updated_at || t.created_at,
+      outlookEventId: t.outlook_event_id || undefined
     }));
     res.json(tasks);
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -212,7 +213,8 @@ router.get('/api/initial-data', async (req, res) => {
       estimatedHours: parseFloat(t.estimated_hours || '0'), createdAt: t.created_at,
       parentId: t.parent_id, startDate: t.start_date, endDate: t.end_date,
       sprintId: t.sprint_id, releaseId: t.release_id, storyPoints: t.story_points || 0,
-      issueType: t.issue_type || 'Task', updatedAt: t.updated_at || t.created_at
+      issueType: t.issue_type || 'Task', updatedAt: t.updated_at || t.created_at,
+      outlookEventId: t.outlook_event_id || undefined
     }));
 
     const timesheets = timesheetsRes.rows.map(ts => ({

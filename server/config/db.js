@@ -55,6 +55,11 @@ const initDB = async () => {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);
       ALTER TABLE users ADD COLUMN IF NOT EXISTS wfh_days TEXT[] DEFAULT '{}';
       ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS ms_user_id VARCHAR(150) UNIQUE;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS ms_email VARCHAR(150);
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS ms_access_token TEXT;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS ms_refresh_token TEXT;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS ms_token_expires_at BIGINT;
       UPDATE users SET is_active = TRUE WHERE is_active IS NULL;
     `);
 
@@ -144,6 +149,8 @@ const initDB = async () => {
       ALTER TABLE tasks ADD COLUMN IF NOT EXISTS story_points INTEGER DEFAULT 0;
       ALTER TABLE tasks ADD COLUMN IF NOT EXISTS issue_type VARCHAR(50) DEFAULT 'Task';
       ALTER TABLE tasks ADD COLUMN IF NOT EXISTS updated_at VARCHAR(50);
+      ALTER TABLE tasks ADD COLUMN IF NOT EXISTS outlook_event_id VARCHAR(255);
+      CREATE INDEX IF NOT EXISTS idx_tasks_outlook_event_id ON tasks(outlook_event_id);
     `);
     await client.query(`
       UPDATE tasks SET updated_at = created_at WHERE updated_at IS NULL;

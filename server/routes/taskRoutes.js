@@ -6,7 +6,7 @@ const router = express.Router();
 
 // Tasks REST API
 router.post('/api/tasks', async (req, res) => {
-  const { id, projectId, assigneeId, title, description, status, priority, estimatedHours, createdAt, parentId, startDate, endDate, sprintId, releaseId, storyPoints, issueType } = req.body;
+  const { id, projectId, assigneeId, title, description, status, priority, estimatedHours, createdAt, parentId, startDate, endDate, sprintId, releaseId, storyPoints, issueType, outlookEventId } = req.body;
   const userId = req.headers['x-user-id'];
   try {
     // Check if it is an update
@@ -45,8 +45,8 @@ router.post('/api/tasks', async (req, res) => {
     const updatedAt = req.body.updatedAt || new Date().toISOString();
 
     await pool.query(
-      `INSERT INTO tasks (id, project_id, assignee_id, title, description, status, priority, estimated_hours, created_at, parent_id, start_date, end_date, sprint_id, release_id, story_points, issue_type, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+      `INSERT INTO tasks (id, project_id, assignee_id, title, description, status, priority, estimated_hours, created_at, parent_id, start_date, end_date, sprint_id, release_id, story_points, issue_type, updated_at, outlook_event_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
        ON CONFLICT (id) DO UPDATE SET
          project_id = EXCLUDED.project_id,
          assignee_id = EXCLUDED.assignee_id,
@@ -63,7 +63,8 @@ router.post('/api/tasks', async (req, res) => {
          release_id = EXCLUDED.release_id,
          story_points = EXCLUDED.story_points,
          issue_type = EXCLUDED.issue_type,
-         updated_at = EXCLUDED.updated_at`,
+         updated_at = EXCLUDED.updated_at,
+         outlook_event_id = COALESCE(EXCLUDED.outlook_event_id, tasks.outlook_event_id)`,
       [
         id, 
         projectId, 
@@ -81,7 +82,8 @@ router.post('/api/tasks', async (req, res) => {
         releaseId || null,
         storyPoints || 0,
         issueType || 'Task',
-        updatedAt
+        updatedAt,
+        outlookEventId || null
       ]
     );
     res.json({ success: true });
