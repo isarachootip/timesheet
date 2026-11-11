@@ -96,7 +96,7 @@ const ChatWidget: React.FC = () => {
       flexDirection: 'column',
       height: '100vh',
       backgroundColor: '#f9fafb',
-      fontFamily: 'system-ui, -apple-system, sans-serif'
+      fontFamily: 'var(--font-sans)'
     }}>
       {/* Header */}
       <div style={{
@@ -181,7 +181,7 @@ const ChatWidget: React.FC = () => {
               maxWidth: '75%',
               boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
               fontSize: '14px',
-              lineHeight: '1.4'
+              lineHeight: '1.6'
             }}>
               {msg.text}
             </div>

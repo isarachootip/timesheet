@@ -25,7 +25,7 @@
   container.style.display = 'flex';
   container.style.flexDirection = 'column';
   container.style.alignItems = config.position === 'right' ? 'flex-end' : 'flex-start';
-  container.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+  container.style.fontFamily = "'Inter', 'Anuphan', system-ui, -apple-system, sans-serif";
   document.body.appendChild(container);
 
   // Create Iframe Container (hidden by default)
