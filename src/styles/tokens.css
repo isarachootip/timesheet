@@ -33,6 +33,21 @@
   --dot-danger: #DC2626;
   --dot-neutral: #64748B;
 
+  /* Brand Logo (Chronograph Gold / Bronze) */
+  --brand-gold-1: #8D6A3E;
+  --brand-gold-2: #BA905A;
+  --brand-gold-3: #9C7546;
+  --brand-gold-4: #70502A;
+  --brand-needle-1: #B68C56;
+  --brand-needle-2: #946D3E;
+  --brand-needle-3: #6C4D27;
+  --brand-text-1: #7C5A32;
+  --brand-text-2: #9E7647;
+  --brand-text-3: #B68C59;
+  --brand-text-4: #8A6539;
+  --brand-text-5: #654825;
+  --brand-tick-minor: #64748B;
+
   /* Borders & Subtle Elevation */
   --border-color: #E2E8F0;
   --border-strong: #CBD5E1;
@@ -115,6 +130,21 @@
   --dot-warning: #F59E0B;
   --dot-danger: #EF4444;
   --dot-neutral: #9CA3AF;
+
+  /* Brand Logo (Original Champagne Gold) */
+  --brand-gold-1: #C9A882;
+  --brand-gold-2: #F3DFC1;
+  --brand-gold-3: #D5B48B;
+  --brand-gold-4: #A68660;
+  --brand-needle-1: #FFF0D4;
+  --brand-needle-2: #E4C494;
+  --brand-needle-3: #B69266;
+  --brand-text-1: #B59571;
+  --brand-text-2: #DFC39D;
+  --brand-text-3: #F6E6CF;
+  --brand-text-4: #C6A47E;
+  --brand-text-5: #9E805D;
+  --brand-tick-minor: #7E8794;
 
   /* Borders & Subtle Elevation */
   --border-color: #262C38;
