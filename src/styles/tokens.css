@@ -33,20 +33,21 @@
   --dot-danger: #DC2626;
   --dot-neutral: #64748B;
 
-  /* Brand Logo (Chronograph Gold / Bronze) */
-  --brand-gold-1: #8D6A3E;
-  --brand-gold-2: #BA905A;
-  --brand-gold-3: #9C7546;
-  --brand-gold-4: #70502A;
-  --brand-needle-1: #B68C56;
-  --brand-needle-2: #946D3E;
-  --brand-needle-3: #6C4D27;
-  --brand-text-1: #7C5A32;
-  --brand-text-2: #9E7647;
-  --brand-text-3: #B68C59;
-  --brand-text-4: #8A6539;
-  --brand-text-5: #654825;
-  --brand-tick-minor: #64748B;
+  /* Brand Logo (Chronograph High-Contrast Bronze / Gold) */
+  --brand-gold-1: #6B4C24;
+  --brand-gold-2: #8F6834;
+  --brand-gold-3: #755327;
+  --brand-gold-4: #4E3617;
+  --brand-needle-1: #8F6834;
+  --brand-needle-2: #6E4E24;
+  --brand-needle-3: #4A3316;
+  --brand-text-1: #5C401D;
+  --brand-text-2: #7D592B;
+  --brand-text-3: #946B36;
+  --brand-text-4: #6E4E24;
+  --brand-text-5: #4A3316;
+  --brand-tick-minor: #475569;
+  --brand-subtitle: #1E293B;
 
   /* Borders & Subtle Elevation */
   --border-color: #E2E8F0;
@@ -144,7 +145,8 @@
   --brand-text-3: #F6E6CF;
   --brand-text-4: #C6A47E;
   --brand-text-5: #9E805D;
-  --brand-tick-minor: #7E8794;
+  --brand-tick-minor: #94A3B8;
+  --brand-subtitle: #E2E8F0;
 
   /* Borders & Subtle Elevation */
   --border-color: #262C38;

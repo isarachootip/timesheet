@@ -50,27 +50,27 @@ const ChronoTrackGlyph: React.FC<{ goldGradId: string; needleGradId: string }> =
 }) => (
   <>
     {/* Top Crown (12 o'clock) */}
-    <line x1="46.5" y1="10.5" x2="46.5" y2="16.5" stroke={`url(#${goldGradId})`} strokeWidth="2.4" />
-    <line x1="53.5" y1="10.5" x2="53.5" y2="16.5" stroke={`url(#${goldGradId})`} strokeWidth="2.4" />
-    <rect x="41" y="3" width="18" height="7.5" rx="2.4" stroke={`url(#${goldGradId})`} strokeWidth="2.4" />
+    <line x1="46.5" y1="10.5" x2="46.5" y2="16.5" stroke={`url(#${goldGradId})`} strokeWidth="2.8" />
+    <line x1="53.5" y1="10.5" x2="53.5" y2="16.5" stroke={`url(#${goldGradId})`} strokeWidth="2.8" />
+    <rect x="41" y="3" width="18" height="7.5" rx="2.4" stroke={`url(#${goldGradId})`} strokeWidth="2.8" />
 
     {/* Angled Side Pusher (~34 deg) */}
     <g transform="rotate(34 50 57)">
-      <line x1="47.5" y1="11.5" x2="47.5" y2="16.5" stroke={`url(#${goldGradId})`} strokeWidth="2.2" />
-      <line x1="52.5" y1="11.5" x2="52.5" y2="16.5" stroke={`url(#${goldGradId})`} strokeWidth="2.2" />
-      <rect x="43.5" y="6" width="13" height="5.5" rx="2" stroke={`url(#${goldGradId})`} strokeWidth="2.2" />
+      <line x1="47.5" y1="11.5" x2="47.5" y2="16.5" stroke={`url(#${goldGradId})`} strokeWidth="2.5" />
+      <line x1="52.5" y1="11.5" x2="52.5" y2="16.5" stroke={`url(#${goldGradId})`} strokeWidth="2.5" />
+      <rect x="43.5" y="6" width="13" height="5.5" rx="2" stroke={`url(#${goldGradId})`} strokeWidth="2.5" />
     </g>
 
     {/* Double Concentric Outer Bezel Rings */}
-    <circle cx="50" cy="57" r="40.5" stroke={`url(#${goldGradId})`} strokeWidth="2.4" />
-    <circle cx="50" cy="57" r="35.5" stroke={`url(#${goldGradId})`} strokeWidth="2.2" />
+    <circle cx="50" cy="57" r="40.5" stroke={`url(#${goldGradId})`} strokeWidth="2.8" />
+    <circle cx="50" cy="57" r="35.5" stroke={`url(#${goldGradId})`} strokeWidth="2.5" />
 
     {/* Cardinal Major Ticks (12, 3, 6, 9) */}
     {MAJOR_ANGLES.map((deg) => (
       <line
         key={`maj-${deg}`}
         x1="50" y1="21.5" x2="50" y2="29"
-        stroke={`url(#${goldGradId})`} strokeWidth="2.4" strokeLinecap="round"
+        stroke={`url(#${goldGradId})`} strokeWidth="2.8" strokeLinecap="round"
         transform={`rotate(${deg} 50 57)`}
       />
     ))}
@@ -80,7 +80,7 @@ const ChronoTrackGlyph: React.FC<{ goldGradId: string; needleGradId: string }> =
       <line
         key={`min-${deg}`}
         x1="50" y1="21.5" x2="50" y2="27.2"
-        stroke="var(--brand-tick-minor, #7E8794)" strokeWidth="1.6" strokeLinecap="round"
+        stroke="var(--brand-tick-minor, #94A3B8)" strokeWidth="2" strokeLinecap="round"
         transform={`rotate(${deg} 50 57)`}
       />
     ))}
@@ -88,13 +88,13 @@ const ChronoTrackGlyph: React.FC<{ goldGradId: string; needleGradId: string }> =
     {/* Inner Chronograph Track Arc */}
     <path
       d="M 50 31.5 L 50 35.5 A 21.5 21.5 0 1 0 71.1 53.2"
-      stroke="var(--brand-tick-minor, #7E8794)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+      stroke="var(--brand-tick-minor, #94A3B8)" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"
     />
 
     {/* Tapered Gold Chronograph Needle (pointing to ~1:30 / 45 deg) */}
     <g transform="rotate(45 50 57)">
-      <path d="M 50 28 L 52.4 53.5 A 3.6 3.6 0 1 1 47.6 53.5 Z" fill={`url(#${needleGradId})`} />
-      <path d="M 48.7 59.8 L 51.3 59.8 L 50 65.5 Z" fill={`url(#${needleGradId})`} />
+      <path d="M 50 28 L 52.6 53.5 A 3.8 3.8 0 1 1 47.4 53.5 Z" fill={`url(#${needleGradId})`} />
+      <path d="M 48.6 59.8 L 51.4 59.8 L 50 65.8 Z" fill={`url(#${needleGradId})`} />
       <circle cx="50" cy="57" r="1.6" fill="var(--bg-secondary, #1E242B)" />
     </g>
   </>
@@ -150,13 +150,13 @@ export const ChronoTrackBrand: React.FC<ChronoTrackBrandProps> = ({
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 680 132"
+        viewBox="0 0 600 124"
         fill="none"
         aria-label="CHRONOTRACK - PROJECT MANAGEMENT"
         style={{
           display: 'block',
           width: '100%',
-          maxWidth: isLg ? '330px' : '228px',
+          maxWidth: isLg ? '348px' : '226px',
           height: 'auto',
           flexShrink: 1,
         }}
@@ -166,26 +166,26 @@ export const ChronoTrackBrand: React.FC<ChronoTrackBrandProps> = ({
           needleGradId={needleGradId}
           textGoldGradId={textGoldGradId}
         />
-        <g transform="translate(4, 3.5) scale(1.16)">
+        <g transform="translate(2, 2) scale(1.12)">
           <ChronoTrackGlyph goldGradId={goldGradId} needleGradId={needleGradId} />
         </g>
         <text
           data-testid="brand-title"
-          x="410" y="68" textAnchor="middle"
+          x="362" y="62" textAnchor="middle"
           fill={`url(#${textGoldGradId})`}
           fontFamily="var(--font-sans)"
-          fontSize="54" fontWeight="600" letterSpacing="8.5"
-          style={{ fontSize: '54px' }}
+          fontSize="52" fontWeight="700" letterSpacing="5"
+          style={{ fontSize: '52px' }}
         >
           CHRONOTRACK
         </text>
         <text
           data-testid="brand-subtitle"
-          x="410" y="102" textAnchor="middle"
-          fill="var(--text-primary)" fillOpacity="0.82"
+          x="362" y="101" textAnchor="middle"
+          fill="var(--brand-subtitle, var(--text-primary))"
           fontFamily="var(--font-sans)"
-          fontSize="20" fontWeight="500" letterSpacing="9.5"
-          style={{ fontSize: '20px' }}
+          fontSize="24.5" fontWeight="700" letterSpacing="5.2"
+          style={{ fontSize: '24.5px' }}
         >
           PROJECT MANAGEMENT
         </text>
