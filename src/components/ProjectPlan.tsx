@@ -41,6 +41,14 @@ export function ProjectPlan(props: ProjectPlanProps) {
     );
   }
 
+  const toggleExpand = (id: string) =>
+    ctrl.setExpandedMilestones((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <PlanToolbar
@@ -90,6 +98,11 @@ export function ProjectPlan(props: ProjectPlanProps) {
             showProjectBadge={ctrl.selectedProjectId === 'all'}
             timelineRange={ctrl.timelineRange}
             compareData={ctrl.compareData}
+            searchQuery={ctrl.searchQuery}
+            expandedMilestones={ctrl.expandedMilestones}
+            onToggleExpand={toggleExpand}
+            canEditTask={ctrl.canEditTask}
+            onEditTask={ctrl.openEditTask}
           />
           <PlanMilestonesList
             milestones={ctrl.milestones}
@@ -102,13 +115,7 @@ export function ProjectPlan(props: ProjectPlanProps) {
             canCreateInProject={ctrl.canCreateInProject}
             canEditTask={ctrl.canEditTask}
             canDeleteTask={ctrl.canDeleteTask}
-            onToggleExpand={(id) =>
-              ctrl.setExpandedMilestones((prev) => {
-                const next = new Set(prev);
-                if (next.has(id)) next.delete(id); else next.add(id);
-                return next;
-              })
-            }
+            onToggleExpand={toggleExpand}
             onStatusChange={ctrl.handleStatusChange}
             onAddSubtask={ctrl.openAddSubtask}
             onEditTask={ctrl.openEditTask}

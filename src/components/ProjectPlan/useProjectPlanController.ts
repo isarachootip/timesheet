@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { PermissionScheme, Project, Task, TaskStatus, TaskTemplate, User } from '../../types';
 import { hasProjectPermission } from '../../utils/projectPermissions';
 import { toast } from '../ui/ToastProvider';
@@ -46,7 +46,11 @@ export const useProjectPlanController = ({
   const projectMap = useMemo(() => new Map(visibleProjects.map((p) => [p.id, p])), [visibleProjects]);
   const userMap = useMemo(() => new Map(users.map((u) => [u.id, u])), [users]);
 
-  const [selectedProjectId, setSelectedProjectId] = useState(() => visibleProjects[0]?.id || 'all');
+  const [rawSelectedProjectId, setSelectedProjectId] = useState(() => visibleProjects[0]?.id || 'all');
+  const selectedProjectId =
+    rawSelectedProjectId === 'all' || visibleProjects.some((p) => p.id === rawSelectedProjectId)
+      ? rawSelectedProjectId
+      : visibleProjects[0]?.id || 'all';
   const [expandedMilestones, setExpandedMilestones] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -60,13 +64,6 @@ export const useProjectPlanController = ({
   const [pendingDelete, setPendingDelete] = useState<{ taskId: string; isMain: boolean; subCount: number } | null>(null);
   const [pendingTemplates, setPendingTemplates] = useState<{ toCreate: TaskTemplate[]; skippedCount: number } | null>(null);
 
-  useEffect(() => {
-    if (visibleProjects.length === 0) return;
-    if (selectedProjectId !== 'all' && !visibleProjects.some((p) => p.id === selectedProjectId)) {
-      setSelectedProjectId(visibleProjects[0].id);
-    }
-  }, [visibleProjects, selectedProjectId]);
-
   const baselineState = useProjectBaselines(selectedProjectId, fetchInitialData);
   const selectedProject = selectedProjectId === 'all' ? undefined : projectMap.get(selectedProjectId);
   const milestones = useMemo(
@@ -74,8 +71,8 @@ export const useProjectPlanController = ({
     [tasks, visibleProjects, selectedProjectId]
   );
   const timelineRange = useMemo(
-    () => computePlanTimelineRange(selectedProject, milestones, visibleProjects),
-    [selectedProject, milestones, visibleProjects]
+    () => computePlanTimelineRange(selectedProject, milestones, visibleProjects, tasks),
+    [selectedProject, milestones, visibleProjects, tasks]
   );
   const overallProgress = milestones.length === 0
     ? 0

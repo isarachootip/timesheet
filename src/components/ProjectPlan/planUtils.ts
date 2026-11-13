@@ -1,6 +1,7 @@
 import type { PermissionScheme, Project, Task, TaskStatus, TaskTemplate, User } from '../../types';
 import { formatToDDMMYYYY } from '../../utils';
 import { hasProjectPermission } from '../../utils/projectPermissions';
+import { computeSmartTimelineBounds, GANTT_DAY_MS, parsePlanDateMs } from './ganttScaleUtils';
 
 export interface Baseline {
   id: string;
@@ -48,9 +49,10 @@ export interface TimelineRange {
   ticks: string[];
   displayStart: string;
   displayEnd: string;
+  hasInvertedDates?: boolean;
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+const DAY_MS = GANTT_DAY_MS;
 
 export const filterTemplatesToGenerate = (
   templates: TaskTemplate[],
@@ -131,28 +133,12 @@ export const calculateMilestoneProgress = (tasks: Task[], milestoneId: string, f
 export const computePlanTimelineRange = (
   selectedProject: Project | undefined,
   milestones: Task[],
-  visibleProjects: Project[]
+  visibleProjects: Project[],
+  allTasks: Task[] = []
 ): TimelineRange => {
-  let projStart = selectedProject?.startDate ? new Date(selectedProject.startDate).getTime() : 0;
-  let projEnd = selectedProject?.endDate
-    ? new Date(selectedProject.endDate).getTime()
-    : projStart ? projStart + 30 * DAY_MS : 0;
-
-  if (!selectedProject) {
-    const starts: number[] = [];
-    const ends: number[] = [];
-    for (const p of visibleProjects.filter((item) => item.projectType !== 'support')) {
-      if (p.startDate) starts.push(new Date(p.startDate).getTime());
-      if (p.endDate) ends.push(new Date(p.endDate).getTime());
-    }
-    for (const m of milestones) {
-      if (m.startDate) starts.push(new Date(m.startDate).getTime());
-      if (m.endDate) ends.push(new Date(m.endDate).getTime());
-    }
-    projStart = starts.length > 0 ? Math.min(...starts) : Date.now();
-    projEnd = ends.length > 0 ? Math.max(...ends) : projStart + 30 * DAY_MS;
-  }
-
+  const bounds = computeSmartTimelineBounds(selectedProject, milestones, allTasks, visibleProjects);
+  const projStart = bounds.startMs;
+  const projEnd = bounds.endMs;
   const projDuration = Math.max(DAY_MS, projEnd - projStart);
   const ticks = Array.from({ length: 5 }, (_, i) =>
     formatToDDMMYYYY(new Date(projStart + (projDuration * i) / 4))
@@ -162,10 +148,11 @@ export const computePlanTimelineRange = (
     projStart,
     projEnd,
     projDuration,
-    totalDays: Math.round(projDuration / DAY_MS),
+    totalDays: bounds.totalDays,
     ticks,
     displayStart: formatToDDMMYYYY(new Date(projStart)),
     displayEnd: formatToDDMMYYYY(new Date(projEnd)),
+    hasInvertedDates: bounds.hasInvertedDates,
   };
 };
 
@@ -177,8 +164,8 @@ export const getGanttBarGeometry = (
   projDuration: number
 ): { leftOffset: number; widthVal: number } => {
   if (projDuration <= 0) return { leftOffset: 0, widthVal: 100 };
-  const startMs = startDate ? new Date(startDate).getTime() : projStart;
-  const endMs = endDate ? new Date(endDate).getTime() : Math.min(projEnd, startMs + 5 * DAY_MS);
+  const startMs = parsePlanDateMs(startDate) ?? projStart;
+  const endMs = parsePlanDateMs(endDate) ?? Math.min(projEnd, startMs + 5 * DAY_MS);
   const leftOffset = Math.max(0, Math.min(100, ((startMs - projStart) / projDuration) * 100));
   const rawWidth = ((endMs - startMs) / projDuration) * 100;
   return { leftOffset, widthVal: Math.max(2, Math.min(100 - leftOffset, rawWidth)) };

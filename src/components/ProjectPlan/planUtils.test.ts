@@ -147,4 +147,26 @@ describe('planUtils', () => {
     expect(geom.widthVal).toBeGreaterThan(15);
     expect(geom.widthVal).toBeLessThan(20);
   });
+
+  it('ignores inverted project dates and spans milestones + subtasks in computePlanTimelineRange', () => {
+    const invertedProj: Project = {
+      id: 'p_inv',
+      name: 'TWD_LON',
+      description: '',
+      status: 'Active',
+      startDate: '2026-06-10',
+      endDate: '2026-05-29',
+      members: [],
+      projectType: 'dev',
+    };
+    const ms: Task[] = [
+      { id: 'm1', projectId: 'p_inv', title: 'Kickoff', description: '', status: 'Done', priority: 'High', estimatedHours: 4, createdAt: '2026-05-01', startDate: '2026-05-29', endDate: '2026-05-29' },
+      { id: 'm2', projectId: 'p_inv', title: 'Handover', description: '', status: 'Done', priority: 'High', estimatedHours: 8, createdAt: '2026-05-01', startDate: '2026-08-26', endDate: '2026-08-26' },
+    ];
+    const range = computePlanTimelineRange(invertedProj, ms, [invertedProj], ms);
+    expect(range.hasInvertedDates).toBe(true);
+    expect(range.totalDays).toBe(89);
+    expect(range.displayStart).toBe('29/05/2026');
+    expect(range.displayEnd).toBe('26/08/2026');
+  });
 });
