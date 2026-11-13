@@ -5,6 +5,7 @@ import { format, isSameDay, startOfMonth, endOfMonth, startOfWeek, endOfWeek, ad
 import type { TimesheetEntry, Project, Task, User, TimesheetStatus, PersonalNote } from '../types';
 import { sortTimesheetsByLastUpdate } from '../utils';
 import { PostItImportPickerModal } from './Timesheet/PostItImportPickerModal';
+import { toast } from './ui/ToastProvider';
 
 interface TimesheetProps {
   timesheets: TimesheetEntry[];
@@ -271,7 +272,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      alert('Only image files are allowed');
+      toast.error('Only image files are allowed');
       return;
     }
 
@@ -295,10 +296,10 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
           setImageUrl(data.url);
         } else {
           const err = await res.json();
-          alert(err.error || 'Failed to upload image');
+          toast.error(err.error || 'Failed to upload image');
         }
-      } catch (err: any) {
-        alert(err.message || 'Error uploading file');
+      } catch (err: unknown) {
+        toast.error(err instanceof Error ? err.message : 'Error uploading file');
       } finally {
         setIsUploading(false);
       }
@@ -329,8 +330,8 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isPersonal && !projectId) return alert('Project is required');
-    if (!hours || !description) return alert('Hours and Description are required');
+    if (!isPersonal && !projectId) return toast.error('Project is required');
+    if (!hours || !description) return toast.error('Hours and Description are required');
 
     if (editingEntryId) {
       const existing = timesheets.find(ts => ts.id === editingEntryId);
@@ -408,7 +409,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       <div>
-        <h1 className="text-gradient" style={{ marginBottom: '0.5rem' }}>Timesheet</h1>
+        <h1 style={{ marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Timesheet</h1>
         <p style={{ color: 'var(--text-secondary)' }}>Log your hours and track your daily activities.</p>
       </div>
 
@@ -432,7 +433,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
             {/* Day Names Header */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', textAlign: 'center', marginBottom: '0.25rem' }}>
               {dayNames.map(dn => (
-                <div key={dn} style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', padding: '0.25rem 0' }}>{dn}</div>
+                <div key={dn} style={{ fontSize: 'var(--fs-12)', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', padding: '0.25rem 0' }}>{dn}</div>
               ))}
             </div>
 
@@ -512,7 +513,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                   padding: '0.5rem 1.25rem',
                   borderRadius: 'var(--radius-md)',
                   background: viewMode === 'personal' ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
-                  color: viewMode === 'personal' ? '#000' : 'var(--text-secondary)',
+                  color: viewMode === 'personal' ? 'var(--accent-contrast)' : 'var(--text-secondary)',
                   border: 'none',
                   cursor: 'pointer',
                   fontWeight: 600,
@@ -529,7 +530,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                   padding: '0.5rem 1.25rem',
                   borderRadius: 'var(--radius-md)',
                   background: viewMode === 'team' ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
-                  color: viewMode === 'team' ? '#000' : 'var(--text-secondary)',
+                  color: viewMode === 'team' ? 'var(--accent-contrast)' : 'var(--text-secondary)',
                   border: 'none',
                   cursor: 'pointer',
                   fontWeight: 600,
@@ -538,7 +539,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                 }}
                 className="hover-lift"
               >
-                👥 Team Daily Report
+                Team Daily Report
               </button>
               <button 
                 onClick={() => setViewMode('project')}
@@ -546,7 +547,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                   padding: '0.5rem 1.25rem',
                   borderRadius: 'var(--radius-md)',
                   background: viewMode === 'project' ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
-                  color: viewMode === 'project' ? '#000' : 'var(--text-secondary)',
+                  color: viewMode === 'project' ? 'var(--accent-contrast)' : 'var(--text-secondary)',
                   border: 'none',
                   cursor: 'pointer',
                   fontWeight: 600,
@@ -555,7 +556,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                 }}
                 className="hover-lift"
               >
-                📁 Project Daily Report
+                Project Daily Report
               </button>
             </div>
           )}
@@ -574,7 +575,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                     value={selectedReportProject} 
                     onChange={e => setSelectedReportProject(e.target.value)}
                     style={{ 
-                      background: 'rgba(255,255,255,0.05)', 
+                      background: 'var(--bg-secondary)', 
                       border: '1px solid var(--border-color)', 
                       color: 'var(--text-primary)', 
                       padding: '0.4rem 0.75rem', 
@@ -628,14 +629,14 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                       borderRadius: 'var(--radius-md)',
                       border: '1px solid var(--border-color)'
                     }}>
-                      <div className="flex-between" style={{ marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.75rem' }}>
+                      <div className="flex-between" style={{ marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                           <img src={user.avatar} alt={user.name} style={{ width: '40px', height: '40px', borderRadius: '50%' }} />
                           <div>
                             <div style={{ fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                               {user.name}
                               {user.id === currentUser.id && (
-                                <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', background: 'rgba(0, 206, 209, 0.15)', borderRadius: 'var(--radius-sm)', color: 'var(--accent-primary)' }}>You</span>
+                                <span style={{ fontSize: 'var(--fs-12)', padding: '2px 6px', background: 'var(--accent-subtle)', borderRadius: 'var(--radius-sm)', color: 'var(--accent-primary)' }}>You</span>
                               )}
                               <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-secondary)' }}>({user.department})</span>
                             </div>
@@ -651,7 +652,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                       </div>
 
                       {uEntries.length === 0 ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.85rem', padding: '0.5rem 0.75rem', background: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-sm)', border: '1px dashed var(--border-color)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: 'var(--fs-13)', padding: '0.5rem 0.75rem', background: 'var(--bg-primary)', borderRadius: 'var(--radius-sm)', border: '1px dashed var(--border-color)' }}>
                           <span>No hours logged for this date.</span>
                         </div>
                       ) : (
@@ -670,11 +671,11 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.35rem' }}>
                                   <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9rem' }}>{getProjectName(entry.projectId)}</span>
                                   {entry.isWfh && (
-                                    <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', background: 'rgba(16, 185, 129, 0.15)', borderRadius: 'var(--radius-sm)', color: '#10B981', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                                      🏠 WFH
+                                    <span style={{ fontSize: 'var(--fs-12)', padding: '2px 6px', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', color: 'var(--dot-success)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                      WFH
                                     </span>
                                   )}
-                                  <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-sm)', color: 'var(--text-secondary)' }}>
+                                  <span style={{ fontSize: 'var(--fs-12)', padding: '2px 6px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-sm)', color: 'var(--text-secondary)' }}>
                                     {getTaskName(entry.taskId)}
                                   </span>
                                 </div>
@@ -683,29 +684,29 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                                   <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.2rem 0 0 0' }}><strong>ผลการทำงาน:</strong> {entry.workResults}</p>
                                 )}
                                 {entry.startTime && entry.endTime && (
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.35rem', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                                    <Clock size={10} />
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.35rem', fontSize: 'var(--fs-12)', color: 'var(--text-muted)' }}>
+                                    <Clock size={12} />
                                     <span>{entry.startTime} → {entry.endTime}</span>
                                   </div>
                                 )}
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.35rem' }}>
-                                  <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>{entry.hours}h</div>
+                                  <div style={{ fontSize: 'var(--fs-16)', fontWeight: 700 }}>{entry.hours}h</div>
                                   {entry.status === 'Approved' ? (
-                                    <span style={{ color: 'var(--accent-secondary)', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                                    <span style={{ color: 'var(--dot-success)', fontSize: 'var(--fs-12)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
                                       <CheckCircle2 size={12} /> Approved
                                     </span>
                                   ) : entry.status === 'Pending' ? (
-                                    <span style={{ color: 'var(--accent-warning)', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                                    <span style={{ color: 'var(--dot-warning)', fontSize: 'var(--fs-12)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
                                       <Clock size={12} /> Pending
                                     </span>
                                   ) : entry.status === 'Rejected' ? (
-                                    <span style={{ color: 'var(--accent-danger)', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                                    <span style={{ color: 'var(--accent-danger)', fontSize: 'var(--fs-12)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
                                       <XCircle size={12} /> Rejected
                                     </span>
                                   ) : (
-                                    <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>Draft</span>
+                                    <span style={{ color: 'var(--text-muted)', fontSize: 'var(--fs-12)' }}>Draft</span>
                                   )}
                                 </div>
                                 
@@ -809,14 +810,14 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                       borderRadius: 'var(--radius-md)',
                       border: '1px solid var(--border-color)'
                     }}>
-                      <div className="flex-between" style={{ marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.75rem' }}>
+                      <div className="flex-between" style={{ marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                           <img src={user.avatar} alt={user.name} style={{ width: '40px', height: '40px', borderRadius: '50%' }} />
                           <div>
                             <div style={{ fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                               {user.name}
                               {user.id === currentUser.id && (
-                                <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', background: 'rgba(0, 206, 209, 0.15)', borderRadius: 'var(--radius-sm)', color: 'var(--accent-primary)' }}>You</span>
+                                <span style={{ fontSize: 'var(--fs-12)', padding: '2px 6px', background: 'var(--accent-subtle)', borderRadius: 'var(--radius-sm)', color: 'var(--accent-primary)' }}>You</span>
                               )}
                               <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-secondary)' }}>({user.department})</span>
                             </div>
@@ -832,7 +833,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                       </div>
 
                       {uEntries.length === 0 ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.85rem', padding: '0.5rem 0.75rem', background: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-sm)', border: '1px dashed var(--border-color)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: 'var(--fs-13)', padding: '0.5rem 0.75rem', background: 'var(--bg-primary)', borderRadius: 'var(--radius-sm)', border: '1px dashed var(--border-color)' }}>
                           <span>No hours logged for this date.</span>
                         </div>
                       ) : (
@@ -851,11 +852,11 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.35rem' }}>
                                   <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9rem' }}>{getProjectName(entry.projectId)}</span>
                                   {entry.isWfh && (
-                                    <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', background: 'rgba(16, 185, 129, 0.15)', borderRadius: 'var(--radius-sm)', color: '#10B981', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                                      🏠 WFH
+                                    <span style={{ fontSize: 'var(--fs-12)', padding: '2px 6px', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', color: 'var(--dot-success)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                      WFH
                                     </span>
                                   )}
-                                  <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-sm)', color: 'var(--text-secondary)' }}>
+                                  <span style={{ fontSize: 'var(--fs-12)', padding: '2px 6px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-sm)', color: 'var(--text-secondary)' }}>
                                     {getTaskName(entry.taskId)}
                                   </span>
                                 </div>
@@ -864,29 +865,29 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                                   <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.2rem 0 0 0' }}><strong>ผลการทำงาน:</strong> {entry.workResults}</p>
                                 )}
                                 {entry.startTime && entry.endTime && (
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.35rem', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                                    <Clock size={10} />
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.35rem', fontSize: 'var(--fs-12)', color: 'var(--text-muted)' }}>
+                                    <Clock size={12} />
                                     <span>{entry.startTime} → {entry.endTime}</span>
                                   </div>
                                 )}
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.35rem' }}>
-                                  <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>{entry.hours}h</div>
+                                  <div style={{ fontSize: 'var(--fs-16)', fontWeight: 700 }}>{entry.hours}h</div>
                                   {entry.status === 'Approved' ? (
-                                    <span style={{ color: 'var(--accent-secondary)', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                                    <span style={{ color: 'var(--dot-success)', fontSize: 'var(--fs-12)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
                                       <CheckCircle2 size={12} /> Approved
                                     </span>
                                   ) : entry.status === 'Pending' ? (
-                                    <span style={{ color: 'var(--accent-warning)', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                                    <span style={{ color: 'var(--dot-warning)', fontSize: 'var(--fs-12)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
                                       <Clock size={12} /> Pending
                                     </span>
                                   ) : entry.status === 'Rejected' ? (
-                                    <span style={{ color: 'var(--accent-danger)', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                                    <span style={{ color: 'var(--accent-danger)', fontSize: 'var(--fs-12)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
                                       <XCircle size={12} /> Rejected
                                     </span>
                                   ) : (
-                                    <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>Draft</span>
+                                    <span style={{ color: 'var(--text-muted)', fontSize: 'var(--fs-12)' }}>Draft</span>
                                   )}
                                 </div>
                                 
@@ -1007,20 +1008,20 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
                           {(entry.isPersonal || !entry.projectId) ? (
-                            <span style={{ fontSize: '0.75rem', padding: '0.15rem 0.5rem', background: 'rgba(234, 179, 8, 0.15)', border: '1px solid rgba(234, 179, 8, 0.35)', borderRadius: 'var(--radius-sm)', color: '#eab308', fontWeight: 700 }}>
-                              🟡 งานส่วนตัว / กิจกรรมทั่วไป
+                            <span style={{ fontSize: 'var(--fs-12)', padding: '2px 8px', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', color: 'var(--dot-warning)', fontWeight: 600 }}>
+                              งานส่วนตัว / กิจกรรมทั่วไป
                             </span>
                           ) : (
                             <>
                               <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{getProjectName(entry.projectId)}</span>
-                              <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-sm)', color: 'var(--text-secondary)' }}>
+                              <span style={{ fontSize: 'var(--fs-12)', padding: '2px 8px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-sm)', color: 'var(--text-secondary)' }}>
                                 {getTaskName(entry.taskId)}
                               </span>
                             </>
                           )}
                           {entry.isWfh && (
-                            <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', background: 'rgba(16, 185, 129, 0.15)', borderRadius: 'var(--radius-sm)', color: '#10B981', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                              🏠 WFH
+                            <span style={{ fontSize: 'var(--fs-12)', padding: '2px 6px', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', color: 'var(--dot-success)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              WFH
                             </span>
                           )}
                         </div>
@@ -1043,11 +1044,11 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                                 alignItems: 'center',
                                 gap: '0.3rem',
                                 padding: '0.2rem 0.5rem',
-                                background: 'rgba(0, 206, 209, 0.08)',
-                                border: '1px solid rgba(0, 206, 209, 0.2)',
+                                background: 'var(--accent-subtle)',
+                                border: '1px solid var(--border-color)',
                                 borderRadius: 'var(--radius-sm)',
                                 color: 'var(--accent-primary)',
-                                fontSize: '0.7rem',
+                                fontSize: 'var(--fs-12)',
                                 cursor: 'pointer'
                               }}
                               className="hover-lift"
@@ -1164,16 +1165,15 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0, 0, 0, 0.7)',
-          backdropFilter: 'blur(4px)',
+          background: 'var(--overlay-backdrop)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 1100
         }}>
-          <div className="glass-panel" style={{ padding: '2rem', width: '650px', maxWidth: '95%', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div className="surface-card" style={{ padding: '2rem', width: '650px', maxWidth: '95%', display: 'flex', flexDirection: 'column', gap: '1.5rem', boxShadow: 'var(--shadow-lg)' }}>
             <div className="flex-between">
-              <h2 className="text-gradient" style={{ fontSize: '1.5rem' }}>{editingEntryId ? 'Edit Work Time' : 'Log Work Time'}</h2>
+              <h2 style={{ fontSize: 'var(--fs-20)', color: 'var(--text-primary)' }}>{editingEntryId ? 'Edit Work Time' : 'Log Work Time'}</h2>
               <button onClick={() => { setIsModalOpen(false); resetForm(); }} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
                 <X size={20} />
               </button>
@@ -1199,14 +1199,14 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                   type="button"
                   onClick={() => { setIsPersonal(true); setProjectId(''); setTaskId(''); }}
                   style={{
-                    flex: 1, padding: '8px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '0.85rem',
+                    flex: 1, padding: '8px', borderRadius: 'var(--radius-sm)', border: 'none', cursor: 'pointer', fontSize: 'var(--fs-13)',
                     fontWeight: isPersonal ? 700 : 500,
-                    background: isPersonal ? '#eab308' : 'transparent',
-                    color: isPersonal ? '#713f12' : 'var(--text-secondary)',
+                    background: isPersonal ? 'var(--accent-primary)' : 'transparent',
+                    color: isPersonal ? 'var(--accent-contrast)' : 'var(--text-secondary)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
                   }}
                 >
-                  <span>🟡 งานส่วนตัว / กิจกรรมทั่วไป</span>
+                  <span>งานส่วนตัว / กิจกรรมทั่วไป</span>
                 </button>
               </div>
 
@@ -1239,8 +1239,8 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                   </div>
                 </>
               ) : (
-                <div style={{ background: 'rgba(234, 179, 8, 0.1)', border: '1px dashed #eab308', borderRadius: 'var(--radius-md)', padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#a16207' }}>
-                  ⚡ <strong>งานส่วนตัว / กิจกรรมทั่วไป</strong> จะไม่ถูกนำเข้า Project ลูกค้า ไม่กระทบงบประมาณ และอนุมัติอัตโนมัติทันที
+                <div style={{ background: 'var(--bg-tertiary)', border: '1px dashed var(--border-strong)', borderRadius: 'var(--radius-md)', padding: '0.75rem 1rem', fontSize: 'var(--fs-13)', color: 'var(--text-secondary)' }}>
+                  <strong>งานส่วนตัว / กิจกรรมทั่วไป</strong> จะไม่ถูกนำเข้า Project ลูกค้า ไม่กระทบงบประมาณ และอนุมัติอัตโนมัติทันที
                 </div>
               )}
 
@@ -1285,7 +1285,8 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                   </div>
                   {hours && (
                     <span style={{ 
-                      background: 'linear-gradient(135deg, rgba(0,206,209,0.2), rgba(124,58,237,0.2))', 
+                      background: 'var(--bg-tertiary)',
+                      border: '1px solid var(--border-color)',
                       padding: '0.3rem 0.75rem', 
                       borderRadius: 'var(--radius-md)', 
                       fontWeight: 700, 
@@ -1359,15 +1360,15 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                       }}
                     >
                       {/* Hour labels */}
-                      <div style={{ display: 'flex', height: 20 }}>
+                      <div style={{ display: 'flex', height: 22 }}>
                         {Array.from({ length: BAR_END - BAR_START }, (_, i) => (
                           <div key={i} style={{ 
                             flex: 1, 
                             textAlign: 'center', 
-                            fontSize: '0.55rem', 
-                            color: 'rgba(255,255,255,0.85)',
-                            borderLeft: i > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none',
-                            paddingTop: 3,
+                            fontSize: 'var(--fs-12)', 
+                            color: 'var(--text-muted)',
+                            borderLeft: i > 0 ? '1px solid var(--border-color)' : 'none',
+                            paddingTop: 2,
                             fontWeight: 600,
                           }}>
                             {String(BAR_START + i).padStart(2, '0')}
@@ -1386,10 +1387,10 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                               style={{
                                 flex: 1,
                                 background: isSelected 
-                                  ? 'linear-gradient(180deg, rgba(0,206,209,0.4), rgba(0,206,209,0.2))' 
+                                  ? 'var(--accent-subtle)' 
                                   : 'transparent',
-                                borderLeft: isHour ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(255,255,255,0.02)',
-                                transition: 'background 0.1s',
+                                borderLeft: isHour ? '1px solid var(--border-color)' : '1px dashed var(--border-color)',
+                                transition: 'background var(--transition-fast)',
                                 position: 'relative',
                               }}
                             >
@@ -1415,7 +1416,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                         {Array.from({ length: BAR_END - BAR_START }, (_, i) => (
                           <div key={i} style={{ 
                             flex: 1, 
-                            borderLeft: i > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                            borderLeft: i > 0 ? '1px solid var(--border-color)' : 'none',
                           }} />
                         ))}
                       </div>
@@ -1426,25 +1427,25 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                 {/* Fine-tune inputs row */}
                 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                   <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Start</span>
+                    <span style={{ fontSize: 'var(--fs-12)', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Start</span>
                     <input 
                       type="time" 
                       value={startTime} 
                       onChange={e => handleStartTimeChange(e.target.value)} 
-                      style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.25rem 0.4rem', color: 'var(--text-primary)', outline: 'none', fontSize: '0.75rem', flex: 1 }}
+                      style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.25rem 0.4rem', color: 'var(--text-primary)', outline: 'none', fontSize: 'var(--fs-12)', flex: 1 }}
                     />
                   </div>
                   <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>End</span>
+                    <span style={{ fontSize: 'var(--fs-12)', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>End</span>
                     <input 
                       type="time" 
                       value={endTime} 
                       onChange={e => handleEndTimeChange(e.target.value)} 
-                      style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.25rem 0.4rem', color: 'var(--text-primary)', outline: 'none', fontSize: '0.75rem', flex: 1 }}
+                      style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.25rem 0.4rem', color: 'var(--text-primary)', outline: 'none', fontSize: 'var(--fs-12)', flex: 1 }}
                     />
                   </div>
                   <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Hours</span>
+                    <span style={{ fontSize: 'var(--fs-12)', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Hours</span>
                     <input 
                       type="number" 
                       step="0.5" min="0.5" max="24"
@@ -1572,8 +1573,7 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0, 0, 0, 0.85)',
-          backdropFilter: 'blur(5px)',
+          background: 'var(--overlay-backdrop)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',

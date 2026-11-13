@@ -3,6 +3,7 @@ import { X, Calendar, Clock, FileText } from 'lucide-react';
 import type { PersonalNote, PostItColor, NoteWorkType, Project, Task, User } from '../../types';
 import { NoteProjectFields } from './NoteProjectFields';
 import { NoteColorPicker } from './NoteColorPicker';
+import { toast } from '../ui/ToastProvider';
 
 interface NoteModalProps {
   isOpen: boolean;
@@ -61,7 +62,7 @@ export const NoteModal: React.FC<NoteModalProps> = ({
     e.preventDefault();
     if (!title.trim() || !noteDate) return;
     if (workType === 'project' && !projectId) {
-      alert('กรุณาเลือกโครงการสำหรับงานประเภท Project');
+      toast.error('กรุณาเลือกโครงการสำหรับงานประเภท Project');
       return;
     }
     setLoading(true);
@@ -87,10 +88,10 @@ export const NoteModal: React.FC<NoteModalProps> = ({
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-      <div className="glass-panel" style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-lg)', maxWidth: '480px', width: '100%', padding: '1.75rem', border: '1px solid var(--border-color)', boxShadow: '0 20px 60px rgba(0,0,0,0.45)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-          <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }} className="text-gradient">
+    <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay-backdrop)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+      <div className="surface-card" style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', maxWidth: '480px', width: '100%', padding: '24px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-lg)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+          <h3 style={{ margin: 0, fontSize: 'var(--fs-20)', fontWeight: 700, color: 'var(--text-primary)' }}>
             {noteToEdit ? 'แก้ไข Post-it' : 'เขียน Post-it ใหม่'}
           </h3>
           <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}>

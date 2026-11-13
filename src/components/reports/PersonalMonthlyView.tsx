@@ -80,9 +80,9 @@ export const PersonalMonthlyView = ({
               <div key={day} className="chart-bar-hover" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', height: '100%', justifyContent: 'flex-end', position: 'relative', minWidth: '22px' }}>
                 <div
                   title={dayHours > 0 ? `${dayHours} hrs (${dateStr})` : dateStr}
-                  style={{ height: `${barHeight}%`, width: '100%', background: dayHours > 0 ? (isWeekend ? '#ef4444' : 'var(--accent-primary)') : isWeekend ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255,255,255,0.02)', borderRadius: '3px 3px 0 0' }}
+                  style={{ height: `${barHeight}%`, width: '100%', background: dayHours > 0 ? (isWeekend ? '#ef4444' : 'var(--accent-primary)') : isWeekend ? 'var(--accent-danger-subtle)' : 'var(--bg-tertiary)', borderRadius: '3px 3px 0 0' }}
                 />
-                <span style={{ fontSize: '0.65rem', color: isWeekend ? '#ef4444' : dayHours > 0 ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: isWeekend ? 700 : 400 }}>
+                <span style={{ fontSize: 'var(--fs-12)', color: isWeekend ? 'var(--accent-danger)' : dayHours > 0 ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: isWeekend ? 700 : 400 }}>
                   {day}
                 </span>
               </div>
@@ -166,17 +166,17 @@ export const PersonalMonthlyView = ({
                   const projName = ts.isPersonal ? 'Personal Work' : projects.find(p => p.id === ts.projectId)?.name || ts.projectId || 'General';
                   const taskTitle = tasks.find(t => t.id === ts.taskId)?.title || '-';
                   return (
-                    <tr key={ts.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)' }}>
+                    <tr key={ts.id} style={{ borderBottom: '1px solid var(--border-color)', background: idx % 2 === 0 ? 'transparent' : 'var(--bg-primary)' }}>
                       <td style={{ padding: '0.5rem 0.75rem', whiteSpace: 'nowrap', fontWeight: 500 }}>{formatToDDMMYYYY(ts.date)}</td>
                       <td style={{ padding: '0.5rem 0.75rem', whiteSpace: 'nowrap' }}>
-                        <span style={{ padding: '0.2rem 0.5rem', borderRadius: '4px', background: 'rgba(99,102,241,0.1)', color: 'var(--accent-primary)', fontSize: '0.78rem', fontWeight: 500 }}>{projName}</span>
+                        <span style={{ padding: '0.2rem 0.5rem', borderRadius: 'var(--radius-sm)', background: 'var(--accent-subtle)', color: 'var(--accent-primary)', fontSize: 'var(--fs-12)', fontWeight: 500 }}>{projName}</span>
                       </td>
-                      <td style={{ padding: '0.5rem 0.75rem', whiteSpace: 'nowrap', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>{taskTitle}</td>
-                      <td style={{ padding: '0.5rem 0.75rem', whiteSpace: 'nowrap', fontSize: '0.78rem', color: 'var(--text-muted)' }}>{ts.startTime && ts.endTime ? `${ts.startTime} - ${ts.endTime}` : '-'}</td>
-                      <td style={{ padding: '0.5rem 0.75rem', fontWeight: 600, color: 'var(--accent-info)' }}>{ts.hours}h</td>
+                      <td style={{ padding: '0.5rem 0.75rem', whiteSpace: 'nowrap', color: 'var(--text-secondary)', fontSize: 'var(--fs-13)' }}>{taskTitle}</td>
+                      <td style={{ padding: '0.5rem 0.75rem', whiteSpace: 'nowrap', fontSize: 'var(--fs-12)', color: 'var(--text-muted)' }}>{ts.startTime && ts.endTime ? `${ts.startTime} - ${ts.endTime}` : '-'}</td>
+                      <td style={{ padding: '0.5rem 0.75rem', fontWeight: 600, color: 'var(--accent-primary)' }}>{ts.hours}h</td>
                       <td style={{ padding: '0.5rem 0.75rem', color: 'var(--text-secondary)', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={ts.description}>{ts.description || '—'}</td>
                       <td style={{ padding: '0.5rem 0.75rem' }}>
-                        <span style={{ fontSize: '0.68rem', fontWeight: 600, padding: '0.15rem 0.45rem', borderRadius: '999px', background: STATUS_COLOR[ts.status] || 'rgba(107,114,128,0.7)', color: 'white' }}>{ts.status}</span>
+                        <span style={{ fontSize: 'var(--fs-12)', fontWeight: 600, padding: '0.15rem 0.45rem', borderRadius: '999px', background: STATUS_COLOR[ts.status] || 'rgba(107,114,128,0.85)', color: 'white' }}>{ts.status}</span>
                       </td>
                     </tr>
                   );

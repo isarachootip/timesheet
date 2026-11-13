@@ -1,4 +1,4 @@
-import { Calendar, RefreshCw, Unlink, CheckSquare, X, ExternalLink } from 'lucide-react';
+import { AlertCircle, Calendar, CheckCircle2, CheckSquare, ExternalLink, RefreshCw, Unlink, X } from 'lucide-react';
 import type { Project, User, TaskPriority } from '../../types';
 import { CustomDateInput } from '../CustomDateInput';
 import { OutlookEventRow } from './OutlookEventRow';
@@ -61,26 +61,25 @@ export const OutlookImportModal = ({
   return (
     <div
       style={{
-        position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.72)',
-        backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center',
-        justifyContent: 'center', zIndex: 1200, padding: '1rem',
+        position: 'fixed', inset: 0, background: 'var(--overlay-backdrop)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, padding: '16px',
       }}
     >
       <div
-        className="glass-panel"
+        className="surface-card"
         style={{
           width: '820px', maxWidth: '100%', maxHeight: '90vh',
-          display: 'flex', flexDirection: 'column', gap: '1.1rem', padding: '1.75rem',
+          display: 'flex', flexDirection: 'column', gap: '16px', padding: '24px', boxShadow: 'var(--shadow-lg)',
         }}
       >
         <div className="flex-between">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(0, 120, 212, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Calendar size={20} color="#0078D4" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: 38, height: 38, borderRadius: 'var(--radius-md)', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Calendar size={18} color="var(--accent-primary)" />
             </div>
             <div>
-              <h2 className="text-gradient" style={{ fontSize: '1.35rem', margin: 0 }}>Import Tasks from Outlook Calendar</h2>
-              <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: 0 }}>
+              <h2 style={{ fontSize: 'var(--fs-20)', color: 'var(--text-primary)', margin: 0 }}>Import Tasks from Outlook Calendar</h2>
+              <p style={{ fontSize: 'var(--fs-13)', color: 'var(--text-secondary)', margin: 0 }}>
                 ดึงนัดหมายจาก Microsoft Outlook (Graph API) เพื่อสร้างหรือ Sync เป็น Project Task
               </p>
             </div>
@@ -90,14 +89,14 @@ export const OutlookImportModal = ({
           </button>
         </div>
 
-        {/* Connection Banner */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', flexWrap: 'wrap', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: 'var(--radius-md)', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', flexWrap: 'wrap', gap: '8px' }}>
           {status.connected ? (
             <>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
-                🟢 เชื่อมต่อบัญชี Microsoft แล้ว: <strong>{status.msEmail || 'Connected'}</strong>
+              <div style={{ fontSize: 'var(--fs-13)', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--dot-success)', display: 'inline-block' }} />
+                เชื่อมต่อบัญชี Microsoft แล้ว: <strong>{status.msEmail || 'Connected'}</strong>
               </div>
-              <button onClick={handleDisconnect} style={{ background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--accent-danger)', padding: '0.35rem 0.75rem', borderRadius: 'var(--radius-sm)', fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <button onClick={handleDisconnect} style={{ background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--accent-danger)', padding: '6px 12px', borderRadius: 'var(--radius-sm)', fontSize: 'var(--fs-12)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Unlink size={13} /> Disconnect
               </button>
             </>
@@ -151,16 +150,16 @@ export const OutlookImportModal = ({
               </div>
             </div>
 
-            <div className="flex-between" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-              <span>พบนัดหมายทั้งหมด {events.length} รายการ (เลือกแล้ว {selectedIds.length} รายการ • รวม {totalSelectedHours} ชม.)</span>
-              <div style={{ display: 'flex', gap: '0.6rem' }}>
-                <button type="button" onClick={() => setSelectedIds(events.filter(e => !e.existingTaskId).map(e => e.outlookEventId))} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', fontSize: '0.78rem' }}>เลือกเฉพาะรายการใหม่</button>
-                <button type="button" onClick={() => setSelectedIds(events.map(e => e.outlookEventId))} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', fontSize: '0.78rem' }}>เลือกทั้งหมด</button>
-                <button type="button" onClick={() => setSelectedIds([])} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.78rem' }}>ล้างที่เลือก</button>
+            <div className="flex-between" style={{ fontSize: 'var(--fs-13)', color: 'var(--text-secondary)' }}>
+              <span>พบนัดหมายทั้งหมด {events.length} รายการ (เลือกแล้ว {selectedIds.length} รายการ · รวม {totalSelectedHours} ชม.)</span>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button type="button" onClick={() => setSelectedIds(events.filter(e => !e.existingTaskId).map(e => e.outlookEventId))} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', fontSize: 'var(--fs-13)' }}>เลือกเฉพาะรายการใหม่</button>
+                <button type="button" onClick={() => setSelectedIds(events.map(e => e.outlookEventId))} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', fontSize: 'var(--fs-13)' }}>เลือกทั้งหมด</button>
+                <button type="button" onClick={() => setSelectedIds([])} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 'var(--fs-13)' }}>ล้างที่เลือก</button>
               </div>
             </div>
 
-            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.55rem', minHeight: '220px', maxHeight: '380px', paddingRight: '0.25rem' }}>
+            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', minHeight: '220px', maxHeight: '380px', paddingRight: '4px' }}>
               {loadingEvents ? (
                 <div className="flex-center" style={{ height: '200px', color: 'var(--text-secondary)' }}>กำลังดึงนัดหมายจาก Outlook Calendar...</div>
               ) : events.length === 0 ? (
@@ -182,21 +181,29 @@ export const OutlookImportModal = ({
           </>
         )}
 
-        {errorMessage && <div style={{ padding: '0.6rem 0.85rem', borderRadius: 'var(--radius-sm)', background: 'rgba(239, 68, 68, 0.15)', color: '#ff6b6b', fontSize: '0.82rem' }}>⚠️ {errorMessage}</div>}
-        {successMessage && <div style={{ padding: '0.6rem 0.85rem', borderRadius: 'var(--radius-sm)', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', fontSize: '0.82rem' }}>✅ {successMessage}</div>}
+        {errorMessage && (
+          <div style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--accent-danger-subtle)', border: '1px solid var(--accent-danger)', color: 'var(--accent-danger)', fontSize: 'var(--fs-13)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <AlertCircle size={14} /> {errorMessage}
+          </div>
+        )}
+        {successMessage && (
+          <div style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--dot-success)', fontSize: 'var(--fs-13)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <CheckCircle2 size={14} /> {successMessage}
+          </div>
+        )}
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.85rem' }}>
-          <button onClick={onClose} style={{ padding: '0.6rem 1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer' }}>Close</button>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
+          <button onClick={onClose} style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 'var(--fs-13)' }}>Close</button>
           {status.connected && (
             <button
               onClick={() => void submitImport()}
               disabled={submitting || selectedIds.length === 0}
               style={{
-                padding: '0.6rem 1.4rem', borderRadius: 'var(--radius-md)', border: 'none',
-                background: 'var(--accent-primary)', color: 'white', fontWeight: 600,
+                padding: '8px 18px', borderRadius: 'var(--radius-md)', border: 'none',
+                background: 'var(--accent-primary)', color: 'var(--accent-contrast)', fontWeight: 600, fontSize: 'var(--fs-13)',
                 cursor: submitting || selectedIds.length === 0 ? 'not-allowed' : 'pointer',
                 opacity: submitting || selectedIds.length === 0 ? 0.6 : 1,
-                display: 'flex', alignItems: 'center', gap: '0.45rem',
+                display: 'flex', alignItems: 'center', gap: '8px',
               }}
             >
               <CheckSquare size={16} />

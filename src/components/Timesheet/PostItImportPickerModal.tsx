@@ -47,8 +47,8 @@ export const PostItImportPickerModal: React.FC<PostItImportPickerModalProps> = (
   if (!isOpen) return null;
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
-      <div className="glass-panel" style={{ width: '100%', maxWidth: '580px', borderRadius: '14px', padding: '1.4rem', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: '0 20px 45px rgba(0,0,0,0.3)', maxHeight: '85vh', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay-backdrop)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '16px' }}>
+      <div className="surface-card" style={{ width: '100%', maxWidth: '580px', borderRadius: 'var(--radius-md)', padding: '20px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-lg)', maxHeight: '85vh', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
@@ -123,7 +123,7 @@ export const PostItImportPickerModal: React.FC<PostItImportPickerModalProps> = (
                   }}
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', opacity: 0.8, marginBottom: '4px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--fs-12)', opacity: 0.8, marginBottom: '4px', flexWrap: 'wrap' }}>
                       <Calendar size={12} />
                       <span>วันที่: {formatToDDMMYYYY(n.noteDate)}</span>
                       <PostItProjectBadge

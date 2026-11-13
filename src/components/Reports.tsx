@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { BarChart3, TrendingUp, Download, Printer, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Briefcase, Activity, LineChart as LineChartIcon, PieChart as PieChartIcon } from 'lucide-react';
+import { BarChart3, TrendingUp, Download, Printer, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Briefcase, Activity, LineChart as LineChartIcon, PieChart as PieChartIcon, User as UserIcon, FolderKanban } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import type { User, Project, TimesheetEntry, Task, CostRate, Sprint } from '../types';
 import { formatToDDMMYYYY, sortTimesheetsByLastUpdate } from '../utils';
@@ -490,13 +490,13 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
           .grid-3col { grid-template-columns: 1fr !important; }
         }
         .calendar-cell-active {
-          background: rgba(255, 255, 255, 0.015);
-          border: 1px solid rgba(255, 255, 255, 0.04);
+          background: var(--bg-primary);
+          border: 1px solid var(--border-color);
           transition: all 0.15s ease;
         }
         .calendar-cell-active:hover {
-          background: rgba(255, 255, 255, 0.04);
-          border-color: rgba(99, 102, 241, 0.4);
+          background: var(--bg-hover);
+          border-color: var(--accent-primary);
         }
         .chart-bar-hover:hover .chart-tooltip {
           display: block !important;
@@ -507,7 +507,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
         {/* ── Header ── */}
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
           <div style={{ flex: '1 1 min-content', minWidth: '300px' }}>
-            <h1 className="text-gradient" style={{ marginBottom: '0.5rem' }}>HR &amp; Cost Reports</h1>
+            <h1 style={{ marginBottom: '0.5rem', color: 'var(--text-primary)' }}>HR &amp; Cost Reports</h1>
             <p style={{ color: 'var(--text-secondary)' }}>Analytical dashboards detailing work allocation, personal metrics, and project financial effort.</p>
           </div>
           <div className="no-print" style={{ display: 'flex', gap: '0.5rem' }}>
@@ -566,7 +566,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
               fontWeight: activeTab === 'overview' ? 600 : 400
             }}
           >
-            📊 Overview
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}><BarChart3 size={16} /> Overview</span>
           </button>
           <button 
             onClick={() => setActiveTab('personal')}
@@ -580,7 +580,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
               fontWeight: activeTab === 'personal' ? 600 : 400
             }}
           >
-            👤 Personal Performance
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}><UserIcon size={16} /> Personal Performance</span>
           </button>
           <button 
             onClick={() => setActiveTab('project_cost')}
@@ -594,7 +594,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
               fontWeight: activeTab === 'project_cost' ? 600 : 400
             }}
           >
-            📁 Project Cost
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}><FolderKanban size={16} /> Project Cost</span>
           </button>
           {showPmPortfolioTab && (
             <button 
@@ -609,12 +609,12 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                 fontWeight: activeTab === 'pm_portfolio' ? 600 : 400
               }}
             >
-              💼 PM Portfolio
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}><Briefcase size={16} /> PM Portfolio</span>
             </button>
           )}
         </div>
 
-        {/* ── TAB CONTENT: 📊 OVERVIEW ── */}
+        {/* ── TAB CONTENT: OVERVIEW ── */}
         {activeTab === 'overview' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             {/* Filters */}
@@ -862,10 +862,10 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                     Timesheet Calendar
                   </h3>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <button type="button" onClick={prevMonth} className="hover-lift" style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'var(--text-primary)', padding: '0.3rem', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                    <button type="button" onClick={prevMonth} className="hover-lift" style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '0.3rem', borderRadius: 'var(--radius-sm)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                       <ChevronLeft size={16} />
                     </button>
-                    <span style={{ fontSize: '0.9rem', fontWeight: 600, minWidth: '100px', textAlign: 'center' }}>
+                    <span style={{ fontSize: 'var(--fs-14)', fontWeight: 600, minWidth: '100px', textAlign: 'center' }}>
                       {(() => {
                         const monthNames = [
                           'January', 'February', 'March', 'April', 'May', 'June',
@@ -874,7 +874,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                         return `${monthNames[calendarDate.getMonth()]} ${calendarDate.getFullYear()}`;
                       })()}
                     </span>
-                    <button type="button" onClick={nextMonth} className="hover-lift" style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'var(--text-primary)', padding: '0.3rem', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                    <button type="button" onClick={nextMonth} className="hover-lift" style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '0.3rem', borderRadius: 'var(--radius-sm)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                       <ChevronRight size={16} />
                     </button>
                   </div>
@@ -904,17 +904,17 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                             display: 'flex',
                             flexDirection: 'column',
                             justifyContent: 'flex-start',
-                            background: cell.dayNum ? (isWeekendCell ? 'rgba(239, 68, 68, 0.04)' : undefined) : 'rgba(255,255,255,0.005)',
+                            background: cell.dayNum ? (isWeekendCell ? 'rgba(239, 68, 68, 0.04)' : undefined) : 'transparent',
                             border: cell.dayNum ? (isWeekendCell ? '1px solid rgba(239, 68, 68, 0.15)' : undefined) : '1px solid transparent'
                           }}
                         >
                           {cell.dayNum && (
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: isWeekendCell ? '#ef4444' : (dailyTotal > 0 ? 'var(--text-primary)' : 'var(--text-muted)') }}>
+                              <span style={{ fontSize: 'var(--fs-12)', fontWeight: 600, color: isWeekendCell ? 'var(--accent-danger)' : (dailyTotal > 0 ? 'var(--text-primary)' : 'var(--text-muted)') }}>
                                 {cell.dayNum}
                               </span>
                               {dailyTotal > 0 && (
-                                <span style={{ fontSize: '0.65rem', padding: '0.1rem 0.25rem', background: 'rgba(99, 102, 241, 0.15)', color: 'rgba(129, 140, 248, 1)', borderRadius: '3px', fontWeight: 700 }}>
+                                <span style={{ fontSize: 'var(--fs-12)', padding: '0.1rem 0.25rem', background: 'var(--accent-subtle)', color: 'var(--accent-primary)', borderRadius: 'var(--radius-sm)', fontWeight: 700 }}>
                                   {dailyTotal}h
                                 </span>
                               )}
@@ -952,7 +952,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                                 <div 
                                   key={entry.id}
                                   style={{
-                                    fontSize: '0.62rem',
+                                    fontSize: 'var(--fs-12)',
                                     padding: '0.15rem 0.25rem',
                                     borderRadius: '3px',
                                     background: statusBg[entry.status],
@@ -983,7 +983,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
               <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <h3 style={{ fontSize: '1.125rem', margin: 0 }}>Timesheet Details</h3>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                  <span style={{ fontSize: 'var(--fs-12)', color: 'var(--text-secondary)' }}>
                     {sortedTimesheets.slice(0, 50).length} of {sortedTimesheets.length} entries
                   </span>
                 </div>
@@ -1023,8 +1023,8 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                             <tr
                               key={ts.id}
                               style={{
-                                borderBottom: '1px solid rgba(255,255,255,0.03)',
-                                background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)',
+                                borderBottom: '1px solid var(--border-color)',
+                                background: idx % 2 === 0 ? 'transparent' : 'var(--bg-primary)',
                               }}
                             >
                               <td style={{ padding: '0.45rem 0.75rem', whiteSpace: 'nowrap' }}>{formatToDDMMYYYY(ts.date)}</td>
@@ -1047,11 +1047,11 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                               </td>
                               <td style={{ padding: '0.45rem 0.75rem' }}>
                                 <span style={{
-                                  fontSize: '0.68rem',
+                                  fontSize: 'var(--fs-12)',
                                   fontWeight: 600,
                                   padding: '0.15rem 0.45rem',
                                   borderRadius: '999px',
-                                  background: statusColor[ts.status] || 'rgba(107,114,128,0.7)',
+                                  background: statusColor[ts.status] || 'rgba(107,114,128,0.85)',
                                   color: 'white',
                                 }}>
                                   {ts.status}
@@ -1069,7 +1069,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
           </div>
         )}
 
-        {/* ── TAB CONTENT: 👤 PERSONAL PERFORMANCE ── */}
+        {/* ── TAB CONTENT: PERSONAL PERFORMANCE ── */}
         {activeTab === 'personal' && (
           <PersonalPerformanceTab
             timesheets={timesheets}
@@ -1082,7 +1082,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
           />
         )}
 
-        {/* ── TAB CONTENT: 📁 PROJECT COST ── */}
+        {/* ── TAB CONTENT: PROJECT COST ── */}
         {activeTab === 'project_cost' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             {/* Filters */}
@@ -1242,16 +1242,17 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                 <div style={{ width: '100%', height: '320px' }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={trendData} margin={{ top: 10, right: 30, left: -20, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
                       <XAxis 
                         dataKey="displayDate" 
                         stroke="var(--text-secondary)" 
-                        fontSize={11}
+                        fontSize={12}
                         tickLine={false}
                         axisLine={false}
-                        tick={(props: any) => {
+                        tick={(props: { x?: number | string; y?: number | string; payload?: { index: number; value?: string | number } }) => {
                           const { x, y, payload } = props;
-                          const item = trendData[payload.index];
+                          const idx = payload?.index ?? -1;
+                          const item = idx >= 0 ? trendData[idx] : undefined;
                           let isWeekend = false;
                           if (item) {
                             if (item.date) {
@@ -1271,10 +1272,10 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                                 dy={12} 
                                 textAnchor="middle" 
                                 fill={isWeekend ? '#ef4444' : 'var(--text-secondary)'} 
-                                fontSize={11}
+                                fontSize={12}
                                 fontWeight={isWeekend ? 'bold' : 'normal'}
                               >
-                                {payload.value}
+                                {payload?.value}
                               </text>
                             </g>
                           );
@@ -1282,7 +1283,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                       />
                       <YAxis 
                         stroke="var(--text-secondary)" 
-                        fontSize={11}
+                        fontSize={12}
                         tickLine={false}
                         axisLine={false}
                       />
@@ -1367,7 +1368,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                         const mandays = hours / 8;
                         
                         return (
-                          <tr key={key} style={{ borderBottom: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.01)' }}>
+                          <tr key={key} style={{ borderBottom: '1px solid var(--border-color)', background: 'transparent' }}>
                             <td style={{ padding: '0.75rem 1rem', fontWeight: 500, color: 'var(--text-primary)' }}>{key}</td>
                             <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>{hours > 0 ? hours.toFixed(1) : '0'}</td>
                             <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>{mandays > 0 ? mandays.toFixed(2) : '0.00'}</td>
@@ -1415,7 +1416,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                 <div style={{ overflowX: 'auto', maxHeight: '280px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
                     <thead>
-                      <tr style={{ borderBottom: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.02)' }}>
+                      <tr style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-tertiary)' }}>
                         <th style={{ padding: '0.5rem 0.75rem' }}>Sprint</th>
                         <th style={{ padding: '0.5rem 0.75rem', textAlign: 'center' }}>Actual Hours</th>
                         <th style={{ padding: '0.5rem 0.75rem', textAlign: 'right' }}>Actual Cost</th>
@@ -1569,7 +1570,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                         textAlign: 'center',
                         pointerEvents: 'none'
                       }}>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.5px' }}>Total Task Cost</div>
+                        <div style={{ fontSize: 'var(--fs-12)', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.5px' }}>Total Task Cost</div>
                         <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent-secondary)' }}>
                           ฿{totalTaskCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                         </div>
@@ -1615,11 +1616,11 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
           </div>
         )}
 
-        {/* ── TAB CONTENT: 💼 PM PORTFOLIO ── */}
+        {/* ── TAB CONTENT: PM PORTFOLIO ── */}
         {activeTab === 'pm_portfolio' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             <div>
-              <h2 className="text-gradient" style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>PM Portfolio Dashboard</h2>
+              <h2 style={{ fontSize: 'var(--fs-20)', fontWeight: 700, marginBottom: '0.25rem', color: 'var(--text-primary)' }}>PM Portfolio Dashboard</h2>
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                 Consolidated overview of all projects you manage, including resource allocations, logged hours, and budget utilization.
               </p>
@@ -1773,7 +1774,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                             const projTimesheets = timesheets.filter(ts => ts.projectId === proj.id);
 
                             return (
-                              <div key={proj.id} className="glass-panel" style={{ padding: '1rem 1.25rem', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)' }}>
+                              <div key={proj.id} className="surface-card" style={{ padding: '1rem 1.25rem' }}>
                                 <h4 style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: '0.75rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', color: 'var(--accent-primary)' }}>
                                   {proj.name}
                                 </h4>
@@ -1791,7 +1792,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
 
                                       if (!u) return null;
                                       return (
-                                        <div key={m.userId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', padding: '0.35rem 0', borderBottom: '1px dashed rgba(255,255,255,0.02)' }}>
+                                        <div key={m.userId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 'var(--fs-13)', padding: '0.35rem 0', borderBottom: '1px dashed var(--border-color)' }}>
                                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
                                             <img 
                                               src={u.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.name}`} 
@@ -1800,7 +1801,7 @@ export const Reports = ({ timesheets, projects, users, currentUser, tasks, costR
                                             />
                                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                                               <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{u.name}</span>
-                                              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Role: {m.role}</span>
+                                              <span style={{ fontSize: 'var(--fs-12)', color: 'var(--text-muted)' }}>Role: {m.role}</span>
                                             </div>
                                           </div>
                                           <div style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-primary)' }}>

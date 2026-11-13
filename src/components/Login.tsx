@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Shield, ArrowRight } from 'lucide-react';
+import { AlertCircle, Shield, ArrowRight } from 'lucide-react';
 import { ChronoTrackBrand } from './ChronoTrackLogo';
 import type { User } from '../types';
 
@@ -77,25 +77,6 @@ export const Login = ({ onLogin, availableUsers }: LoginProps) => {
       overflow: 'hidden'
     }}>
       {/* Background Lights */}
-      <div style={{
-        position: 'absolute',
-        width: '400px',
-        height: '400px',
-        background: 'radial-gradient(circle, rgba(6, 199, 85, 0.15) 0%, transparent 70%)',
-        top: '10%',
-        left: '15%',
-        pointerEvents: 'none'
-      }} />
-      <div style={{
-        position: 'absolute',
-        width: '500px',
-        height: '500px',
-        background: 'radial-gradient(circle, rgba(99, 102, 241, 0.12) 0%, transparent 70%)',
-        bottom: '10%',
-        right: '15%',
-        pointerEvents: 'none'
-      }} />
-
       <div className="glass-panel" style={{
         padding: '3rem 2.5rem',
         width: '450px',
@@ -115,14 +96,14 @@ export const Login = ({ onLogin, availableUsers }: LoginProps) => {
             border: '1px solid rgba(239, 68, 68, 0.4)',
             borderRadius: 'var(--radius-md)',
             padding: '1rem',
-            color: 'white',
-            fontSize: '0.85rem',
+            color: 'var(--text-primary)',
+            fontSize: 'var(--fs-13)',
             display: 'flex',
             flexDirection: 'column',
             gap: '0.5rem'
           }}>
-            <strong style={{ color: '#ff6b6b' }}>
-              ⚠️ ล็อกอินไม่สำเร็จ / Sign in Failed
+            <strong style={{ color: 'var(--accent-danger)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <AlertCircle size={16} /> ล็อกอินไม่สำเร็จ / Sign in Failed
             </strong>
             {errorParam === 'unauthorized' ? (
               <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
@@ -147,7 +128,7 @@ export const Login = ({ onLogin, availableUsers }: LoginProps) => {
                 onChange={e => setEmail(e.target.value)} 
                 placeholder="name@company.com" 
                 style={{
-                  background: 'rgba(255,255,255,0.05)',
+                  background: 'var(--bg-primary)',
                   border: '1px solid var(--border-color)',
                   borderRadius: 'var(--radius-md)',
                   padding: '0.75rem 1rem',
@@ -168,7 +149,7 @@ export const Login = ({ onLogin, availableUsers }: LoginProps) => {
                 onChange={e => setPassword(e.target.value)} 
                 placeholder="••••••••" 
                 style={{
-                  background: 'rgba(255,255,255,0.05)',
+                  background: 'var(--bg-primary)',
                   border: '1px solid var(--border-color)',
                   borderRadius: 'var(--radius-md)',
                   padding: '0.75rem 1rem',

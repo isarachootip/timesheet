@@ -59,7 +59,7 @@ export const PersonalNotes: React.FC<PersonalNotesProps> = ({ currentUser }) => 
               <StickyNote size={22} color="#eab308" />
             </div>
             <div>
-              <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700 }} className="text-gradient">
+              <h2 style={{ margin: 0, fontSize: 'var(--fs-20)', fontWeight: 700, color: 'var(--text-primary)' }}>
                 Personal Post-it
               </h2>
               <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
@@ -108,7 +108,7 @@ export const PersonalNotes: React.FC<PersonalNotesProps> = ({ currentUser }) => 
           <div style={{ display: 'flex', gap: '3px', background: 'var(--bg-tertiary)', padding: '2px', borderRadius: '6px' }}>
             {(['all', 'project', 'personal'] as const).map((cat) => {
               const isActive = categoryFilter === cat;
-              const catLabels = { all: 'ทุกประเภท', project: '💼 งานโครงการ', personal: '🟡 งานส่วนตัว' };
+              const catLabels = { all: 'ทุกประเภท', project: 'งานโครงการ', personal: 'งานส่วนตัว' };
               return (
                 <button
                   key={cat}

@@ -183,27 +183,27 @@ export const PersonalPerformanceTab = ({
 
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem' }}>
-        <div className="glass-panel" style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-          <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 500 }}>{viewMode === 'yearly' ? `Total Yearly Hours (${selectedYear})` : `Month Hours (${selectedMonth})`}</span>
-          <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>{viewMode === 'yearly' ? yearlySummary.totalHours : monthlyTotalHours} hrs</span>
-          <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-            <span style={{ color: '#10b981', fontWeight: 600 }}>{viewMode === 'yearly' ? yearlySummary.approvedHours : monthlyApprovedHours}h Approved</span> • <span style={{ color: '#f59e0b', fontWeight: 600 }}>{viewMode === 'yearly' ? yearlySummary.pendingHours : monthlyPendingHours}h Pending</span>
+        <div className="surface-card" style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+          <span style={{ color: 'var(--text-secondary)', fontSize: 'var(--fs-13)', fontWeight: 500 }}>{viewMode === 'yearly' ? `Total Yearly Hours (${selectedYear})` : `Month Hours (${selectedMonth})`}</span>
+          <span style={{ fontSize: 'var(--fs-20)', fontWeight: 700, color: 'var(--text-primary)' }}>{viewMode === 'yearly' ? yearlySummary.totalHours : monthlyTotalHours} hrs</span>
+          <span style={{ fontSize: 'var(--fs-12)', color: 'var(--text-muted)' }}>
+            <span style={{ color: 'var(--dot-success)', fontWeight: 600 }}>{viewMode === 'yearly' ? yearlySummary.approvedHours : monthlyApprovedHours}h Approved</span> • <span style={{ color: 'var(--dot-warning)', fontWeight: 600 }}>{viewMode === 'yearly' ? yearlySummary.pendingHours : monthlyPendingHours}h Pending</span>
           </span>
         </div>
-        <div className="glass-panel" style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-          <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 500 }}>Tasks Completed</span>
-          <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent-secondary)' }}>{yearlySummary.completedTasksCount}</span>
-          <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Assigned done tasks in {selectedYear}</span>
+        <div className="surface-card" style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+          <span style={{ color: 'var(--text-secondary)', fontSize: 'var(--fs-13)', fontWeight: 500 }}>Tasks Completed</span>
+          <span style={{ fontSize: 'var(--fs-20)', fontWeight: 700, color: 'var(--text-primary)' }}>{yearlySummary.completedTasksCount}</span>
+          <span style={{ fontSize: 'var(--fs-12)', color: 'var(--text-muted)' }}>Assigned done tasks in {selectedYear}</span>
         </div>
-        <div className="glass-panel" style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-          <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 500 }}>Avg Hours / Workday</span>
-          <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent-info)' }}>{viewMode === 'yearly' ? yearlySummary.avgHoursPerActiveDay : monthlyAvgHours} hrs</span>
-          <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Over {viewMode === 'yearly' ? yearlySummary.activeDaysCount : monthlyUniqueDates.length} active days</span>
+        <div className="surface-card" style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+          <span style={{ color: 'var(--text-secondary)', fontSize: 'var(--fs-13)', fontWeight: 500 }}>Avg Hours / Workday</span>
+          <span style={{ fontSize: 'var(--fs-20)', fontWeight: 700, color: 'var(--text-primary)' }}>{viewMode === 'yearly' ? yearlySummary.avgHoursPerActiveDay : monthlyAvgHours} hrs</span>
+          <span style={{ fontSize: 'var(--fs-12)', color: 'var(--text-muted)' }}>Over {viewMode === 'yearly' ? yearlySummary.activeDaysCount : monthlyUniqueDates.length} active days</span>
         </div>
-        <div className="glass-panel" style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-          <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 500 }}>Longest Work Streak</span>
-          <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent-warning)' }}>{viewMode === 'yearly' ? yearlySummary.longestStreakDays : monthlyStreak} Days</span>
-          <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Consecutive logged days</span>
+        <div className="surface-card" style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+          <span style={{ color: 'var(--text-secondary)', fontSize: 'var(--fs-13)', fontWeight: 500 }}>Longest Work Streak</span>
+          <span style={{ fontSize: 'var(--fs-20)', fontWeight: 700, color: 'var(--text-primary)' }}>{viewMode === 'yearly' ? yearlySummary.longestStreakDays : monthlyStreak} Days</span>
+          <span style={{ fontSize: 'var(--fs-12)', color: 'var(--text-muted)' }}>Consecutive logged days</span>
         </div>
       </div>
 

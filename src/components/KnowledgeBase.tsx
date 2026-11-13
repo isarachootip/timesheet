@@ -274,7 +274,7 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
               <div style={{ overflowX: 'auto', borderRadius: '8px', border: '1px solid var(--border-color, #334155)' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left' }}>
                   <thead>
-                    <tr style={{ background: 'rgba(255,255,255,0.05)', borderBottom: '1px solid var(--border-color, #334155)' }}>
+                    <tr style={{ background: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)' }}>
                       <th style={{ padding: '0.6rem 0.8rem' }}>Permissions & Features</th>
                       <th style={{ padding: '0.6rem 0.8rem' }}>Admin</th>
                       <th style={{ padding: '0.6rem 0.8rem' }}>Manager</th>
@@ -421,7 +421,7 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
                   <strong>Need to Refresh:</strong> When a new project is created, the system auto-generates milestones on the server/database. However, the client-side task state is not synchronized immediately. Try <strong>refreshing your page (F5 / Reload)</strong> to load the new tasks.
                 </li>
                 <li>
-                  <strong>Missing End Date:</strong> The auto-generation logic only triggers if the project is created with both a <strong>Start Date</strong> and <strong>End Date</strong>. If you created the project without an End Date and added it later via Edit, the tasks won't auto-generate. To fix this, go to the <strong>Project Plan</strong> tab, select your project, and click the <strong>🚀 Generate Milestones from Templates</strong> button.
+                  <strong>Missing End Date:</strong> The auto-generation logic only triggers if the project is created with both a <strong>Start Date</strong> and <strong>End Date</strong>. If you created the project without an End Date and added it later via Edit, the tasks won't auto-generate. To fix this, go to the <strong>Project Plan</strong> tab, select your project, and click the <strong>Generate Milestones from Templates</strong> button.
                 </li>
               </ul>
             </div>
@@ -762,7 +762,7 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
               <div style={{ overflowX: 'auto', borderRadius: '8px', border: '1px solid var(--border-color, #334155)' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left' }}>
                   <thead>
-                    <tr style={{ background: 'rgba(255,255,255,0.05)', borderBottom: '1px solid var(--border-color, #334155)' }}>
+                    <tr style={{ background: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)' }}>
                       <th style={{ padding: '0.6rem 0.8rem' }}>สิทธิ์ / ฟีเจอร์ (Permissions)</th>
                       <th style={{ padding: '0.6rem 0.8rem' }}>Admin</th>
                       <th style={{ padding: '0.6rem 0.8rem' }}>Manager</th>
@@ -909,7 +909,7 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
                   <strong>ข้อมูลหน้าจอยังไม่ได้ดึงล่าสุด (ต้องกดรีเฟรช):</strong> เมื่อสร้างโปรเจกต์ใหม่ ระบบจะดึง Milestone Tasks มาลง Database ทันที แต่ฝั่งหน้าเว็บยังไม่ได้ดึงอัปเดตงานล่าสุดเข้ามา ให้ลอง **กดรีเฟรชหน้าจอ (F5 / Reload)** เพื่อดึงข้อมูลใหม่มาแสดงผลครับ
                 </li>
                 <li>
-                  <strong>ไม่ได้ระบุ End Date ในตอนแรก:</strong> ระบบหลังบ้านจะสร้างแผนงานอัตโนมัติเฉพาะตอนที่ระบุทั้ง **Start Date** และ **End Date** พร้อมกันตั้งแต่สร้างโปรเจกต์ หากคุณแก้ไขเพื่อเพิ่ม End Date ทีหลัง แผนงานจะไม่ถูกสร้างอัตโนมัติ ให้ไปที่แท็บ **Project Plan** เลือกโปรเจกต์ และกดปุ่ม **🚀 Generate Milestones from Templates** เพื่อสั่งสร้างแผนงานด้วยตนเองครับ
+                  <strong>ไม่ได้ระบุ End Date ในตอนแรก:</strong> ระบบหลังบ้านจะสร้างแผนงานอัตโนมัติเฉพาะตอนที่ระบุทั้ง **Start Date** และ **End Date** พร้อมกันตั้งแต่สร้างโปรเจกต์ หากคุณแก้ไขเพื่อเพิ่ม End Date ทีหลัง แผนงานจะไม่ถูกสร้างอัตโนมัติ ให้ไปที่แท็บ **Project Plan** เลือกโปรเจกต์ และกดปุ่ม **Generate Milestones from Templates** เพื่อสั่งสร้างแผนงานด้วยตนเองครับ
                 </li>
               </ul>
             </div>
@@ -1355,7 +1355,7 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
             <HelpCircle size={24} color="white" />
           </div>
           <div>
-            <h1 style={{ fontSize: '2rem', fontWeight: 700, margin: 0 }} className="text-gradient">
+            <h1 style={{ fontSize: 'var(--fs-28)', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
               {activeTab === 'faq' 
                 ? current.title 
                 : activeTab === 'manual' 
@@ -1456,17 +1456,17 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
       </div>
 
       <style>{`
-        .manual-content h1 { font-size: 1.8rem; margin-top: 1.5rem; margin-bottom: 1rem; color: var(--text-primary); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
-        .manual-content h2 { font-size: 1.4rem; margin-top: 1.5rem; margin-bottom: 0.75rem; color: var(--accent-primary); }
-        .manual-content h3 { font-size: 1.15rem; margin-top: 1.25rem; margin-bottom: 0.5rem; color: var(--accent-secondary); }
+        .manual-content h1 { font-size: var(--fs-28); margin-top: 1.5rem; margin-bottom: 1rem; color: var(--text-primary); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
+        .manual-content h2 { font-size: var(--fs-20); margin-top: 1.5rem; margin-bottom: 0.75rem; color: var(--accent-primary); }
+        .manual-content h3 { font-size: var(--fs-16); margin-top: 1.25rem; margin-bottom: 0.5rem; color: var(--text-primary); }
         .manual-content p { margin-bottom: 1rem; line-height: 1.6; color: var(--text-secondary); }
         .manual-content ul, .manual-content ol { margin-bottom: 1rem; padding-left: 1.5rem; color: var(--text-secondary); }
         .manual-content li { margin-bottom: 0.35rem; }
-        .manual-content blockquote { border-left: 4px solid var(--accent-primary); background: rgba(0, 245, 255, 0.05); padding: 0.75rem 1rem; margin-bottom: 1rem; border-radius: 4px; }
+        .manual-content blockquote { border-left: 4px solid var(--accent-primary); background: var(--accent-subtle); padding: 0.75rem 1rem; margin-bottom: 1rem; border-radius: var(--radius-sm); }
         .manual-content table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
         .manual-content th, .manual-content td { border: 1px solid var(--border-color); padding: 0.75rem; text-align: left; }
         .manual-content th { background: var(--bg-tertiary); color: var(--text-primary); font-weight: 600; }
-        .manual-content tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+        .manual-content tr:nth-child(even) { background: var(--bg-primary); }
         .manual-content a { color: var(--accent-primary); }
         .manual-content a:hover { text-decoration: underline; }
         @keyframes spin {
@@ -1512,12 +1512,12 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
                     <div style={{ 
                       width: '36px', height: '36px', borderRadius: '8px', 
-                      background: isExpanded ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.05)', 
+                      background: isExpanded ? 'var(--accent-subtle)' : 'var(--bg-tertiary)', 
                       display: 'flex', alignItems: 'center', justifyContent: 'center' 
                     }}>
-                      <Icon size={18} color={isExpanded ? '#818cf8' : 'var(--text-secondary)'} />
+                      <Icon size={18} color={isExpanded ? 'var(--accent-primary)' : 'var(--text-secondary)'} />
                     </div>
-                    <h3 style={{ fontSize: '1.05rem', fontWeight: 600, margin: 0, color: isExpanded ? 'white' : 'var(--text-primary)' }}>
+                    <h3 style={{ fontSize: 'var(--fs-16)', fontWeight: 600, margin: 0, color: isExpanded ? 'var(--accent-primary)' : 'var(--text-primary)' }}>
                       {faq.question}
                     </h3>
                   </div>
@@ -1593,12 +1593,12 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ currentUser }) => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
                     <div style={{ 
                       width: '36px', height: '36px', borderRadius: '8px', 
-                      background: isExpanded ? 'rgba(167, 139, 250, 0.15)' : 'rgba(255,255,255,0.05)', 
+                      background: isExpanded ? 'var(--accent-subtle)' : 'var(--bg-tertiary)', 
                       display: 'flex', alignItems: 'center', justifyContent: 'center' 
                     }}>
-                      <Icon size={18} color={isExpanded ? '#a78bfa' : 'var(--text-secondary)'} />
+                      <Icon size={18} color={isExpanded ? 'var(--accent-primary)' : 'var(--text-secondary)'} />
                     </div>
-                    <h3 style={{ fontSize: '1.05rem', fontWeight: 600, margin: 0, color: isExpanded ? 'white' : 'var(--text-primary)' }}>
+                    <h3 style={{ fontSize: 'var(--fs-16)', fontWeight: 600, margin: 0, color: isExpanded ? 'var(--accent-primary)' : 'var(--text-primary)' }}>
                       {feat.question}
                     </h3>
                   </div>

@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Hash, MessageSquare, Clock, User as UserIcon, Paperclip, FileText, Download, X as XIcon } from 'lucide-react';
 import type { Project, User, ChatMessage } from '../types';
+import { toast } from './ui/ToastProvider';
 
 interface ProjectChatProps {
   projects: Project[];
   users: User[];
   currentUser: User;
-  systemSettings?: Record<string, any>;
+  systemSettings?: Record<string, unknown>;
 }
 
 export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, currentUser, systemSettings }) => {
@@ -337,14 +338,14 @@ export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, curre
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '1rem' }}>
       <div>
-        <h1 className="text-gradient" style={{ marginBottom: '0.5rem' }}>Team Chat</h1>
+        <h1 style={{ marginBottom: '0.5rem', color: 'var(--text-primary)', fontSize: 'var(--fs-20)' }}>Team Chat</h1>
         <p style={{ color: 'var(--text-secondary)' }}>Collaborate and discuss with your project members.</p>
       </div>
 
-      <div className="glass-panel" style={{ display: 'flex', flex: 1, overflow: 'hidden', padding: 0 }}>
+      <div className="surface-card" style={{ display: 'flex', flex: 1, overflow: 'hidden', padding: 0 }}>
         
         {/* Left Sidebar */}
-        <div style={{ width: '280px', borderRight: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', background: 'rgba(0,0,0,0.2)' }}>
+        <div style={{ width: '280px', borderRight: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', background: 'var(--bg-primary)' }}>
           <div style={{ padding: '1.25rem', borderBottom: '1px solid var(--border-color)' }}>
             <h3 style={{ fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <MessageSquare size={18} color="var(--accent-primary)" />
@@ -388,12 +389,12 @@ export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, curre
                     {projectUnreadCount > 0 && (
                       <span 
                         style={{
-                          background: 'var(--accent-danger, #ef4444)',
-                          color: 'white',
-                          fontSize: '0.7rem',
+                          background: 'var(--accent-danger)',
+                          color: 'var(--accent-contrast)',
+                          fontSize: 'var(--fs-12)',
                           fontWeight: 700,
-                          padding: '0.1rem 0.4rem',
-                          borderRadius: '10px',
+                          padding: '0 6px',
+                          borderRadius: 'var(--radius-full)',
                           minWidth: '18px',
                           textAlign: 'center'
                         }}
@@ -412,7 +413,7 @@ export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, curre
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'transparent' }}>
           {selectedProject ? (
             <>
-              <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)' }}>
+              <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-secondary)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   <div style={{ background: 'var(--bg-tertiary)', padding: '0.5rem', borderRadius: 'var(--radius-sm)' }}>
                     <Hash size={20} color="var(--accent-primary)" />
@@ -475,7 +476,7 @@ export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, curre
                               {showAvatar && (
                                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginBottom: '0.25rem' }}>
                                   <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>{isMine ? 'You' : user.name}</span>
-                                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{formatTime(msg.timestamp)}</span>
+                                  <span style={{ fontSize: 'var(--fs-12)', color: 'var(--text-muted)' }}>{formatTime(msg.timestamp)}</span>
                                 </div>
                               )}
                               <div style={{
@@ -526,7 +527,7 @@ export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, curre
                 <div ref={messagesEndRef} />
               </div>
 
-              <div style={{ padding: '1.25rem', borderTop: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.02)', position: 'relative' }}>
+              <div style={{ padding: '1.25rem', borderTop: '1px solid var(--border-color)', background: 'var(--bg-secondary)', position: 'relative' }}>
                 {showMentionsDropdown && filteredMentionUsers.length > 0 && (
                   <div 
                     style={{
@@ -534,16 +535,15 @@ export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, curre
                       bottom: '100%',
                       left: '1.25rem',
                       width: '260px',
-                      background: 'rgba(20, 20, 25, 0.95)',
-                      backdropFilter: 'blur(10px)',
+                      background: 'var(--bg-secondary)',
                       border: '1px solid var(--border-color)',
                       borderRadius: 'var(--radius-md)',
-                      boxShadow: '0 -4px 20px rgba(0,0,0,0.4)',
+                      boxShadow: 'var(--shadow-lg)',
                       zIndex: 100,
                       maxHeight: '200px',
                       overflowY: 'auto',
-                      marginBottom: '0.5rem',
-                      padding: '0.25rem 0'
+                      marginBottom: '8px',
+                      padding: '4px 0'
                     }}
                   >
                     {filteredMentionUsers.map((user, idx) => (
@@ -565,11 +565,11 @@ export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, curre
                         {user.avatar ? (
                           <img src={user.avatar} alt={user.name} style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} />
                         ) : (
-                          <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem' }}>
+                          <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--fs-12)' }}>
                             {user.name.charAt(0)}
                           </div>
                         )}
-                        <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{user.name}</span>
+                        <span style={{ fontSize: 'var(--fs-13)', fontWeight: 500 }}>{user.name}</span>
                       </div>
                     ))}
                   </div>
@@ -589,9 +589,9 @@ export const ProjectChat: React.FC<ProjectChatProps> = ({ projects, users, curre
                     onChange={(e) => {
                       if (e.target.files && e.target.files[0]) {
                         const file = e.target.files[0];
-                        const maxMb = parseFloat(systemSettings?.max_upload_mb || '1');
+                        const maxMb = Number(systemSettings?.max_upload_mb ?? 1) || 1;
                         if (file.size > maxMb * 1024 * 1024) {
-                          alert(`File size cannot exceed ${maxMb}MB`);
+                          toast.error(`File size cannot exceed ${maxMb}MB`);
                           e.target.value = '';
                           return;
                         }

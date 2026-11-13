@@ -23,10 +23,10 @@ export const PostItProjectBadge: React.FC<PostItProjectBadgeProps> = ({
             display: 'inline-flex',
             alignItems: 'center',
             gap: '4px',
-            fontSize: '0.72rem',
-            fontWeight: 700,
-            padding: '2px 7px',
-            borderRadius: '12px',
+            fontSize: 'var(--fs-12)',
+            fontWeight: 600,
+            padding: '2px 8px',
+            borderRadius: 'var(--radius-sm)',
             background: 'rgba(2, 132, 199, 0.15)',
             color: '#0369a1',
             maxWidth: '180px',
@@ -41,10 +41,10 @@ export const PostItProjectBadge: React.FC<PostItProjectBadgeProps> = ({
       ) : (
         <span
           style={{
-            fontSize: '0.7rem',
+            fontSize: 'var(--fs-12)',
             fontWeight: 600,
             padding: '2px 6px',
-            borderRadius: '10px',
+            borderRadius: 'var(--radius-sm)',
             background: 'rgba(234, 179, 8, 0.15)',
             color: '#a16207',
           }}
@@ -58,11 +58,11 @@ export const PostItProjectBadge: React.FC<PostItProjectBadgeProps> = ({
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '3px',
-            fontSize: '0.7rem',
-            fontWeight: 700,
+            gap: '4px',
+            fontSize: 'var(--fs-12)',
+            fontWeight: 600,
             padding: '2px 6px',
-            borderRadius: '10px',
+            borderRadius: 'var(--radius-sm)',
             background: 'rgba(22, 163, 74, 0.18)',
             color: '#15803d',
           }}

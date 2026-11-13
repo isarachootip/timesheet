@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Send, X, Bot } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Bot, Send, X } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -8,7 +8,11 @@ interface Message {
   timestamp: Date;
 }
 
-const ChatWidget: React.FC = () => {
+interface ChatWidgetProps {
+  onClose?: () => void;
+}
+
+const ChatWidget: React.FC<ChatWidgetProps> = ({ onClose }) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -21,12 +25,8 @@ const ChatWidget: React.FC = () => {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
   const handleSendMessage = async () => {
@@ -46,225 +46,203 @@ const ChatWidget: React.FC = () => {
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userMessage.text }),
       });
-
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
-
+      if (!response.ok) throw new Error('Network response was not ok');
       const data = await response.json();
-      
-      const botMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: data.reply || 'ขออภัยครับ ระบบตอบกลับมีปัญหา',
-        sender: 'bot',
-        timestamp: new Date(),
-      };
-      
-      setMessages((prev) => [...prev, botMessage]);
-    } catch (error) {
-      console.error('Error sending message:', error);
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: 'ขออภัยครับ ไม่สามารถเชื่อมต่อกับระบบหลังบ้านได้ในขณะนี้',
-        sender: 'bot',
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `${Date.now() + 1}`,
+          text: data.reply || 'ขออภัยครับ ระบบตอบกลับมีปัญหา',
+          sender: 'bot',
+          timestamp: new Date(),
+        },
+      ]);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `${Date.now() + 1}`,
+          text: 'ขออภัยครับ ไม่สามารถเชื่อมต่อกับระบบหลังบ้านได้ในขณะนี้',
+          sender: 'bot',
+          timestamp: new Date(),
+        },
+      ]);
     } finally {
       setIsTyping(false);
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleSendMessage();
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    } else {
+      window.parent.postMessage('close-chat-widget', '*');
     }
   };
 
-  const handleClose = () => {
-    window.parent.postMessage('close-chat-widget', '*');
-  };
-
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100vh',
-      backgroundColor: '#f9fafb',
-      fontFamily: 'var(--font-sans)'
-    }}>
-      {/* Header */}
-      <div style={{
+    <div
+      style={{
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '16px',
-        backgroundColor: '#10b981', // green-500
-        color: 'white',
-        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.2)',
-            padding: '6px',
-            borderRadius: '50%'
-          }}>
-            <Bot size={20} />
+        flexDirection: 'column',
+        height: '100%',
+        backgroundColor: 'var(--bg-primary)',
+        fontFamily: 'var(--font-sans)',
+        color: 'var(--text-primary)',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '14px 16px',
+          backgroundColor: 'var(--bg-secondary)',
+          borderBottom: '1px solid var(--border-color)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div
+            style={{
+              backgroundColor: 'var(--accent-subtle)',
+              color: 'var(--accent-primary)',
+              padding: '6px',
+              borderRadius: 'var(--radius-sm)',
+              display: 'flex',
+            }}
+          >
+            <Bot size={18} />
           </div>
           <div>
-            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>ChronoTrack Assistant</h3>
-            <p style={{ margin: 0, fontSize: '12px', opacity: 0.9 }}>Online</p>
+            <h3 style={{ margin: 0, fontSize: 'var(--fs-16)', fontWeight: 600 }}>ChronoTrack Assistant</h3>
+            <p style={{ margin: 0, fontSize: 'var(--fs-12)', color: 'var(--text-muted)' }}>Workspace AI Help</p>
           </div>
         </div>
-        <button 
+        <button
+          type="button"
           onClick={handleClose}
+          aria-label="Close assistant"
           style={{
-            background: 'none',
+            background: 'transparent',
             border: 'none',
-            color: 'white',
+            color: 'var(--text-secondary)',
             cursor: 'pointer',
             padding: '4px',
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: '4px'
+            borderRadius: 'var(--radius-sm)',
           }}
-          onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'}
-          onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
         >
-          <X size={20} />
+          <X size={18} />
         </button>
       </div>
 
-      {/* Messages Area */}
-      <div style={{
-        flex: 1,
-        overflowY: 'auto',
-        padding: '16px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '12px'
-      }}>
+      <div
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: '16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+        }}
+      >
         {messages.map((msg) => (
-          <div 
-            key={msg.id} 
+          <div
+            key={msg.id}
             style={{
               display: 'flex',
               flexDirection: msg.sender === 'user' ? 'row-reverse' : 'row',
               gap: '8px',
-              alignItems: 'flex-end'
+              alignItems: 'flex-end',
             }}
           >
             {msg.sender === 'bot' && (
-              <div style={{
-                backgroundColor: '#e5e7eb',
-                padding: '6px',
-                borderRadius: '50%',
-                color: '#4b5563',
-                flexShrink: 0
-              }}>
-                <Bot size={16} />
+              <div
+                style={{
+                  backgroundColor: 'var(--bg-tertiary)',
+                  border: '1px solid var(--border-color)',
+                  padding: '6px',
+                  borderRadius: 'var(--radius-sm)',
+                  color: 'var(--text-secondary)',
+                  flexShrink: 0,
+                  display: 'flex',
+                }}
+              >
+                <Bot size={14} />
               </div>
             )}
-            <div style={{
-              backgroundColor: msg.sender === 'user' ? '#10b981' : '#ffffff',
-              color: msg.sender === 'user' ? '#ffffff' : '#1f2937',
-              padding: '10px 14px',
-              borderRadius: '16px',
-              borderBottomRightRadius: msg.sender === 'user' ? '4px' : '16px',
-              borderBottomLeftRadius: msg.sender === 'bot' ? '4px' : '16px',
-              maxWidth: '75%',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-              fontSize: '14px',
-              lineHeight: '1.6'
-            }}>
+            <div
+              style={{
+                backgroundColor: msg.sender === 'user' ? 'var(--accent-primary)' : 'var(--bg-secondary)',
+                color: msg.sender === 'user' ? 'var(--accent-contrast)' : 'var(--text-primary)',
+                border: msg.sender === 'user' ? 'none' : '1px solid var(--border-color)',
+                padding: '10px 12px',
+                borderRadius: 'var(--radius-md)',
+                maxWidth: '78%',
+                fontSize: 'var(--fs-14)',
+                lineHeight: 1.5,
+              }}
+            >
               {msg.text}
             </div>
           </div>
         ))}
         {isTyping && (
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
-            <div style={{
-              backgroundColor: '#e5e7eb',
-              padding: '6px',
-              borderRadius: '50%',
-              color: '#4b5563'
-            }}>
-              <Bot size={16} />
-            </div>
-            <div style={{
-              backgroundColor: '#ffffff',
-              padding: '12px 14px',
-              borderRadius: '16px',
-              borderBottomLeftRadius: '4px',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-            }}>
-              <div style={{ display: 'flex', gap: '4px' }}>
-                <div style={{ width: '6px', height: '6px', backgroundColor: '#9ca3af', borderRadius: '50%', animation: 'bounce 1.4s infinite ease-in-out both' }}></div>
-                <div style={{ width: '6px', height: '6px', backgroundColor: '#9ca3af', borderRadius: '50%', animation: 'bounce 1.4s infinite ease-in-out both', animationDelay: '0.2s' }}></div>
-                <div style={{ width: '6px', height: '6px', backgroundColor: '#9ca3af', borderRadius: '50%', animation: 'bounce 1.4s infinite ease-in-out both', animationDelay: '0.4s' }}></div>
-              </div>
-              <style>{`
-                @keyframes bounce {
-                  0%, 80%, 100% { transform: scale(0); }
-                  40% { transform: scale(1); }
-                }
-              `}</style>
-            </div>
-          </div>
+          <div style={{ fontSize: 'var(--fs-12)', color: 'var(--text-muted)' }}>Assistant is typing...</div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area */}
-      <div style={{
-        padding: '12px 16px',
-        backgroundColor: '#ffffff',
-        borderTop: '1px solid #e5e7eb',
-        display: 'flex',
-        gap: '8px'
-      }}>
+      <div
+        style={{
+          padding: '12px 16px',
+          backgroundColor: 'var(--bg-secondary)',
+          borderTop: '1px solid var(--border-color)',
+          display: 'flex',
+          gap: '8px',
+        }}
+      >
         <input
           type="text"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={handleKeyPress}
-          placeholder="พิมพ์ข้อความ..."
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleSendMessage();
+          }}
+          placeholder="Ask ChronoTrack Assistant..."
           style={{
             flex: 1,
-            padding: '10px 14px',
-            borderRadius: '24px',
-            border: '1px solid #d1d5db',
+            padding: '8px 12px',
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--border-color)',
+            backgroundColor: 'var(--bg-primary)',
+            color: 'var(--text-primary)',
             outline: 'none',
-            fontSize: '14px',
-            transition: 'border-color 0.2s'
+            fontSize: 'var(--fs-14)',
           }}
-          onFocus={(e) => e.target.style.borderColor = '#10b981'}
-          onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
         />
         <button
+          type="button"
           onClick={handleSendMessage}
           disabled={!inputValue.trim() || isTyping}
+          aria-label="Send message"
           style={{
-            backgroundColor: inputValue.trim() && !isTyping ? '#10b981' : '#9ca3af',
-            color: 'white',
-            border: 'none',
-            borderRadius: '50%',
-            width: '40px',
-            height: '40px',
+            backgroundColor: inputValue.trim() && !isTyping ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
+            color: inputValue.trim() && !isTyping ? 'var(--accent-contrast)' : 'var(--text-muted)',
+            border: '1px solid var(--border-color)',
+            borderRadius: 'var(--radius-sm)',
+            width: '38px',
+            height: '38px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: inputValue.trim() && !isTyping ? 'pointer' : 'not-allowed',
-            transition: 'background-color 0.2s'
           }}
         >
-          <Send size={18} style={{ marginLeft: '2px' }} />
+          <Send size={16} />
         </button>
       </div>
     </div>

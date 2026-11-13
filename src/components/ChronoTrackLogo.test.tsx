@@ -7,35 +7,26 @@ afterEach(() => {
 });
 
 describe('ChronoTrackLogo & ChronoTrackBrand', () => {
-  it('renders standalone ChronoTrackLogo SVG with requested size', () => {
+  it('renders standalone ChronoTrackLogo with Lucide icon mark', () => {
     render(<ChronoTrackLogo size={36} />);
-    const svg = screen.getByLabelText('CHRONOTRACK Logo');
-    expect(svg.tagName.toLowerCase()).toBe('svg');
-    expect(svg.getAttribute('width')).toBe('36');
-    expect(svg.getAttribute('height')).toBe('36');
+    const logo = screen.getByLabelText('ChronoTrack Logo');
+    expect(logo).toBeTruthy();
   });
 
-  it('renders ChronoTrackBrand (sm) as a bounded vector SVG lockup that fits inside the sidebar slot', () => {
+  it('renders ChronoTrackBrand (sm) in Title Case using clean typography without gradients', () => {
     const { container } = render(<ChronoTrackBrand size="sm" />);
-    const lockupSvg = screen.getByLabelText('CHRONOTRACK - PROJECT MANAGEMENT');
-    expect(lockupSvg.tagName.toLowerCase()).toBe('svg');
-    expect(lockupSvg.getAttribute('viewBox')).toBe('0 0 680 132');
-
     const titleEl = container.querySelector('[data-testid="brand-title"]');
     const subtitleEl = container.querySelector('[data-testid="brand-subtitle"]');
-    expect(titleEl?.textContent).toBe('CHRONOTRACK');
-    expect(subtitleEl?.textContent).toBe('PROJECT MANAGEMENT');
-
-    const titleFontSize = parseFloat(titleEl?.getAttribute('font-size') ?? '0');
-    const subtitleFontSize = parseFloat(subtitleEl?.getAttribute('font-size') ?? '0');
-    expect(titleFontSize).toBeGreaterThan(subtitleFontSize * 2);
-    expect(subtitleFontSize).toBeGreaterThanOrEqual(18);
+    expect(titleEl?.textContent).toBe('ChronoTrack');
+    expect(subtitleEl?.textContent).toBe('Project Management');
+    expect(container.innerHTML).not.toContain('linearGradient');
   });
 
   it('renders ChronoTrackBrand (lg) centered for the login screen', () => {
-    render(<ChronoTrackBrand size="lg" />);
-    const lockupSvg = screen.getByLabelText('CHRONOTRACK - PROJECT MANAGEMENT');
-    expect(lockupSvg.tagName.toLowerCase()).toBe('svg');
-    expect((lockupSvg as HTMLElement).style.maxWidth).toBe('330px');
+    const { container } = render(<ChronoTrackBrand size="lg" />);
+    const titleEl = container.querySelector('[data-testid="brand-title"]');
+    expect(titleEl?.textContent).toBe('ChronoTrack');
+    const wrapper = container.firstElementChild as HTMLElement;
+    expect(wrapper.style.justifyContent).toBe('center');
   });
 });

@@ -61,8 +61,8 @@ export const PersonalYearlyTables = ({
                     <tr
                       key={row.projectId}
                       style={{
-                        borderBottom: '1px solid rgba(255,255,255,0.04)',
-                        background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)',
+                        borderBottom: '1px solid var(--border-color)',
+                        background: idx % 2 === 0 ? 'transparent' : 'var(--bg-primary)',
                       }}
                     >
                       <td style={{ padding: '0.55rem 0.75rem', textAlign: 'left', fontWeight: 600, whiteSpace: 'nowrap' }}>
@@ -133,8 +133,8 @@ export const PersonalYearlyTables = ({
                 <tr
                   key={m.monthKey}
                   style={{
-                    borderBottom: '1px solid rgba(255,255,255,0.03)',
-                    background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)',
+                    borderBottom: '1px solid var(--border-color)',
+                    background: idx % 2 === 0 ? 'transparent' : 'var(--bg-primary)',
                     opacity: m.totalHours > 0 ? 1 : 0.6,
                   }}
                 >

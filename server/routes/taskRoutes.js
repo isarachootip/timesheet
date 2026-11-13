@@ -108,7 +108,15 @@ router.delete('/api/tasks/:id', async (req, res) => {
       }
     }
 
-    await pool.query('DELETE FROM tasks WHERE id = $1', [id]);
+    await pool.query(
+      `WITH RECURSIVE descendants AS (
+         SELECT id FROM tasks WHERE id = $1
+         UNION ALL
+         SELECT t.id FROM tasks t INNER JOIN descendants d ON t.parent_id = d.id
+       )
+       DELETE FROM tasks WHERE id IN (SELECT id FROM descendants)`,
+      [id]
+    );
     res.json({ success: true });
   } catch (err) {
     console.error('Error deleting task:', err);

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import type { TaskTemplate, TaskPriority, PermissionScheme, User, CostRate } from '../types';
-import { Plus, Trash2, Edit, X, Save, Shield, ShieldCheck, Coins, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, Edit, X, Save, Shield, ShieldCheck, Coins, AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
+import { toast } from './ui/ToastProvider';
 
 interface SettingsProps {
   taskTemplates: TaskTemplate[];
@@ -10,8 +11,8 @@ interface SettingsProps {
   currentUser: User | null;
   costRates: CostRate[];
   setCostRates: React.Dispatch<React.SetStateAction<CostRate[]>>;
-  systemSettings?: Record<string, any>;
-  setSystemSettings?: React.Dispatch<React.SetStateAction<Record<string, any>>>;
+  systemSettings?: Record<string, unknown>;
+  setSystemSettings?: React.Dispatch<React.SetStateAction<Record<string, unknown>>>;
   fetchInitialData?: () => void;
 }
 
@@ -117,13 +118,13 @@ export const Settings = ({
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title) return alert('Title is required');
+    if (!title) return toast.error('Title is required');
 
     const startVal = Math.max(0, Math.min(100, Number(startPercent) || 0));
     const endVal = Math.max(startVal, Math.min(100, Number(endPercent) || 100));
 
     if (startVal >= endVal) {
-      return alert('Start percent must be strictly less than end percent.');
+      return toast.error('Start percent must be strictly less than end percent.');
     }
 
     const tplData: TaskTemplate = {
@@ -185,7 +186,7 @@ export const Settings = ({
 
   const handleSaveScheme = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!schemeName) return alert('Name is required');
+    if (!schemeName) return toast.error('Name is required');
 
     const schemeId = editingScheme ? editingScheme.id : 'scheme_' + Date.now();
     const data = {
@@ -209,7 +210,7 @@ export const Settings = ({
 
   const handleDeleteScheme = (id: string) => {
     if (id === 'scheme_default') {
-      return alert('Cannot delete the default permission scheme.');
+      return toast.error('Cannot delete the default permission scheme.');
     }
     if (confirm('Are you sure you want to delete this permission scheme? Projects using it will fall back to the default scheme.')) {
       setPermissionSchemes(prev => prev.filter(s => s.id !== id));
@@ -265,7 +266,7 @@ export const Settings = ({
   };
 
   const handleSaveInlineRate = (id: string) => {
-    if (!inlineRoleName) return alert('Role name is required');
+    if (!inlineRoleName) return toast.error('Role name is required');
     const day = parseFloat(inlinePerDay) || 0;
     const hour = parseFloat(inlinePerHour) || 0;
 
@@ -283,7 +284,7 @@ export const Settings = ({
 
   const handleAddInlineRate = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newRoleName) return alert('Role name is required');
+    if (!newRoleName) return toast.error('Role name is required');
     const day = parseFloat(newPerDay) || 0;
     const hour = parseFloat(newPerHour) || 0;
 
@@ -369,7 +370,7 @@ export const Settings = ({
       {/* Top Bar */}
       <div className="flex-between">
         <div>
-          <h1 className="text-gradient" style={{ marginBottom: '0.5rem' }}>System Settings</h1>
+          <h1 style={{ marginBottom: '0.5rem', color: 'var(--text-primary)' }}>System Settings</h1>
           <p style={{ color: 'var(--text-secondary)' }}>Configure default milestones and main task templates for automatic project plan generation.</p>
         </div>
         {activeTab === 'templates' && (
@@ -495,7 +496,7 @@ export const Settings = ({
               fontWeight: activeTab === 'data_management' ? 600 : 400
             }}
           >
-            🧹 Data Management
+            Data Management
           </button>
         )}
         {isGlobalAdmin && (
@@ -544,12 +545,12 @@ export const Settings = ({
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem', padding: '0 1rem' }}>
-                {taskTemplates.map((tpl, idx) => {
+                {taskTemplates.map((tpl) => {
                   const widthVal = tpl.endPercent - tpl.startPercent;
                   return (
                     <div key={tpl.id} style={{ display: 'flex', alignItems: 'center', height: '24px', position: 'relative' }}>
                       {/* Left Label */}
-                      <span style={{ fontSize: '0.7rem', width: '150px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', color: 'var(--text-primary)' }}>
+                      <span style={{ fontSize: 'var(--fs-12)', width: '150px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', color: 'var(--text-primary)' }}>
                         {tpl.title}
                       </span>
                       
@@ -559,15 +560,16 @@ export const Settings = ({
                           position: 'absolute',
                           left: `${tpl.startPercent}%`,
                           width: `${widthVal}%`,
-                          height: '14px',
-                          background: idx % 2 === 0 ? 'rgba(99, 102, 241, 0.25)' : 'rgba(168, 85, 247, 0.25)',
-                          border: idx % 2 === 0 ? '1px solid rgba(99, 102, 241, 0.5)' : '1px solid rgba(168, 85, 247, 0.5)',
-                          borderRadius: '4px',
+                          height: '20px',
+                          background: 'var(--bg-tertiary)',
+                          border: '1px solid var(--accent-primary)',
+                          borderRadius: 'var(--radius-sm)',
                           display: 'flex',
                           alignItems: 'center',
-                          paddingLeft: '4px',
-                          fontSize: '0.65rem',
-                          color: 'white',
+                          paddingLeft: '6px',
+                          fontSize: 'var(--fs-12)',
+                          color: 'var(--text-primary)',
+                          fontWeight: 500,
                           whiteSpace: 'nowrap',
                           overflow: 'hidden'
                         }} title={`${tpl.title}: ${tpl.startPercent}% to ${tpl.endPercent}% (${tpl.estimatedHours}h)`}>
@@ -587,7 +589,7 @@ export const Settings = ({
               <div key={tpl.id} className="glass-panel hover-lift" style={{ padding: '1.25rem', background: 'var(--bg-secondary)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div className="flex-between">
                   <span style={{ 
-                    fontSize: '0.7rem', 
+                    fontSize: 'var(--fs-12)', 
                     fontWeight: 600, 
                     padding: '0.15rem 0.5rem', 
                     borderRadius: 'var(--radius-sm)', 
@@ -701,13 +703,13 @@ export const Settings = ({
               gap: '0.5rem',
               fontWeight: 500
             }}>
-              ⚠️ View-Only Mode: Only global Admins can manage permission schemes.
+              <AlertTriangle size={16} /> View-Only Mode: Only global Admins can manage permission schemes.
             </div>
           )}
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.5rem' }}>
             {permissionSchemes.map(scheme => (
-              <div key={scheme.id} className="glass-panel hover-lift" style={{ 
+              <div key={scheme.id} className="surface-card hover-lift" style={{ 
                 padding: '1.5rem', 
                 background: 'var(--bg-secondary)', 
                 display: 'flex', 
@@ -716,7 +718,7 @@ export const Settings = ({
               }}>
                 <div className="flex-between">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <ShieldCheck size={18} className="text-gradient" />
+                    <ShieldCheck size={18} color="var(--accent-primary)" />
                     <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>{scheme.name}</h3>
                   </div>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -748,11 +750,11 @@ export const Settings = ({
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
                     {Object.entries(scheme.permissions || {}).map(([key, val]) => (
                       <span key={key} style={{
-                        fontSize: '0.7rem',
-                        background: 'rgba(255, 255, 255, 0.03)',
+                        fontSize: 'var(--fs-12)',
+                        background: 'var(--bg-tertiary)',
                         border: '1px solid var(--border-color)',
-                        borderRadius: '4px',
-                        padding: '0.2rem 0.4rem',
+                        borderRadius: 'var(--radius-sm)',
+                        padding: '2px 6px',
                         color: 'var(--text-secondary)'
                       }} title={`${key}: ${val.join(', ')}`}>
                         {key.replace(/_/g, ' ')} ({val.length})
@@ -799,7 +801,7 @@ export const Settings = ({
                 <div style={{ overflowX: 'auto', maxHeight: '400px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem', textAlign: 'left' }}>
                     <thead>
-                      <tr style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
+                      <tr style={{ background: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
                         <th style={{ padding: '0.75rem 1rem', width: '30%' }}>Resource Role</th>
                         <th style={{ padding: '0.75rem 1rem', width: '22%' }}>Daily Rate (8 hrs)</th>
                         <th style={{ padding: '0.75rem 1rem', width: '22%' }}>Hourly Rate</th>
@@ -811,7 +813,7 @@ export const Settings = ({
                       {costRates.map(rate => {
                         const isEditing = editingRateId === rate.id;
                         return (
-                          <tr key={rate.id} style={{ borderBottom: '1px solid var(--border-color)', background: isEditing ? 'rgba(255, 255, 255, 0.02)' : 'transparent' }}>
+                          <tr key={rate.id} style={{ borderBottom: '1px solid var(--border-color)', background: isEditing ? 'var(--bg-primary)' : 'transparent' }}>
                             {isEditing ? (
                               <>
                                 <td style={{ padding: '0.5rem' }}>
@@ -906,7 +908,7 @@ export const Settings = ({
 
                       {/* Inline Add Row */}
                       {isGlobalAdmin && (
-                        <tr style={{ background: 'rgba(255, 255, 255, 0.01)', borderTop: '1px solid var(--border-color)' }}>
+                        <tr style={{ background: 'var(--bg-primary)', borderTop: '1px solid var(--border-color)' }}>
                           <td style={{ padding: '0.5rem' }}>
                             <input 
                               ref={newRoleInputRef}
@@ -988,16 +990,15 @@ export const Settings = ({
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0, 0, 0, 0.7)',
-          backdropFilter: 'blur(4px)',
+          background: 'var(--overlay-backdrop)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 1100
         }}>
-          <div className="glass-panel" style={{ padding: '2rem', width: '650px', maxWidth: '95%', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div className="surface-card" style={{ padding: '2rem', width: '650px', maxWidth: '95%', display: 'flex', flexDirection: 'column', gap: '1.5rem', boxShadow: 'var(--shadow-lg)' }}>
             <div className="flex-between">
-              <h2 className="text-gradient" style={{ fontSize: '1.5rem' }}>{editingTemplate ? 'Edit Milestone Template' : 'Add New Milestone Template'}</h2>
+              <h2 style={{ fontSize: 'var(--fs-20)', color: 'var(--text-primary)' }}>{editingTemplate ? 'Edit Milestone Template' : 'Add New Milestone Template'}</h2>
               <button onClick={() => setIsModalOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
                 <X size={20} />
               </button>
@@ -1109,16 +1110,15 @@ export const Settings = ({
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0, 0, 0, 0.7)',
-          backdropFilter: 'blur(4px)',
+          background: 'var(--overlay-backdrop)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 1100
         }}>
-          <div className="glass-panel" style={{ padding: '2rem', width: '800px', maxWidth: '95%', display: 'flex', flexDirection: 'column', gap: '1.5rem', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="surface-card" style={{ padding: '2rem', width: '800px', maxWidth: '95%', display: 'flex', flexDirection: 'column', gap: '1.5rem', maxHeight: '90vh', overflowY: 'auto', boxShadow: 'var(--shadow-lg)' }}>
             <div className="flex-between">
-              <h2 className="text-gradient" style={{ fontSize: '1.5rem' }}>
+              <h2 style={{ fontSize: 'var(--fs-20)', color: 'var(--text-primary)' }}>
                 {editingScheme ? (isGlobalAdmin ? 'Edit Permission Scheme' : 'View Permission Scheme') : 'Add New Permission Scheme'}
               </h2>
               <button onClick={() => setIsSchemeModalOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
@@ -1157,7 +1157,7 @@ export const Settings = ({
                 <div style={{ overflowX: 'auto', maxHeight: '400px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', background: 'var(--bg-tertiary)' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
                     <thead>
-                      <tr style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
+                      <tr style={{ background: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
                         <th style={{ padding: '0.75rem' }}>Permission Key</th>
                         {["Admin", "Manager", "PM", "Team Lead", "Member", "Assignee"].map(role => (
                           <th key={role} style={{ padding: '0.75rem', textAlign: 'center' }}>{role}</th>
@@ -1256,7 +1256,7 @@ export const Settings = ({
               marginBottom: '1.25rem'
             }}>
               <div>
-                <h5 style={{ color: 'var(--accent-danger)', margin: '0 0 0.5rem 0', fontSize: '0.85rem' }}>🗑️ จะถูกลบ:</h5>
+                <h5 style={{ color: 'var(--accent-danger)', margin: '0 0 0.5rem 0', fontSize: 'var(--fs-13)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}><Trash2 size={14} /> จะถูกลบ:</h5>
                 <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.8 }}>
                   <li>Tasks ทั้งหมด (Kanban Board)</li>
                   <li>Sprints ทั้งหมด</li>
@@ -1267,7 +1267,7 @@ export const Settings = ({
                 </ul>
               </div>
               <div>
-                <h5 style={{ color: 'var(--accent-secondary)', margin: '0 0 0.5rem 0', fontSize: '0.85rem' }}>✅ จะถูกเก็บไว้:</h5>
+                <h5 style={{ color: 'var(--dot-success)', margin: '0 0 0.5rem 0', fontSize: 'var(--fs-13)', display: 'flex', alignItems: 'center', gap: '6px' }}><CheckCircle2 size={15} /> จะถูกเก็บไว้:</h5>
                 <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.8 }}>
                   <li>Projects (โครงการ + สมาชิก)</li>
                   <li>Users / Staff (พนักงานทุกคน)</li>
@@ -1305,8 +1305,8 @@ export const Settings = ({
                 borderRadius: 'var(--radius-md)', 
                 padding: '1.25rem' 
               }}>
-                <p style={{ color: 'var(--accent-danger)', fontWeight: 700, margin: '0 0 1rem 0', fontSize: '1rem' }}>
-                  ⚠️ ยืนยันการลบข้อมูล?
+                <p style={{ color: 'var(--accent-danger)', fontWeight: 700, margin: '0 0 1rem 0', fontSize: 'var(--fs-16)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <AlertTriangle size={16} /> ยืนยันการลบข้อมูล?
                 </p>
                 <p style={{ color: 'var(--text-secondary)', margin: '0 0 1rem 0', fontSize: '0.85rem' }}>
                   การดำเนินการนี้จะลบ Tasks, Sprints, Releases, Timesheets, Baselines, Git Commits ทั้งหมดออกจากฐานข้อมูล <strong>ไม่สามารถกู้คืนได้!</strong>
@@ -1327,10 +1327,10 @@ export const Settings = ({
                           // Refresh all data
                           if (fetchInitialData) fetchInitialData();
                         } else {
-                          alert('Error: ' + (data.error || 'Unknown error'));
+                          toast.error('Error: ' + (data.error || 'Unknown error'));
                         }
                       } catch (err) {
-                        alert('Failed to clean data: ' + (err as Error).message);
+                        toast.error('Failed to clean data: ' + (err as Error).message);
                       } finally {
                         setIsCleaning(false);
                       }
@@ -1380,7 +1380,7 @@ export const Settings = ({
                 borderRadius: 'var(--radius-md)', 
                 padding: '1.25rem' 
               }}>
-                <h5 style={{ color: 'var(--accent-secondary)', margin: '0 0 0.75rem 0' }}>✅ ล้างข้อมูลสำเร็จ!</h5>
+                <h5 style={{ color: 'var(--dot-success)', margin: '0 0 0.75rem 0', display: 'flex', alignItems: 'center', gap: '6px' }}><CheckCircle2 size={16} /> ล้างข้อมูลสำเร็จ</h5>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.5rem' }}>
                   {Object.entries(cleanResult.deleted).map(([table, count]) => (
                     <div key={table} style={{ 

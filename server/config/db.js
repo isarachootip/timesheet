@@ -1,6 +1,7 @@
 import pg from 'pg';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
+import { deduplicateMilestones } from '../utils/deduplicateMilestones.js';
 
 dotenv.config();
 
@@ -638,6 +639,15 @@ const initDB = async () => {
       await client.query("UPDATE project_messages SET text = regexp_replace(text, 'Isara[\\s]{2,8}chootip', 'Isara chootip', 'g')");
       await client.query('INSERT INTO migrations (id) VALUES ($1)', [migNormalizeSpaces]);
       console.log('✅ One-time migration: normalized spaces in usernames and messages.');
+    }
+
+    // ONE-TIME: Deduplicate repeated root milestones in Project Plan and re-link dependents
+    const migDedupMilestones = 'deduplicate_plan_milestones_v1';
+    const migDedupMilestonesDone = await client.query('SELECT id FROM migrations WHERE id = $1', [migDedupMilestones]);
+    if (migDedupMilestonesDone.rows.length === 0) {
+      const dedupResult = await deduplicateMilestones(client);
+      await client.query('INSERT INTO migrations (id) VALUES ($1)', [migDedupMilestones]);
+      console.log(`✅ One-time migration: deduplicated ${dedupResult.mergedGroups} milestone groups (${dedupResult.deletedTasks} excess rows removed).`);
     }
 
     // Auto-create initial plan baseline for existing projects with tasks

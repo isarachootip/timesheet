@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import type { TimesheetEntry, User, GlobalRole, Project, ProjectRole } from '../types';
-import { Check, X, Clock, Award, Users, Plus, Edit, Trash2, Calendar, Home, LayoutGrid, List, UserCheck, UserX } from 'lucide-react';
+import { Check, X, Clock, Award, Users, Plus, Edit, Trash2, Calendar, Home, LayoutGrid, List, UserCheck, UserX, Camera, RefreshCw, Save } from 'lucide-react';
 import { formatToDDMMYYYY, sortTimesheetsByLastUpdate } from '../utils';
 import { CustomDateInput } from './CustomDateInput';
+import { toast as appToast } from './ui/ToastProvider';
 import {
   canManageUsers,
   canAdministerUserStatus,
@@ -31,11 +32,10 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
   const [statusFilter, setStatusFilter] = useState<UserStatusFilter>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
+    if (type === 'error') appToast.error(msg);
+    else appToast.success(msg);
   };
 
   // User form states
@@ -335,8 +335,8 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
 
   const handleSaveUser = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !email) return alert('Name and Email are required');
-    if (!editingUser && !password) return alert('Password is required for new employee');
+    if (!name || !email) return showToast('Name and Email are required', 'error');
+    if (!editingUser && !password) return showToast('Password is required for new employee', 'error');
 
     const userId = editingUser ? editingUser.id : 'u_' + Date.now();
     const skillsArray = skills ? skills.split(',').map(s => s.trim()).filter(s => s.length > 0) : [];
@@ -374,7 +374,7 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
     }
 
     setIsModalOpen(false);
-    showToast(editingUser ? '✅ อัปเดตข้อมูลพนักงานสำเร็จ!' : '✅ เพิ่มพนักงานใหม่สำเร็จ!');
+    showToast(editingUser ? 'อัปเดตข้อมูลพนักงานสำเร็จ' : 'เพิ่มพนักงานใหม่สำเร็จ');
   };
 
   const handleToggleUserStatus = async (user: User) => {
@@ -398,8 +398,8 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
       setUsers(prev => prev.map(u => (u.id === user.id ? { ...u, isActive: nextActive } : u)));
       showToast(
         nextActive
-          ? `✅ เปิดใช้งาน (Enable) ${user.name} สำเร็จ!`
-          : `⏸️ ปรับสถานะ ${user.name} เป็น Inactive แล้ว`,
+          ? `เปิดใช้งาน (Enable) ${user.name} สำเร็จ`
+          : `ปรับสถานะ ${user.name} เป็น Inactive แล้ว`,
         nextActive ? 'success' : 'error'
       );
     } catch (err) {
@@ -419,14 +419,14 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
           handleToggleUserStatus(user);
         }
       } else {
-        alert(`ไม่สามารถลบถาวร "${user.name}" ได้เนื่องจากยังผูกอยู่ในโปรเจกต์ (สามารถลบถาวรได้หลังจากโปรเจกต์ถูกลบแล้ว)`);
+        showToast(`ไม่สามารถลบถาวร "${user.name}" ได้เนื่องจากยังผูกอยู่ในโปรเจกต์ (สามารถลบถาวรได้หลังจากโปรเจกต์ถูกลบแล้ว)`, 'error');
       }
       return;
     }
 
     if (confirm(`ยืนยันการลบผู้ใช้งาน "${user.name}" ออกจากระบบอย่างถาวรหรือไม่?`)) {
       setUsers(prev => prev.filter(u => u.id !== user.id));
-      showToast('🗑️ ลบพนักงานออกจากระบบแล้ว', 'error');
+      showToast('ลบพนักงานออกจากระบบแล้ว', 'error');
     }
   };
 
@@ -436,24 +436,10 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      {/* Toast Notification */}
-      {toast && (
-        <div style={{
-          position: 'fixed', top: '1.25rem', right: '1.25rem', zIndex: 9999,
-          background: toast.type === 'success' ? 'linear-gradient(135deg,#10b981,#059669)' : 'linear-gradient(135deg,#ef4444,#dc2626)',
-          color: 'white', padding: '0.875rem 1.25rem', borderRadius: '12px',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.3)', fontSize: '0.95rem', fontWeight: 600,
-          display: 'flex', alignItems: 'center', gap: '0.5rem',
-          animation: 'slideInRight 0.3s ease',
-          maxWidth: '320px'
-        }}>
-          {toast.msg}
-        </div>
-      )}
       {/* Top Header */}
       <div className="flex-between" style={{ flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h1 className="text-gradient" style={{ marginBottom: '0.5rem' }}>Team & User Management</h1>
+          <h1 style={{ marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Team & User Management</h1>
           <p style={{ color: 'var(--text-secondary)' }}>Manage team members, active/inactive user status, and timesheet approvals.</p>
         </div>
 
@@ -661,13 +647,13 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                         <h3 style={{ fontSize: '1.1rem', margin: 0 }}>{user.name}</h3>
                         {!active && (
                           <span style={{
-                            fontSize: '0.68rem',
-                            padding: '0.12rem 0.45rem',
+                            fontSize: 'var(--fs-12)',
+                            padding: '2px 8px',
                             borderRadius: 'var(--radius-sm)',
-                            fontWeight: 700,
-                            background: 'rgba(148, 163, 184, 0.2)',
-                            color: '#94a3b8',
-                            border: '1px solid rgba(148, 163, 184, 0.35)'
+                            fontWeight: 600,
+                            background: 'var(--bg-tertiary)',
+                            color: 'var(--text-muted)',
+                            border: '1px solid var(--border-color)'
                           }}>
                             Inactive
                           </span>
@@ -675,8 +661,8 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
                         <span style={{ 
-                          fontSize: '0.7rem', 
-                          padding: '0.15rem 0.5rem', 
+                          fontSize: 'var(--fs-12)', 
+                          padding: '2px 8px', 
                           borderRadius: 'var(--radius-sm)', 
                           fontWeight: 600,
                           background: user.globalRole === 'Admin' ? 'rgba(239, 68, 68, 0.1)' : 
@@ -721,10 +707,10 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginTop: '0.5rem' }}>
                           {user.skills.map((skill, idx) => (
                             <span key={idx} style={{ 
-                              fontSize: '0.65rem', 
-                              padding: '0.1rem 0.4rem', 
-                              background: 'rgba(255, 255, 255, 0.05)', 
-                              border: '1px solid rgba(255, 255, 255, 0.1)',
+                              fontSize: 'var(--fs-12)', 
+                              padding: '2px 6px', 
+                              background: 'var(--bg-tertiary)', 
+                              border: '1px solid var(--border-color)',
                               color: 'var(--text-secondary)', 
                               borderRadius: 'var(--radius-sm)' 
                             }}>
@@ -777,10 +763,10 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
                         {userProjectRoles.map((pr, idx) => (
                           <span key={idx} style={{ 
-                            fontSize: '0.7rem', 
+                            fontSize: 'var(--fs-12)', 
                             padding: '0.2rem 0.5rem', 
-                            background: 'rgba(99, 102, 241, 0.1)', 
-                            border: '1px solid rgba(99, 102, 241, 0.2)',
+                            background: 'var(--accent-subtle)', 
+                            border: '1px solid var(--border-color)',
                             color: 'var(--accent-primary)', 
                             borderRadius: 'var(--radius-sm)' 
                           }}>
@@ -823,7 +809,7 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                     });
 
                   return (
-                    <tr key={user.id} style={{ borderBottom: '1px solid var(--border-color)', background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)', opacity: active ? 1 : 0.65 }} className="table-row-hover">
+                    <tr key={user.id} style={{ borderBottom: '1px solid var(--border-color)', background: idx % 2 === 0 ? 'transparent' : 'var(--bg-primary)', opacity: active ? 1 : 0.65 }} className="table-row-hover">
                       <td style={{ padding: '0.875rem 1rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                           <img src={user.avatar} alt={user.name} style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover', filter: active ? 'none' : 'grayscale(80%)' }} />
@@ -832,26 +818,26 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                               <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{user.name}</span>
                               {!active && (
                                 <span style={{
-                                  fontSize: '0.65rem',
-                                  padding: '0.1rem 0.4rem',
-                                  borderRadius: '4px',
-                                  fontWeight: 700,
-                                  background: 'rgba(148, 163, 184, 0.2)',
-                                  color: '#94a3b8'
+                                  fontSize: 'var(--fs-12)',
+                                  padding: '2px 6px',
+                                  borderRadius: 'var(--radius-sm)',
+                                  fontWeight: 600,
+                                  background: 'var(--bg-tertiary)',
+                                  color: 'var(--text-muted)'
                                 }}>
                                   Inactive
                                 </span>
                               )}
                             </div>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{user.email}</div>
+                            <div style={{ fontSize: 'var(--fs-12)', color: 'var(--text-muted)' }}>{user.email}</div>
                           </div>
                         </div>
                       </td>
                       <td style={{ padding: '0.875rem 1rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           <span style={{ 
-                            fontSize: '0.7rem', 
-                            padding: '0.15rem 0.5rem', 
+                            fontSize: 'var(--fs-12)', 
+                            padding: '2px 8px', 
                             borderRadius: 'var(--radius-sm)', 
                             fontWeight: 600,
                             background: user.globalRole === 'Admin' ? 'rgba(239, 68, 68, 0.1)' : 
@@ -877,12 +863,12 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', maxWidth: '250px' }}>
                           {user.skills && user.skills.length > 0 ? (
                             user.skills.map((skill, i) => (
-                              <span key={i} style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', color: 'var(--text-secondary)', borderRadius: 'var(--radius-sm)' }}>
+                              <span key={i} style={{ fontSize: 'var(--fs-12)', padding: '2px 6px', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', borderRadius: 'var(--radius-sm)' }}>
                                 {skill}
                               </span>
                             ))
                           ) : (
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>-</span>
+                            <span style={{ fontSize: 'var(--fs-12)', color: 'var(--text-muted)' }}>-</span>
                           )}
                         </div>
                       </td>
@@ -890,7 +876,7 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', maxWidth: '250px' }}>
                           {userProjectRoles.length > 0 ? (
                             userProjectRoles.map((pr, i) => (
-                              <span key={i} style={{ fontSize: '0.68rem', padding: '0.15rem 0.4rem', background: 'rgba(99, 102, 241, 0.1)', color: 'var(--accent-primary)', borderRadius: '4px' }}>
+                              <span key={i} style={{ fontSize: 'var(--fs-12)', padding: '2px 6px', background: 'var(--accent-subtle)', color: 'var(--accent-primary)', borderRadius: 'var(--radius-sm)' }}>
                                 {pr.projectName}
                               </span>
                             ))
@@ -995,7 +981,7 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                       {/* Actual hours logged */}
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.3rem', justifyContent: 'flex-end' }}>
                         <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>{entry.hours}h</span>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 500 }}>actual</span>
+                        <span style={{ fontSize: 'var(--fs-12)', color: 'var(--text-muted)', fontWeight: 500 }}>actual</span>
                       </div>
                       {/* Planned hours row — only shown when plannedHours is stored */}
                       {entry.plannedHours != null && (
@@ -1003,16 +989,16 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Plan: {entry.plannedHours}h</span>
                           {entry.hours !== entry.plannedHours && (
                             <span style={{
-                              fontSize: '0.7rem',
+                              fontSize: 'var(--fs-12)',
                               fontWeight: 700,
                               padding: '0.1rem 0.35rem',
-                              borderRadius: '4px',
+                              borderRadius: 'var(--radius-sm)',
                               background: entry.hours > entry.plannedHours
-                                ? 'rgba(239,68,68,0.15)'
-                                : 'rgba(16,185,129,0.15)',
+                                ? 'var(--accent-danger-subtle)'
+                                : 'rgba(16,185,129,0.12)',
                               color: entry.hours > entry.plannedHours
                                 ? 'var(--accent-danger)'
-                                : 'var(--accent-secondary)'
+                                : 'var(--dot-success)'
                             }}>
                               {entry.hours > entry.plannedHours ? '+' : ''}{(entry.hours - entry.plannedHours).toFixed(1)}h
                             </span>
@@ -1104,7 +1090,7 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                   };
 
                   return (
-                    <tr key={user.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', height: '56px' }}>
+                    <tr key={user.id} style={{ borderBottom: '1px solid var(--border-color)', height: '56px' }}>
                       <td style={{ padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                         <img 
                           src={user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} 
@@ -1112,8 +1098,8 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                           style={{ width: '28px', height: '28px', borderRadius: '50%' }} 
                         />
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>{user.name} {isSelf && '(You)'}</span>
-                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{user.department || 'Staff'}</span>
+                          <span style={{ fontSize: 'var(--fs-14)', fontWeight: 600, color: 'var(--text-primary)' }}>{user.name} {isSelf && '(You)'}</span>
+                          <span style={{ fontSize: 'var(--fs-12)', color: 'var(--text-muted)' }}>{user.department || 'Staff'}</span>
                         </div>
                       </td>
                       {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => {
@@ -1153,14 +1139,13 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0, 0, 0, 0.7)',
-          backdropFilter: 'blur(4px)',
+          background: 'var(--overlay-backdrop)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 1100
         }}>
-          <div className="glass-panel" style={{ 
+          <div className="surface-card" style={{ 
             padding: 0,
             width: '650px', 
             maxWidth: '95vw', 
@@ -1168,9 +1153,10 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
             overflow: 'hidden',
             display: 'flex', 
             flexDirection: 'column',
+            boxShadow: 'var(--shadow-lg)',
           }}>
             <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-              <h2 className="text-gradient" style={{ fontSize: '1.4rem', margin: 0 }}>{editingUser ? 'Edit Employee' : 'Add Employee'}</h2>
+              <h2 style={{ fontSize: 'var(--fs-20)', margin: 0, color: 'var(--text-primary)' }}>{editingUser ? 'Edit Employee' : 'Add Employee'}</h2>
               <button onClick={() => setIsModalOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
                 <X size={20} />
               </button>
@@ -1350,8 +1336,8 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                   }}>
                     {cameraError ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', alignItems: 'center' }}>
-                        <div style={{ color: 'var(--accent-danger)', fontSize: '0.85rem', textAlign: 'center' }}>
-                          ⚠️ {cameraError}
+                        <div style={{ color: 'var(--accent-danger)', fontSize: 'var(--fs-13)', textAlign: 'center' }}>
+                          {cameraError}
                         </div>
                         <label style={{ 
                           width: '100%',
@@ -1359,14 +1345,14 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                           background: 'var(--accent-primary)', 
                           padding: '0.6rem', 
                           borderRadius: 'var(--radius-md)', 
-                          fontSize: '0.75rem', 
+                          fontSize: 'var(--fs-12)', 
                           textAlign: 'center', 
                           cursor: 'pointer',
-                          color: 'white',
+                          color: 'var(--accent-contrast)',
                           display: 'block',
                           fontWeight: 600
                         }} className="hover-lift">
-                          📸 Take Photo (Use System Camera)
+                          Take Photo (Use System Camera)
                           <input 
                             type="file" 
                             accept="image/*"
@@ -1409,20 +1395,20 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                             onClick={capturePhoto}
                             style={{ 
                               background: 'var(--accent-primary)', 
-                              color: 'white', 
+                              color: 'var(--accent-contrast)', 
                               border: 'none', 
                               padding: '0.6rem 1.25rem', 
                               borderRadius: 'var(--radius-md)', 
-                              fontSize: '0.75rem',
+                              fontSize: 'var(--fs-12)',
                               fontWeight: 700,
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
-                              gap: '0.25rem'
+                              gap: '0.35rem'
                             }}
                             className="hover-lift"
                           >
-                            📸 Capture
+                            <Camera size={14} /> Capture
                           </button>
                           <button 
                             type="button"
@@ -1433,13 +1419,16 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                               border: '1px solid var(--border-color)', 
                               padding: '0.6rem 1rem', 
                               borderRadius: 'var(--radius-md)', 
-                              fontSize: '0.75rem',
+                              fontSize: 'var(--fs-12)',
                               fontWeight: 600,
-                              cursor: 'pointer' 
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.35rem'
                             }}
                             className="hover-lift"
                           >
-                            🔄 Switch Camera
+                            <RefreshCw size={14} /> Switch Camera
                           </button>
                         </>
                       )}
@@ -1477,13 +1466,13 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                           border: '1px solid var(--border-color)', 
                           padding: '0.5rem', 
                           borderRadius: 'var(--radius-md)', 
-                          fontSize: '0.75rem', 
+                          fontSize: 'var(--fs-12)', 
                           textAlign: 'center', 
                           cursor: 'pointer',
                           color: 'var(--text-primary)',
                           display: 'block'
                         }} className="hover-lift">
-                          📁 Choose Photo
+                          Choose Photo
                           <input 
                             type="file" 
                             accept="image/*"
@@ -1501,17 +1490,17 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                             border: 'none',
                             padding: '0.5rem', 
                             borderRadius: 'var(--radius-md)', 
-                            fontSize: '0.75rem', 
+                            fontSize: 'var(--fs-12)', 
                             textAlign: 'center', 
                             cursor: 'pointer',
-                            color: 'white',
+                            color: 'var(--accent-contrast)',
                             display: 'block',
                             fontFamily: 'inherit',
                             fontWeight: 500
                           }} 
                           className="hover-lift"
                         >
-                          📸 Take Photo
+                          Take Photo
                         </button>
                       </div>
                       <input 
@@ -1565,8 +1554,8 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
               <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border-color)', flexShrink: 0 }}>
                 <button type="submit" style={{ 
                   width: '100%',
-                  background: 'linear-gradient(135deg, var(--accent-primary), #4f46e5)', 
-                  color: 'white', 
+                  background: 'var(--accent-primary)', 
+                  color: 'var(--accent-contrast)', 
                   border: 'none', 
                   padding: '1rem', 
                   borderRadius: 'var(--radius-md)', 
@@ -1575,7 +1564,7 @@ export const TeamApprovals = ({ users, setUsers, timesheets, setTimesheets, proj
                   fontSize: '1rem',
                   letterSpacing: '0.5px',
                 }} className="hover-lift">
-                  💾 บันทึก / Save Employee
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}><Save size={15} /> บันทึก / Save Employee</span>
                 </button>
               </div>
             </form>

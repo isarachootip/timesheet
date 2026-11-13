@@ -33,7 +33,7 @@ export const CustomDateInput = ({ value, onChange, style, required, min, max }: 
         transform: 'translateY(-50%)',
         color: value ? 'var(--text-primary)' : 'var(--text-muted)',
         pointerEvents: 'none',
-        fontSize: '0.8rem'
+        fontSize: 'var(--fs-13)'
       }}>
         {formatted}
       </span>

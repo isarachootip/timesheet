@@ -1,6 +1,7 @@
-import { Clock, Repeat, CheckCircle2, Sparkles } from 'lucide-react';
+import { Calendar, Clock, Repeat, User as UserIcon } from 'lucide-react';
 import type { OutlookCalendarEvent } from '../../types/outlook';
 import { formatToDDMMYYYY } from '../../utils';
+import { StatusBadge } from '../ui/StatusBadge';
 
 interface OutlookEventRowProps {
   event: OutlookCalendarEvent;
@@ -34,107 +35,89 @@ export const OutlookEventRow = ({
       style={{
         display: 'flex',
         alignItems: 'flex-start',
-        gap: '0.85rem',
-        padding: '0.85rem 1rem',
+        gap: '12px',
+        padding: '12px 16px',
         borderRadius: 'var(--radius-md)',
-        background: selected ? 'rgba(59, 130, 246, 0.12)' : 'var(--bg-tertiary)',
+        background: selected ? 'var(--accent-subtle)' : 'var(--bg-tertiary)',
         border: selected ? '1px solid var(--accent-primary)' : '1px solid var(--border-color)',
         cursor: 'pointer',
-        transition: 'all 0.15s ease',
+        transition: 'background-color var(--transition-fast), border-color var(--transition-fast)',
       }}
     >
       <input
         type="checkbox"
         checked={selected}
         onChange={() => onToggleSelect(event.outlookEventId)}
-        onClick={e => e.stopPropagation()}
-        style={{ marginTop: '0.25rem', width: '16px', height: '16px', cursor: 'pointer' }}
+        onClick={(e) => e.stopPropagation()}
+        style={{ marginTop: '4px', width: '16px', height: '16px', cursor: 'pointer' }}
       />
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <span style={{ fontWeight: 600, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <span style={{ fontWeight: 600, fontSize: 'var(--fs-14)', color: 'var(--text-primary)' }}>
             {event.title}
           </span>
 
           {isAlreadyImported ? (
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.25rem',
-                fontSize: '0.7rem',
-                padding: '0.15rem 0.5rem',
-                borderRadius: '999px',
-                background: 'rgba(16, 185, 129, 0.15)',
-                color: '#10b981',
-                fontWeight: 600,
-              }}
-              title={projectName ? `Imported in ${projectName} (Select to Sync Update)` : 'Select to Sync Update'}
-            >
-              <CheckCircle2 size={11} /> Imported {projectName ? `(${projectName})` : ''} • Sync Available
-            </span>
+            <StatusBadge
+              label={`Imported${projectName ? ` (${projectName})` : ''} · Sync Available`}
+              tone="success"
+            />
           ) : (
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.25rem',
-                fontSize: '0.7rem',
-                padding: '0.15rem 0.5rem',
-                borderRadius: '999px',
-                background: 'rgba(99, 102, 241, 0.15)',
-                color: '#818cf8',
-                fontWeight: 600,
-              }}
-            >
-              <Sparkles size={11} /> New
-            </span>
+            <StatusBadge label="New" tone="accent" />
           )}
 
-          {event.isAllDay && (
-            <span
-              style={{
-                fontSize: '0.7rem',
-                padding: '0.15rem 0.45rem',
-                borderRadius: '4px',
-                background: 'rgba(245, 158, 11, 0.15)',
-                color: '#f59e0b',
-                fontWeight: 600,
-              }}
-            >
-              All-Day
-            </span>
-          )}
+          {event.isAllDay && <StatusBadge label="All-Day" tone="warning" />}
 
           {event.isRecurring && (
             <span
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '0.2rem',
-                fontSize: '0.7rem',
+                gap: '4px',
+                fontSize: 'var(--fs-12)',
                 color: 'var(--text-muted)',
               }}
               title="Recurring Calendar Event Occurrence"
             >
-              <Repeat size={11} /> Recurring
+              <Repeat size={12} /> Recurring
             </span>
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem', fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-          <span>📅 {formatToDDMMYYYY(event.startDate)}{event.endDate !== event.startDate ? ` - ${formatToDDMMYYYY(event.endDate)}` : ''}</span>
-          <span>⏰ {formatTimeRange(event)}</span>
-          {event.organizer && <span>👤 {event.organizer}</span>}
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '12px',
+            fontSize: 'var(--fs-12)',
+            color: 'var(--text-secondary)',
+            marginTop: '4px',
+          }}
+        >
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <Calendar size={12} />
+            {formatToDDMMYYYY(event.startDate)}
+            {event.endDate !== event.startDate ? ` - ${formatToDDMMYYYY(event.endDate)}` : ''}
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <Clock size={12} />
+            {formatTimeRange(event)}
+          </span>
+          {event.organizer && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <UserIcon size={12} />
+              {event.organizer}
+            </span>
+          )}
         </div>
 
         {event.description && (
           <div
             style={{
-              fontSize: '0.78rem',
+              fontSize: 'var(--fs-12)',
               color: 'var(--text-muted)',
-              marginTop: '0.3rem',
+              marginTop: '4px',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               display: '-webkit-box',
@@ -148,11 +131,11 @@ export const OutlookEventRow = ({
       </div>
 
       <div
-        onClick={e => e.stopPropagation()}
-        style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.2rem', minWidth: '88px' }}
+        onClick={(e) => e.stopPropagation()}
+        style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', minWidth: '88px' }}
       >
-        <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-          <Clock size={11} /> Est. Hours
+        <label style={{ fontSize: 'var(--fs-12)', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <Clock size={12} /> Est. Hours
         </label>
         <input
           type="number"
@@ -160,15 +143,15 @@ export const OutlookEventRow = ({
           min="0.5"
           max="240"
           value={hours}
-          onChange={e => onChangeHours(event.outlookEventId, parseFloat(e.target.value) || 0)}
+          onChange={(e) => onChangeHours(event.outlookEventId, parseFloat(e.target.value) || 0)}
           style={{
             width: '76px',
-            padding: '0.3rem 0.45rem',
+            padding: '4px 8px',
             borderRadius: 'var(--radius-sm)',
             border: '1px solid var(--border-color)',
             background: 'var(--bg-secondary)',
             color: 'var(--text-primary)',
-            fontSize: '0.85rem',
+            fontSize: 'var(--fs-13)',
             fontWeight: 600,
             textAlign: 'right',
           }}

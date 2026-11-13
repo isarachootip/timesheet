@@ -1,0 +1,166 @@
+/* Surfaces & Utilities */
+.surface-card,
+.glass-panel {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.text-gradient {
+  color: var(--text-primary);
+  background: none;
+  -webkit-text-fill-color: currentColor;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hover-lift {
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast);
+}
+
+.hover-lift:hover {
+  border-color: var(--border-strong);
+}
+
+/* Kanban Compatibility */
+.kanban-column .glass-panel h4 { font-size: var(--fs-14); line-height: 1.45; }
+.kanban-column .glass-panel p { font-size: var(--fs-13); line-height: 1.5; }
+.kanban-column .glass-panel span,
+.kanban-column .glass-panel div,
+.kanban-column .glass-panel select { font-size: var(--fs-12); }
+
+/* Notification Bell */
+.notif-bell-btn {
+  position: relative;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notif-bell-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.notif-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  background: var(--accent-danger);
+  color: #FFFFFF;
+  font-size: var(--fs-12);
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+.notif-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 360px;
+  max-width: 90vw;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
+  overflow: hidden;
+  animation: fadeSlideDown var(--transition-normal);
+}
+
+@keyframes fadeSlideDown {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.notif-item {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  transition: background-color var(--transition-fast);
+}
+
+.notif-item:hover { background: var(--bg-tertiary); }
+.notif-item:last-child { border-bottom: none; }
+
+/* Skeleton Loading */
+.skeleton-block {
+  background-color: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  animation: skeletonPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes skeletonPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+/* Drag & Drop */
+.dnd-drag-overlay {
+  box-shadow: var(--shadow-lg) !important;
+  border: 1px solid var(--accent-primary) !important;
+  cursor: grabbing !important;
+}
+
+.kanban-column-over {
+  border-color: var(--accent-primary) !important;
+  background: var(--accent-subtle) !important;
+}
+
+/* Form Dropdown & Sticky Table Headers */
+select option, option {
+  background-color: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+}
+
+thead th, thead td {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background-color: var(--bg-tertiary) !important;
+}
+
+.date-input-hidden-text::-webkit-datetime-edit {
+  color: transparent;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: var(--radius-full); }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+@media print {
+  .sidebar, .header, .mobile-bottom-nav, .floating-postit-fab, .floating-postit-card,
+  button, select, input { display: none !important; }
+  .content-area { padding: 1cm !important; }
+  .surface-card, .glass-panel { background: #FFFFFF !important; color: #000000 !important; border: 1px solid #CCCCCC !important; box-shadow: none !important; }
+  body { background: #FFFFFF !important; color: #000000 !important; }
+}

@@ -59,7 +59,6 @@ export const PostItCard: React.FC<PostItCardProps> = ({
           width: '70px',
           height: '16px',
           background: 'rgba(255, 255, 255, 0.45)',
-          backdropFilter: 'blur(2px)',
           borderRadius: '2px',
           boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
         }}
@@ -76,7 +75,7 @@ export const PostItCard: React.FC<PostItCardProps> = ({
             <button
               onClick={() => onImportToTimesheet(note)}
               title="นำเข้าสู่ Timesheet ประจำวัน"
-              style={{ background: 'rgba(6, 199, 85, 0.15)', border: 'none', cursor: 'pointer', padding: '3px 6px', borderRadius: '4px', color: '#15803d', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', fontWeight: 600 }}
+              style={{ background: 'rgba(6, 199, 85, 0.15)', border: 'none', cursor: 'pointer', padding: '4px 6px', borderRadius: 'var(--radius-sm)', color: '#15803d', display: 'flex', alignItems: 'center', gap: '4px', fontSize: 'var(--fs-12)', fontWeight: 600 }}
             >
               <Clock size={12} />
               <span>ลงเวลา</span>

@@ -5,6 +5,7 @@ import type { User, Project, ProjectStatus, ProjectRole, Task, PermissionScheme,
 import { formatToDDMMYYYY } from '../utils';
 import { CustomDateInput } from './CustomDateInput';
 import { OutlookImportModal } from './OutlookImport/OutlookImportModal';
+import { toast } from './ui/ToastProvider';
 
 interface ProjectsProps {
   projects: Project[];
@@ -116,7 +117,7 @@ export const Projects = ({
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !startDate) return alert('Name and Start Date are required');
+    if (!name || !startDate) return toast.error('Name and Start Date are required');
 
     const cols = customColumnsText.split(',').map(c => c.trim()).filter(c => c.length > 0);
 
@@ -207,14 +208,14 @@ export const Projects = ({
 
   const handleAddColumn = () => {
     const trimmed = newColumnName.trim();
-    if (!trimmed) return alert('Column name cannot be empty');
-    if (wfStatuses.includes(trimmed)) return alert('Column already exists');
+    if (!trimmed) return toast.error('Column name cannot be empty');
+    if (wfStatuses.includes(trimmed)) return toast.error('Column already exists');
     setWfStatuses(prev => [...prev, trimmed]);
     setNewColumnName('');
   };
 
   const handleRemoveColumn = (colName: string) => {
-    if (wfStatuses.length <= 1) return alert('Workflow must have at least one column');
+    if (wfStatuses.length <= 1) return toast.error('Workflow must have at least one column');
     if (confirm(`Are you sure you want to remove column "${colName}"? Any tasks in this column will need to be transitioned.`)) {
       setWfStatuses(prev => prev.filter(c => c !== colName));
       setWfTransitions(prev => prev.filter(t => t.from !== colName && t.to !== colName));
@@ -222,10 +223,10 @@ export const Projects = ({
   };
 
   const handleAddTransition = () => {
-    if (!newTransFrom || !newTransTo) return alert('Select "From" and "To" statuses');
-    if (newTransFrom === newTransTo) return alert('Cannot transition to the same status');
+    if (!newTransFrom || !newTransTo) return toast.error('Select "From" and "To" statuses');
+    if (newTransFrom === newTransTo) return toast.error('Cannot transition to the same status');
     const exists = wfTransitions.some(t => t.from === newTransFrom && t.to === newTransTo);
-    if (exists) return alert('This transition path already exists');
+    if (exists) return toast.error('This transition path already exists');
 
     const conditions: { type: string; value?: any }[] = [];
     if (condPMOnly) conditions.push({ type: 'pm_or_admin_only' });
@@ -282,10 +283,10 @@ export const Projects = ({
   };
 
   const addMember = () => {
-    if (!tempUserId) return alert('Select a user first');
-    if (members.some(m => m.userId === tempUserId)) return alert('Member already added');
+    if (!tempUserId) return toast.error('Select a user first');
+    if (members.some(m => m.userId === tempUserId)) return toast.error('Member already added');
     const roleToAdd = tempRole === 'Custom' ? customRole : tempRole;
-    if (!roleToAdd) return alert('Please enter or select a role');
+    if (!roleToAdd) return toast.error('Please enter or select a role');
     setMembers(prev => [...prev, { 
       userId: tempUserId, 
       role: roleToAdd,
@@ -308,7 +309,7 @@ export const Projects = ({
       {/* Top Header */}
       <div className="flex-between" style={{ flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h1 className="text-gradient" style={{ marginBottom: '0.5rem' }}>Projects</h1>
+          <h1 style={{ marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Projects</h1>
           <p style={{ color: 'var(--text-secondary)' }}>Manage your active projects and team assignments.</p>
         </div>
 
@@ -520,8 +521,8 @@ export const Projects = ({
                   return (
                     <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
                       <details style={{ cursor: 'pointer' }}>
-                        <summary style={{ fontSize: '0.85rem', color: 'var(--accent-secondary)', fontWeight: 500, outline: 'none' }}>
-                          📅 Auto-Generated Plan ({projectTasks.length} Milestones)
+                        <summary style={{ fontSize: '0.85rem', color: 'var(--accent-primary)', fontWeight: 500, outline: 'none' }}>
+                          Auto-Generated Plan ({projectTasks.length} Milestones)
                         </summary>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem', maxHeight: '150px', overflowY: 'auto', paddingRight: '0.5rem' }}>
                           {projectTasks.map(t => (
@@ -569,7 +570,7 @@ export const Projects = ({
                     key={project.id} 
                     style={{ 
                       borderBottom: '1px solid var(--border-color)', 
-                      background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)' 
+                      background: idx % 2 === 0 ? 'transparent' : 'var(--bg-primary)' 
                     }}
                     className="table-row-hover"
                   >
@@ -582,7 +583,7 @@ export const Projects = ({
                     <td style={{ padding: '0.875rem 1rem' }}>
                       <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
                         <span style={{ 
-                          fontSize: '0.7rem', 
+                          fontSize: 'var(--fs-12)', 
                           padding: '0.15rem 0.5rem', 
                           borderRadius: 'var(--radius-full)', 
                           background: project.status === 'Active' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
@@ -592,7 +593,7 @@ export const Projects = ({
                           {project.status}
                         </span>
                         <span style={{ 
-                          fontSize: '0.7rem', 
+                          fontSize: 'var(--fs-12)', 
                           padding: '0.15rem 0.5rem', 
                           borderRadius: 'var(--radius-full)', 
                           background: project.projectType === 'support' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(139, 92, 246, 0.1)',
@@ -670,16 +671,15 @@ export const Projects = ({
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0, 0, 0, 0.7)',
-          backdropFilter: 'blur(4px)',
+          background: 'var(--overlay-backdrop)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 1100
         }}>
-          <div className="glass-panel" style={{ padding: '2rem', width: '650px', maxWidth: '95%', display: 'flex', flexDirection: 'column', gap: '1.5rem', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="surface-card" style={{ padding: '2rem', width: '650px', maxWidth: '95%', display: 'flex', flexDirection: 'column', gap: '1.5rem', maxHeight: '90vh', overflowY: 'auto', boxShadow: 'var(--shadow-lg)' }}>
             <div className="flex-between">
-              <h2 className="text-gradient" style={{ fontSize: '1.5rem' }}>{editingProject ? 'Edit Project' : 'New Project'}</h2>
+              <h2 style={{ fontSize: 'var(--fs-20)', color: 'var(--text-primary)' }}>{editingProject ? 'Edit Project' : 'New Project'}</h2>
               <button onClick={() => setIsModalOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
                 <X size={20} />
               </button>
@@ -934,17 +934,16 @@ export const Projects = ({
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0, 0, 0, 0.7)',
-          backdropFilter: 'blur(4px)',
+          background: 'var(--overlay-backdrop)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 1100
         }}>
-          <div className="glass-panel" style={{ padding: '2rem', width: '750px', maxWidth: '95%', display: 'flex', flexDirection: 'column', gap: '1.5rem', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="surface-card" style={{ padding: '2rem', width: '750px', maxWidth: '95%', display: 'flex', flexDirection: 'column', gap: '1.5rem', maxHeight: '90vh', overflowY: 'auto', boxShadow: 'var(--shadow-lg)' }}>
             <div className="flex-between">
               <div>
-                <h2 className="text-gradient" style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Project Workflow Editor</h2>
+                <h2 style={{ fontSize: 'var(--fs-20)', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>Project Workflow Editor</h2>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Configure columns and conditional transitions for <strong>{workflowEditingProject.name}</strong></p>
               </div>
               <button onClick={() => setWorkflowEditingProject(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
@@ -957,14 +956,14 @@ export const Projects = ({
               <h3 style={{ fontSize: '1.1rem', color: 'var(--text-primary)' }}>1. Columns (Statuses)</h3>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', margin: '0.5rem 0' }}>
                 {wfStatuses.map(col => (
-                  <span key={col} className="glass-panel" style={{
+                  <span key={col} className="surface-card" style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.5rem',
                     padding: '0.35rem 0.75rem',
                     borderRadius: 'var(--radius-full)',
                     fontSize: '0.85rem',
-                    background: 'rgba(255, 255, 255, 0.05)',
+                    background: 'var(--bg-tertiary)',
                     border: '1px solid var(--border-color)',
                   }}>
                     {col}
@@ -1053,7 +1052,7 @@ export const Projects = ({
                 </div>
 
                 <button type="button" onClick={handleAddTransition} style={{
-                  background: 'rgba(255,255,255,0.05)',
+                  background: 'var(--bg-tertiary)',
                   border: '1px solid var(--border-color)',
                   color: 'var(--text-primary)',
                   padding: '0.5rem',

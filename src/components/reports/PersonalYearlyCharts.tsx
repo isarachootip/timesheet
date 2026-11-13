@@ -89,10 +89,10 @@ export const PersonalYearlyCharts = ({ selectedYear, summary, onDrillDownMonth }
                 title={`${m.monthLabel} ${selectedYear}: ${m.totalHours}h (Approved: ${m.approvedHours}h, Pending: ${m.pendingHours}h) — Click to view daily log`}
                 style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%', gap: '0.4rem', cursor: 'pointer' }}
               >
-                <span style={{ fontSize: '0.7rem', fontWeight: 600, color: m.totalHours > 0 ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                <span style={{ fontSize: 'var(--fs-12)', fontWeight: 600, color: m.totalHours > 0 ? 'var(--text-primary)' : 'var(--text-muted)' }}>
                   {m.totalHours > 0 ? `${m.totalHours}h` : ''}
                 </span>
-                <div style={{ height: `${totalHeightPct}%`, width: '100%', maxWidth: '44px', borderRadius: '4px 4px 0 0', overflow: 'hidden', display: 'flex', flexDirection: 'column-reverse', background: m.totalHours > 0 ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.03)' }}>
+                <div style={{ height: `${totalHeightPct}%`, width: '100%', maxWidth: '44px', borderRadius: '4px 4px 0 0', overflow: 'hidden', display: 'flex', flexDirection: 'column-reverse', background: 'var(--bg-tertiary)' }}>
                   {m.totalHours > 0 && splitMode === 'status' && (
                     <>
                       <div style={{ height: `${approvedPct}%`, background: '#10b981', width: '100%' }} />

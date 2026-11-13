@@ -20,8 +20,8 @@ export const ImportNoteToTimesheetModal: React.FC<ImportNoteToTimesheetModalProp
   if (!isOpen || !note) return null;
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
-      <div className="glass-panel" style={{ width: '100%', maxWidth: '520px', borderRadius: '14px', padding: '1.5rem', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: '0 20px 45px rgba(0,0,0,0.3)', maxHeight: '90vh', overflowY: 'auto' }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay-backdrop)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '16px' }}>
+      <div className="surface-card" style={{ width: '100%', maxWidth: '520px', borderRadius: 'var(--radius-md)', padding: '24px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-lg)', maxHeight: '90vh', overflowY: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(6, 199, 85, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -64,7 +64,7 @@ export const ImportNoteToTimesheetModal: React.FC<ImportNoteToTimesheetModalProp
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'
               }}
             >
-              <span>🟡 งานส่วนตัว / ทั่วไป</span>
+              <span>งานส่วนตัว / ทั่วไป</span>
             </button>
           </div>
 
@@ -91,8 +91,8 @@ export const ImportNoteToTimesheetModal: React.FC<ImportNoteToTimesheetModalProp
               )}
             </>
           ) : (
-            <div style={{ background: 'rgba(234, 179, 8, 0.1)', border: '1px dashed #eab308', borderRadius: '8px', padding: '0.65rem 0.85rem', fontSize: '0.78rem', color: '#a16207' }}>
-              ⚡ <strong>งานส่วนตัว / กิจกรรมทั่วไป</strong> จะไม่ถูกนำเข้า Project ลูกค้า ไม่คิดต้นทุนเข้าโครงการ และอนุมัติอัตโนมัติทันที
+            <div style={{ background: 'var(--bg-tertiary)', border: '1px dashed var(--border-strong)', borderRadius: 'var(--radius-md)', padding: '10px 12px', fontSize: 'var(--fs-13)', color: 'var(--text-secondary)' }}>
+              <strong>งานส่วนตัว / กิจกรรมทั่วไป</strong> จะไม่ถูกนำเข้า Project ลูกค้า ไม่คิดต้นทุนเข้าโครงการ และอนุมัติอัตโนมัติทันที
             </div>
           )}
 

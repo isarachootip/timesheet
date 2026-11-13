@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import type { Task, TaskStatus, TaskPriority, Project, User, Sprint, Release, TaskCommit } from '../types';
+import type { Task, TaskStatus, TaskPriority, Project, User, Sprint, Release, TaskCommit, ProjectWorkflow, PermissionScheme } from '../types';
 import { formatToDDMMYYYY } from '../utils';
 import { CustomDateInput } from './CustomDateInput';
 import { OutlookImportModal } from './OutlookImport/OutlookImportModal';
-import { Plus, Filter, Clock, X, Edit, Trash2, GripVertical, Calendar, Bug, FileText, CheckSquare, Layers, GitBranch, GitCommit, ChevronRight, ChevronDown, BarChart3, CalendarRange } from 'lucide-react';
+import { Plus, Filter, Clock, X, Edit, Trash2, GripVertical, Calendar, Bug, FileText, CheckSquare, Layers, GitBranch, GitCommit, ChevronRight, ChevronDown, BarChart3, CalendarRange, Folder, Zap, CheckCircle2, AlertTriangle, ClipboardList } from 'lucide-react';
+import { toast } from './ui/ToastProvider';
 import {
   DndContext,
   DragOverlay,
@@ -76,9 +77,9 @@ interface TasksProps {
   setSprints: React.Dispatch<React.SetStateAction<Sprint[]>>;
   releases: Release[];
   setReleases: React.Dispatch<React.SetStateAction<Release[]>>;
-  projectWorkflows: any[];
-  setProjectWorkflows: React.Dispatch<React.SetStateAction<any[]>>;
-  permissionSchemes: any[];
+  projectWorkflows: ProjectWorkflow[];
+  setProjectWorkflows: React.Dispatch<React.SetStateAction<ProjectWorkflow[]>>;
+  permissionSchemes: PermissionScheme[];
   currentUser: User;
 }
 
@@ -245,15 +246,15 @@ function TaskCardContent({
       {task.parentId && (
         <div
           style={{
-            fontSize: '0.7rem',
-            color: 'var(--accent-info)',
+            fontSize: 'var(--fs-12)',
+            color: 'var(--accent-primary)',
             marginBottom: '0.25rem',
             display: 'flex',
             alignItems: 'center',
             gap: '0.25rem',
           }}
         >
-          <span>📁 Under: {getParentTaskTitle(task.parentId)}</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><Folder size={12} /> Under: {getParentTaskTitle(task.parentId)}</span>
         </div>
       )}
 
@@ -273,7 +274,7 @@ function TaskCardContent({
         {!task.parentId && (
           <span
             style={{
-              fontSize: '0.7rem',
+              fontSize: 'var(--fs-12)',
               background: 'var(--bg-tertiary)',
               padding: '0.1rem 0.35rem',
               borderRadius: 'var(--radius-sm)',
@@ -327,13 +328,13 @@ function TaskCardContent({
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: 'rgba(99, 102, 241, 0.15)',
+                background: 'var(--accent-subtle)',
                 color: 'var(--accent-primary)',
                 fontWeight: 600,
-                fontSize: '0.7rem',
+                fontSize: 'var(--fs-12)',
                 padding: '0.1rem 0.4rem',
                 borderRadius: '50px',
-                border: '1px solid rgba(99, 102, 241, 0.3)'
+                border: '1px solid var(--border-color)'
               }}
               title="Story Points"
             >
@@ -341,8 +342,8 @@ function TaskCardContent({
             </span>
           )}
           {task.startDate && (
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-              📅 {formatToDDMMYYYY(task.startDate)}{task.endDate ? ` → ${formatToDDMMYYYY(task.endDate)}` : ''}
+            <span style={{ fontSize: 'var(--fs-12)', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+              <Calendar size={12} /> {formatToDDMMYYYY(task.startDate)}{task.endDate ? ` → ${formatToDDMMYYYY(task.endDate)}` : ''}
             </span>
           )}
         </div>
@@ -356,7 +357,7 @@ function TaskCardContent({
               background: 'var(--bg-tertiary)',
               border: '1px solid var(--border-color)',
               color: 'var(--text-secondary)',
-              fontSize: '0.7rem',
+              fontSize: 'var(--fs-12)',
               padding: '0.1rem 0.25rem',
               borderRadius: 'var(--radius-sm)',
               outline: 'none',
@@ -692,7 +693,7 @@ function BacklogTaskRow({
             color: statusStyle.color,
             border: 'none',
             borderRadius: '4px',
-            fontSize: '0.7rem',
+            fontSize: 'var(--fs-12)',
             fontWeight: 700,
             padding: '0.25rem 0.5rem',
             cursor: 'pointer',
@@ -745,7 +746,7 @@ function BacklogTaskRow({
                 new Date(task.endDate) < new Date() && task.status !== 'Done'
                   ? 'var(--accent-danger)'
                   : 'var(--text-secondary)',
-              background: 'rgba(255, 255, 255, 0.05)',
+              background: 'var(--bg-tertiary)',
               padding: '0.2rem 0.4rem',
               borderRadius: '4px',
               border: '1px solid var(--border-color)',
@@ -890,9 +891,9 @@ function DroppableSprintSection({
           {sprintStatus === 'Active' && (
             <span
               style={{
-                fontSize: '0.7rem',
-                background: 'rgba(16, 185, 129, 0.15)',
-                color: 'var(--accent-secondary)',
+                fontSize: 'var(--fs-12)',
+                background: 'rgba(16, 185, 129, 0.12)',
+                color: 'var(--dot-success)',
                 padding: '0.1rem 0.45rem',
                 borderRadius: '4px',
                 fontWeight: 700,
@@ -1300,7 +1301,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
       return { allowed: true };
     }
     
-    const transition = transitions.find((t: any) => (t.from === task.status || t.from === '*') && t.to === newStatus);
+    const transition = transitions.find((t) => (t.from === task.status || t.from === '*') && t.to === newStatus);
     if (!transition) {
       return { allowed: false, reason: `Transition from "${task.status}" to "${newStatus}" is not allowed by this project's workflow.` };
     }
@@ -1613,29 +1614,29 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !projectId) return alert('Title and Project are required');
+    if (!title || !projectId) return toast.error('Title and Project are required');
 
     // 1. Enforce permission checks
     if (!editingTask) {
       if (!hasProjectPermission(projectId, 'create_task')) {
-        return alert('Permission denied: You do not have permission to create tasks in this project.');
+        return toast.error('Permission denied: You do not have permission to create tasks in this project.');
       }
     } else {
       if (!hasProjectPermission(editingTask.projectId, 'edit_task', editingTask)) {
-        return alert('Permission denied: You do not have permission to edit this task.');
+        return toast.error('Permission denied: You do not have permission to edit this task.');
       }
       if (editingTask.assigneeId !== (assigneeId || undefined)) {
         if (!hasProjectPermission(editingTask.projectId, 'assign_task', editingTask)) {
-          return alert('Permission denied: You do not have permission to assign tasks in this project.');
+          return toast.error('Permission denied: You do not have permission to assign tasks in this project.');
         }
       }
       if (editingTask.status !== status) {
         if (!hasProjectPermission(editingTask.projectId, 'transition_task', editingTask)) {
-          return alert('Permission denied: You do not have permission to transition this task.');
+          return toast.error('Permission denied: You do not have permission to transition this task.');
         }
         const validation = validateTransitionClient(editingTask, status);
         if (!validation.allowed) {
-          return alert(validation.reason || 'Transition blocked by workflow rules');
+          return toast.error(validation.reason || 'Transition blocked by workflow rules');
         }
       }
     }
@@ -1645,7 +1646,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
     const parentVal = taskCategory === 'Sub' ? parentId : undefined;
 
     if (taskCategory === 'Sub') {
-      if (!parentId) return alert('Please select a Main Task for this Subtask');
+      if (!parentId) return toast.error('Please select a Main Task for this Subtask');
       const parentTask = tasks.find((t) => t.id === parentId);
       if (parentTask) {
         const parentLimit = parentTask.estimatedHours;
@@ -1654,7 +1655,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
           .reduce((sum, t) => sum + t.estimatedHours, 0);
 
         if (otherSubtasksHours + est > parentLimit) {
-          return alert(
+          return toast.error(
             `Cannot save. Total subtask hours (${otherSubtasksHours + est}h) would exceed the Main Task's budgeted limit of ${parentLimit}h. (Already used: ${otherSubtasksHours}h)`
           );
         }
@@ -1692,7 +1693,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
     const task = tasks.find((t) => t.id === id);
     if (!task) return;
     if (!hasProjectPermission(task.projectId, 'delete_task', task)) {
-      alert('Permission denied: You do not have permission to delete tasks in this project.');
+      toast.error('Permission denied: You do not have permission to delete tasks in this project.');
       return;
     }
     if (confirm('Are you sure you want to delete this task?')) {
@@ -1700,33 +1701,33 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
     }
   };
 
-  const updateTaskField = (taskId: string, fieldName: string, value: any) => {
+  const updateTaskField = (taskId: string, fieldName: keyof Task, value: string | number | undefined) => {
     const task = tasks.find((t) => t.id === taskId);
     if (!task) return;
 
     if (fieldName === 'assigneeId') {
       if (!hasProjectPermission(task.projectId, 'assign_task', task)) {
-        alert('Permission denied: You do not have permission to assign tasks in this project.');
+        toast.error('Permission denied: You do not have permission to assign tasks in this project.');
         return;
       }
     } else if (fieldName === 'status') {
       if (!hasProjectPermission(task.projectId, 'transition_task', task)) {
-        alert('Permission denied: You do not have permission to transition tasks in this project.');
+        toast.error('Permission denied: You do not have permission to transition tasks in this project.');
         return;
       }
-      const validation = validateTransitionClient(task, value);
+      const validation = validateTransitionClient(task, String(value) as TaskStatus);
       if (!validation.allowed) {
-        alert(validation.reason || 'Transition blocked by workflow rules');
+        toast.error(validation.reason || 'Transition blocked by workflow rules');
         return;
       }
     } else {
       if (!hasProjectPermission(task.projectId, 'edit_task', task)) {
-        alert('Permission denied: You do not have permission to edit tasks in this project.');
+        toast.error('Permission denied: You do not have permission to edit tasks in this project.');
         return;
       }
     }
 
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, [fieldName]: value } : t));
+    setTasks(prev => prev.map(t => t.id === taskId ? ({ ...t, [fieldName]: value } as Task) : t));
   };
 
   const moveTask = (taskId: string, newStatus: TaskStatus) => {
@@ -1734,13 +1735,13 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
     if (!task) return;
 
     if (!hasProjectPermission(task.projectId, 'transition_task', task)) {
-      alert('Permission denied: You do not have permission to transition tasks in this project.');
+      toast.error('Permission denied: You do not have permission to transition tasks in this project.');
       return;
     }
 
     const validation = validateTransitionClient(task, newStatus);
     if (!validation.allowed) {
-      alert(validation.reason || 'Transition blocked by workflow rules');
+      toast.error(validation.reason || 'Transition blocked by workflow rules');
       return;
     }
 
@@ -1795,9 +1796,9 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
   const backlogTasks = filteredTasks.filter((t) => !t.sprintId);
 
   const createSprint = () => {
-    if (selectedProject === 'all') return alert('Please select a project first');
+    if (selectedProject === 'all') return toast.error('Please select a project first');
     if (!hasProjectPermission(selectedProject, 'manage_sprints')) {
-      return alert('Permission denied: You do not have permission to manage sprints.');
+      return toast.error('Permission denied: You do not have permission to manage sprints.');
     }
     const newSprint: Sprint = {
       id: 's_' + Date.now(),
@@ -1811,9 +1812,9 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
   const startSprint = (sId: string) => {
     const sprintObj = sprints.find((s) => s.id === sId);
     if (!sprintObj || !hasProjectPermission(sprintObj.projectId, 'manage_sprints')) {
-      return alert('Permission denied: You do not have permission to manage sprints.');
+      return toast.error('Permission denied: You do not have permission to manage sprints.');
     }
-    if (activeSprint) return alert('Only one sprint can be active at a time.');
+    if (activeSprint) return toast.error('Only one sprint can be active at a time.');
     const today = new Date().toISOString().split('T')[0];
     setSprints((prev) =>
       prev.map((s) => (s.id === sId ? { ...s, status: 'Active', startDate: today } : s))
@@ -1823,7 +1824,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
   const completeSprint = (sId: string) => {
     const sprintObj = sprints.find((s) => s.id === sId);
     if (!sprintObj || !hasProjectPermission(sprintObj.projectId, 'manage_sprints')) {
-      return alert('Permission denied: You do not have permission to manage sprints.');
+      return toast.error('Permission denied: You do not have permission to manage sprints.');
     }
     if (!confirm('Are you sure you want to complete this Sprint?')) return;
     
@@ -1858,9 +1859,9 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
   };
 
   const createRelease = () => {
-    if (selectedProject === 'all') return alert('Please select a project first');
+    if (selectedProject === 'all') return toast.error('Please select a project first');
     if (!hasProjectPermission(selectedProject, 'manage_releases')) {
-      return alert('Permission denied: You do not have permission to manage releases.');
+      return toast.error('Permission denied: You do not have permission to manage releases.');
     }
     const name = prompt('Enter release version (e.g. v1.0.0):');
     if (!name) return;
@@ -1876,7 +1877,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
   const toggleReleaseStatus = (rId: string) => {
     const relObj = releases.find((r) => r.id === rId);
     if (!relObj || !hasProjectPermission(relObj.projectId, 'manage_releases')) {
-      return alert('Permission denied: You do not have permission to manage releases.');
+      return toast.error('Permission denied: You do not have permission to manage releases.');
     }
     setReleases((prev) =>
       prev.map((r) =>
@@ -1894,7 +1895,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
   const deleteRelease = (rId: string) => {
     const relObj = releases.find((r) => r.id === rId);
     if (!relObj || !hasProjectPermission(relObj.projectId, 'manage_releases')) {
-      return alert('Permission denied: You do not have permission to manage releases.');
+      return toast.error('Permission denied: You do not have permission to manage releases.');
     }
     if (confirm('Are you sure you want to delete this Release?')) {
       setReleases((prev) => prev.filter((r) => r.id !== rId));
@@ -1904,7 +1905,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
   const deleteSprint = (sId: string) => {
     const sprintObj = sprints.find((s) => s.id === sId);
     if (!sprintObj || !hasProjectPermission(sprintObj.projectId, 'manage_sprints')) {
-      return alert('Permission denied: You do not have permission to manage sprints.');
+      return toast.error('Permission denied: You do not have permission to manage sprints.');
     }
     if (confirm('Are you sure you want to delete this Sprint? Tasks will be returned to Backlog.')) {
       setTasks((prev) =>
@@ -1922,7 +1923,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
     if (actionType === 'delete') {
       const unauthorized = selectedTasks.some(t => !hasProjectPermission(t.projectId, 'delete_task', t));
       if (unauthorized) {
-        return alert('Permission denied: You do not have permission to delete one or more of the selected tasks.');
+        return toast.error('Permission denied: You do not have permission to delete one or more of the selected tasks.');
       }
       if (confirm(`Are you sure you want to delete ${selectedTaskIds.length} selected tasks?`)) {
         setTasks(prev => prev.filter(t => !selectedTaskIds.includes(t.id)));
@@ -1934,17 +1935,17 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
     if (actionType === 'assign') {
       const unauthorized = selectedTasks.some(t => !hasProjectPermission(t.projectId, 'assign_task', t));
       if (unauthorized) {
-        return alert('Permission denied: You do not have permission to assign one or more of the selected tasks.');
+        return toast.error('Permission denied: You do not have permission to assign one or more of the selected tasks.');
       }
     } else if (actionType === 'sprint') {
       const unauthorized = selectedTasks.some(t => !hasProjectPermission(t.projectId, 'manage_sprints', t));
       if (unauthorized) {
-        return alert('Permission denied: You do not have permission to manage sprints (move tasks to sprints) for one or more of the selected tasks.');
+        return toast.error('Permission denied: You do not have permission to manage sprints (move tasks to sprints) for one or more of the selected tasks.');
       }
     } else {
       const unauthorized = selectedTasks.some(t => !hasProjectPermission(t.projectId, 'edit_task', t));
       if (unauthorized) {
-        return alert('Permission denied: You do not have permission to edit one or more of the selected tasks.');
+        return toast.error('Permission denied: You do not have permission to edit one or more of the selected tasks.');
       }
     }
 
@@ -1965,7 +1966,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
       return t;
     }));
     
-    alert(`Successfully applied bulk action to ${selectedTaskIds.length} tasks.`);
+    toast.success(`Successfully applied bulk action to ${selectedTaskIds.length} tasks.`);
     setSelectedTaskIds([]);
   };
 
@@ -1987,8 +1988,8 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
       {/* Top Bar */}
       <div className="flex-between" style={{ gap: '1rem', flexWrap: 'wrap' }}>
         <div>
-          <h1 className="text-gradient" style={{ marginBottom: '0.5rem' }}>
-            Tasks & Agile Planner
+          <h1 style={{ marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
+            Tasks &amp; Agile Planner
           </h1>
           <p style={{ color: 'var(--text-secondary)' }}>
             Track and manage project tasks across Agile boards, sprints, and releases.
@@ -2310,7 +2311,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                     background: 'transparent',
                     border: 'none',
                     color: 'var(--text-muted)',
-                    fontSize: '0.7rem',
+                    fontSize: 'var(--fs-12)',
                     cursor: 'pointer',
                     padding: '0.2rem',
                     marginLeft: '0.25rem'
@@ -2391,10 +2392,10 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                           {formatToDDMMYYYY(activeSprint.startDate) || '—'} → {formatToDDMMYYYY(activeSprint.endDate) || '—'}
                         </span>
                       </div>
-                      <span style={{ fontWeight: 700, color: '#7C3AED', fontSize: '1.25rem' }}>{sprintDonePercent}%</span>
+                      <span style={{ fontWeight: 700, color: 'var(--accent-primary)', fontSize: 'var(--fs-20)' }}>{sprintDonePercent}%</span>
                     </div>
                     <div style={{ background: 'var(--bg-tertiary)', borderRadius: '999px', height: '10px', overflow: 'hidden' }}>
-                      <div style={{ width: `${sprintDonePercent}%`, height: '100%', background: 'linear-gradient(90deg, #7C3AED, #A78BFA)', borderRadius: '999px', transition: 'width 0.4s ease' }} />
+                      <div style={{ width: `${sprintDonePercent}%`, height: '100%', background: 'var(--accent-primary)', borderRadius: '999px', transition: 'width 0.18s ease' }} />
                     </div>
                     <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.75rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                       <span>{todoCol}: <strong>{summaryTasks.filter(t => t.sprintId === activeSprint.id && t.status === todoCol).length}</strong></span>
@@ -2422,10 +2423,10 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                           {subtaskDoneCount} of {totalSubtasksCount} completed
                         </span>
                       </div>
-                      <span style={{ fontWeight: 700, color: '#10B981', fontSize: '1.25rem' }}>{subtaskDonePercent}%</span>
+                      <span style={{ fontWeight: 700, color: 'var(--dot-success)', fontSize: 'var(--fs-20)' }}>{subtaskDonePercent}%</span>
                     </div>
                     <div style={{ background: 'var(--bg-tertiary)', borderRadius: '999px', height: '10px', overflow: 'hidden' }}>
-                      <div style={{ width: `${subtaskDonePercent}%`, height: '100%', background: 'linear-gradient(90deg, #10B981, #34D399)', borderRadius: '999px', transition: 'width 0.4s ease' }} />
+                      <div style={{ width: `${subtaskDonePercent}%`, height: '100%', background: 'var(--dot-success)', borderRadius: '999px', transition: 'width 0.18s ease' }} />
                     </div>
                     <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.75rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                       <span>{todoCol}: <strong>{subtaskTodoCount}</strong></span>
@@ -2477,7 +2478,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                         <div key={uid} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                           <span style={{ minWidth: '120px', fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
                           <div style={{ flex: 1, background: 'var(--bg-tertiary)', borderRadius: '999px', height: '8px', overflow: 'hidden' }}>
-                            <div style={{ width: `${barWidth}%`, height: '100%', background: 'linear-gradient(90deg, #7C3AED, #A78BFA)', borderRadius: '999px', transition: 'width 0.3s ease' }} />
+                            <div style={{ width: `${barWidth}%`, height: '100%', background: 'var(--accent-primary)', borderRadius: '999px', transition: 'width 0.18s ease' }} />
                           </div>
                           <span style={{ minWidth: '32px', textAlign: 'right', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>{count}</span>
                         </div>
@@ -2756,7 +2757,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                         gap: '0.5rem',
                       }}>
                         <Layers size={12} />
-                        {group.sprint ? group.sprint.name : '📋 Backlog'}
+                        {group.sprint ? group.sprint.name : <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><ClipboardList size={12} /> Backlog</span>}
                         <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>({group.tasks.length})</span>
                       </div>
                       {group.tasks.map(task => (
@@ -2767,7 +2768,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                             display: 'flex',
                             alignItems: 'center',
                             padding: '0 0.75rem',
-                            borderBottom: '1px solid rgba(255,255,255,0.04)',
+                            borderBottom: '1px solid var(--border-color)',
                             gap: '0.5rem',
                             fontSize: '0.78rem',
                             overflow: 'hidden',
@@ -2793,10 +2794,10 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                         left: w.left,
                         width: dayWidth * 7,
                         textAlign: 'center',
-                        fontSize: '0.7rem',
+                        fontSize: 'var(--fs-12)',
                         color: 'var(--text-muted)',
                         fontWeight: 500,
-                        borderLeft: '1px solid rgba(255,255,255,0.06)',
+                        borderLeft: '1px solid var(--border-color)',
                         height: '100%',
                         display: 'flex',
                         alignItems: 'center',
@@ -2825,7 +2826,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                         left: -14,
                         background: '#EF4444',
                         color: 'white',
-                        fontSize: '0.55rem',
+                        fontSize: 'var(--fs-12)',
                         padding: '1px 4px',
                         borderRadius: 3,
                         fontWeight: 700,
@@ -2843,7 +2844,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                       top: 40,
                       bottom: 0,
                       width: 1,
-                      background: 'rgba(255,255,255,0.04)',
+                      background: 'var(--border-color)',
                     }} />
                   ))}
 
@@ -2898,7 +2899,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                               style={{
                                 height: rowHeight,
                                 position: 'relative',
-                                borderBottom: '1px solid rgba(255,255,255,0.04)',
+                                borderBottom: '1px solid var(--border-color)',
                               }}
                             >
                               {/* Task bar */}
@@ -2916,7 +2917,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                                   display: 'flex',
                                   alignItems: 'center',
                                   padding: '0 6px',
-                                  fontSize: '0.68rem',
+                                  fontSize: 'var(--fs-12)',
                                   color: 'var(--text-primary)',
                                   overflow: 'hidden',
                                   whiteSpace: 'nowrap',
@@ -3432,12 +3433,12 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                         <h4 style={{ fontSize: '1.1rem', fontWeight: 600 }}>{release.name}</h4>
                         <span
                           style={{
-                            fontSize: '0.7rem',
+                            fontSize: 'var(--fs-12)',
                             fontWeight: 600,
                             padding: '0.1rem 0.5rem',
                             borderRadius: '50px',
-                            background: release.status === 'Released' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(99, 102, 241, 0.15)',
-                            color: release.status === 'Released' ? 'var(--accent-secondary)' : 'var(--accent-primary)',
+                            background: release.status === 'Released' ? 'rgba(16, 185, 129, 0.12)' : 'var(--accent-subtle)',
+                            color: release.status === 'Released' ? 'var(--dot-success)' : 'var(--accent-primary)',
                           }}
                         >
                           {release.status}
@@ -3574,9 +3575,9 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
 
             {/* Bulk Actions Panel */}
             {selectedTaskIds.length > 0 && (
-              <div className="glass-panel" style={{ padding: '1rem', border: '1px solid var(--accent-primary)', display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap', background: 'rgba(99, 102, 241, 0.08)' }}>
-                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                  ⚡ Bulk Actions ({selectedTaskIds.length} selected)
+              <div className="surface-card" style={{ padding: '1rem', border: '1px solid var(--accent-primary)', display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap', background: 'var(--accent-subtle)' }}>
+                <span style={{ fontSize: 'var(--fs-14)', fontWeight: 600, color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <Zap size={15} color="var(--accent-primary)" /> Bulk Actions ({selectedTaskIds.length} selected)
                 </span>
                 
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -3737,10 +3738,10 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                               onChange={(e) => updateTaskField(task.id, 'issueType', e.target.value)}
                               style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', outline: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500 }}
                             >
-                              <option value="Bug">🔴 Bug</option>
-                              <option value="Story">🟢 Story</option>
-                              <option value="Task">🔵 Task</option>
-                              <option value="Sub-task">🟣 Sub-task</option>
+                              <option value="Bug">Bug</option>
+                              <option value="Story">Story</option>
+                              <option value="Task">Task</option>
+                              <option value="Sub-task">Sub-task</option>
                             </select>
                           </td>
                           <td style={{ padding: '0.75rem 1rem' }}>
@@ -3753,15 +3754,15 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                           </td>
                           <td style={{ padding: '0.75rem 1rem' }}>
                             {isGroomed ? (
-                              <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--accent-secondary)', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', padding: '0.1rem 0.5rem', borderRadius: '50px', background: 'rgba(16, 185, 129, 0.12)' }}>
-                                ✅ Groomed
+                              <span style={{ fontSize: 'var(--fs-12)', fontWeight: 600, color: 'var(--dot-success)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.1rem 0.5rem', borderRadius: '50px', background: 'rgba(16, 185, 129, 0.12)' }}>
+                                <CheckCircle2 size={12} /> Groomed
                               </span>
                             ) : (
                               <span 
                                 title={warnings.join(', ')} 
-                                style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--accent-danger)', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', padding: '0.1rem 0.5rem', borderRadius: '50px', background: 'rgba(239, 68, 68, 0.12)', cursor: 'help' }}
+                                style={{ fontSize: 'var(--fs-12)', fontWeight: 600, color: 'var(--accent-danger)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.1rem 0.5rem', borderRadius: '50px', background: 'var(--accent-danger-subtle)', cursor: 'help' }}
                               >
-                                ⚠️ Needs {warnings.length} edits
+                                <AlertTriangle size={12} /> Needs {warnings.length} edits
                               </span>
                             )}
                           </td>
@@ -3845,8 +3846,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'rgba(0, 0, 0, 0.7)',
-            backdropFilter: 'blur(4px)',
+            background: 'var(--overlay-backdrop)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -3867,7 +3867,7 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
             }}
           >
             <div className="flex-between">
-              <h2 className="text-gradient" style={{ fontSize: '1.5rem' }}>
+              <h2 style={{ fontSize: 'var(--fs-20)', fontWeight: 700, color: 'var(--text-primary)' }}>
                 {editingTask ? 'Edit Task' : 'Add New Task'}
               </h2>
               <button
@@ -4296,10 +4296,10 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                       <div key={c.id} style={{ background: 'var(--bg-tertiary)', padding: '0.5rem 0.75rem', borderRadius: '6px', fontSize: '0.8rem', border: '1px solid var(--border-color)' }}>
                         <div className="flex-between" style={{ marginBottom: '0.25rem' }}>
                           <span style={{ color: 'var(--accent-secondary)', fontWeight: 600 }}>{c.commitHash}</span>
-                          <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>{new Date(c.timestamp).toLocaleString()}</span>
+                          <span style={{ color: 'var(--text-muted)', fontSize: 'var(--fs-12)' }}>{new Date(c.timestamp).toLocaleString()}</span>
                         </div>
                         <p style={{ color: 'var(--text-primary)', margin: '0.1rem 0' }}>{c.message}</p>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>By: {c.author}</span>
+                        <span style={{ fontSize: 'var(--fs-12)', color: 'var(--text-muted)' }}>By: {c.author}</span>
                       </div>
                     ))}
                     {commits.length === 0 && (
@@ -4331,15 +4331,15 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
                         gap: '0.5rem',
                         fontWeight: 500
                       }}>
-                        ⚠️ Read-Only Mode: You do not have permission to save tasks in this project.
+                        <AlertTriangle size={14} /> Read-Only Mode: You do not have permission to save tasks in this project.
                       </div>
                     )}
                     <button
                       type="submit"
                       disabled={isSaveDisabled}
                       style={{
-                        background: isSaveDisabled ? 'var(--text-muted)' : 'var(--accent-primary)',
-                        color: isSaveDisabled ? 'rgba(255, 255, 255, 0.3)' : 'white',
+                        background: isSaveDisabled ? 'var(--bg-tertiary)' : 'var(--accent-primary)',
+                        color: isSaveDisabled ? 'var(--text-muted)' : 'var(--accent-contrast)',
                         border: 'none',
                         padding: '0.75rem',
                         borderRadius: 'var(--radius-md)',
