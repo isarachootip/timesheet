@@ -38,6 +38,9 @@ if (smtpUser && smtpPass) {
  * @param {string} options.html HTML email body
  */
 export async function sendEmail({ to, subject, html }) {
+  if (process.env.DISABLE_EMAIL === 'true') {
+    return true;
+  }
   if (!to) {
     console.error('❌ Mail Service Error: No recipient address specified.');
     return false;
