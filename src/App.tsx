@@ -229,6 +229,8 @@ function AppContent() {
           <Header
             currentUser={currentUser}
             tasks={tasks}
+            projects={projects}
+            projectWorkflows={projectWorkflows}
             theme={theme}
             onToggleTheme={() => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))}
             onOpenSidebar={() => setIsSidebarOpen(true)}
@@ -241,7 +243,7 @@ function AppContent() {
             ) : (
               <Suspense fallback={<PageSkeleton />}>
                 <Routes>
-                  <Route path="/" element={<Dashboard projects={projects} tasks={tasks} timesheets={timesheets} currentUser={currentUser} permissionSchemes={permissionSchemes} onQuickCreateTask={() => setIsQuickCreateOpen(true)} />} />
+                  <Route path="/" element={<Dashboard projects={projects} tasks={tasks} timesheets={timesheets} currentUser={currentUser} permissionSchemes={permissionSchemes} projectWorkflows={projectWorkflows} onQuickCreateTask={() => setIsQuickCreateOpen(true)} />} />
                   <Route path="/projects" element={<Projects projects={projects} setProjects={handleSetProjects} users={users} tasks={tasks} permissionSchemes={permissionSchemes} currentUser={currentUser} projectWorkflows={projectWorkflows} setProjectWorkflows={handleSetProjectWorkflows} />} />
                   <Route path="/project-plan" element={<ProjectPlan projects={projects} tasks={tasks} setTasks={handleSetTasks} users={users} taskTemplates={taskTemplates} permissionSchemes={permissionSchemes} currentUser={currentUser} fetchInitialData={refreshAll} />} />
                   <Route path="/tasks" element={<Tasks tasks={tasks} setTasks={handleSetTasks} projects={projects} users={users} sprints={sprints} setSprints={handleSetSprints} releases={releases} setReleases={handleSetReleases} projectWorkflows={projectWorkflows} setProjectWorkflows={handleSetProjectWorkflows} permissionSchemes={permissionSchemes} currentUser={currentUser} />} />

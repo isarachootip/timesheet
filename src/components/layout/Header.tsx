@@ -1,13 +1,15 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Bot, Menu, Moon, Search, Settings as SettingsIcon, Sun } from 'lucide-react';
-import type { Task, User } from '../../types';
+import type { Project, ProjectWorkflow, Task, User } from '../../types';
 import { getRouteMeta } from '../../utils/routeMeta';
 import { NotificationBell } from './NotificationBell';
 
 interface HeaderProps {
   currentUser: User;
   tasks: Task[];
+  projects?: Project[];
+  projectWorkflows?: ProjectWorkflow[];
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
   onOpenSidebar: () => void;
@@ -35,6 +37,8 @@ const iconButtonStyle: React.CSSProperties = {
 export const Header: React.FC<HeaderProps> = ({
   currentUser,
   tasks,
+  projects = [],
+  projectWorkflows = [],
   theme,
   onToggleTheme,
   onOpenSidebar,
@@ -118,7 +122,12 @@ export const Header: React.FC<HeaderProps> = ({
           {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
         </button>
 
-        <NotificationBell tasks={tasks} currentUser={currentUser} />
+        <NotificationBell
+          tasks={tasks}
+          projects={projects}
+          projectWorkflows={projectWorkflows}
+          currentUser={currentUser}
+        />
 
         <Link
           to="/settings"

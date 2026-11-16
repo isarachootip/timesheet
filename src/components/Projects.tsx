@@ -5,6 +5,7 @@ import type { User, Project, ProjectStatus, ProjectRole, Task, PermissionScheme,
 import { formatToDDMMYYYY } from '../utils';
 import { CustomDateInput } from './CustomDateInput';
 import { OutlookImportModal } from './OutlookImport/OutlookImportModal';
+import { ProjectsListView } from './Projects/ProjectsListView';
 import { toast } from './ui/ToastProvider';
 
 interface ProjectsProps {
@@ -545,124 +546,15 @@ export const Projects = ({
           })}
         </div>
       ) : (
-        /* List / Table View */
-        <div className="glass-panel" style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
-                <th style={{ padding: '0.875rem 1rem' }}>Project Name</th>
-                <th style={{ padding: '0.875rem 1rem' }}>Type & Status</th>
-                <th style={{ padding: '0.875rem 1rem' }}>Schedule</th>
-                <th style={{ padding: '0.875rem 1rem' }}>Budget</th>
-                <th style={{ padding: '0.875rem 1rem' }}>Team Members</th>
-                <th style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {projects
-                .filter(project => 
-                  currentUser?.globalRole === 'Admin' || 
-                  currentUser?.globalRole === 'Manager' || 
-                  project.members?.some(m => m.userId === currentUser?.id)
-                )
-                .map((project, idx) => (
-                  <tr 
-                    key={project.id} 
-                    style={{ 
-                      borderBottom: '1px solid var(--border-color)', 
-                      background: idx % 2 === 0 ? 'transparent' : 'var(--bg-primary)' 
-                    }}
-                    className="table-row-hover"
-                  >
-                    <td style={{ padding: '0.875rem 1rem' }}>
-                      <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.95rem' }}>{project.name}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', maxWidth: '280px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {project.description}
-                      </div>
-                    </td>
-                    <td style={{ padding: '0.875rem 1rem' }}>
-                      <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-                        <span style={{ 
-                          fontSize: 'var(--fs-12)', 
-                          padding: '0.15rem 0.5rem', 
-                          borderRadius: 'var(--radius-full)', 
-                          background: project.status === 'Active' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                          color: project.status === 'Active' ? 'var(--accent-secondary)' : 'var(--accent-warning)',
-                          fontWeight: 500
-                        }}>
-                          {project.status}
-                        </span>
-                        <span style={{ 
-                          fontSize: 'var(--fs-12)', 
-                          padding: '0.15rem 0.5rem', 
-                          borderRadius: 'var(--radius-full)', 
-                          background: project.projectType === 'support' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(139, 92, 246, 0.1)',
-                          color: project.projectType === 'support' ? '#3b82f6' : '#8b5cf6',
-                          fontWeight: 500
-                        }}>
-                          {project.projectType === 'support' ? 'Support' : 'Dev'}
-                        </span>
-                      </div>
-                    </td>
-                    <td style={{ padding: '0.875rem 1rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                      {formatToDDMMYYYY(project.startDate)} - {project.endDate ? formatToDDMMYYYY(project.endDate) : 'Ongoing'}
-                    </td>
-                    <td style={{ padding: '0.875rem 1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                      {project.budget ? `$${project.budget.toLocaleString()}` : '-'}
-                    </td>
-                    <td style={{ padding: '0.875rem 1rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center' }}>
-                        {project.members.length === 0 ? (
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>No members</span>
-                        ) : (
-                          project.members.map((member, index) => (
-                            <img 
-                              key={member.userId} 
-                              src={getUserAvatar(member.userId)} 
-                              alt="Team member" 
-                              title={`${getUserName(member.userId)} (${member.role})`}
-                              style={{ 
-                                width: '28px', 
-                                height: '28px', 
-                                borderRadius: '50%', 
-                                border: '2px solid var(--bg-tertiary)',
-                                marginLeft: index > 0 ? '-8px' : '0',
-                                zIndex: project.members.length - index
-                              }} 
-                            />
-                          ))
-                        )}
-                      </div>
-                    </td>
-                    <td style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>
-                      <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', justifyContent: 'flex-end' }}>
-                        {(currentUser?.globalRole === 'Admin' || currentUser?.globalRole === 'Manager' || project.members?.some(m => m.userId === currentUser?.id)) && (
-                          <Link to={`/chat?projectId=${project.id}`} title="Project Chat" style={{ color: 'var(--accent-primary)', padding: '0.25rem' }}>
-                            <MessageSquare size={16} />
-                          </Link>
-                        )}
-                        {canManageWorkflow(project) && (
-                          <>
-                            <button onClick={() => openWorkflowModal(project)} title="Configure Workflow" style={{ background: 'transparent', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer' }}>
-                              <GitBranch size={16} />
-                            </button>
-                            <button onClick={() => openEditModal(project)} title="Edit Project" style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-                              <Edit size={16} />
-                            </button>
-                          </>
-                        )}
-                        {(currentUser?.globalRole === 'Admin' || currentUser?.globalRole === 'Manager') && (
-                          <button onClick={() => handleDelete(project.id)} title="Delete Project" style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer' }}>
-                            <Trash2 size={16} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-        </div>
+        <ProjectsListView
+          projects={projects}
+          users={users}
+          currentUser={currentUser}
+          canManageWorkflow={canManageWorkflow}
+          onOpenWorkflowModal={openWorkflowModal}
+          onOpenEditModal={openEditModal}
+          onDeleteProject={handleDelete}
+        />
       )}
       {isModalOpen && (
         <div style={{

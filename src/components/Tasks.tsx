@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import type { Task, TaskStatus, TaskPriority, Project, User, Sprint, Release, TaskCommit, ProjectWorkflow, PermissionScheme } from '../types';
 import { formatToDDMMYYYY } from '../utils';
+import { isTaskOverdue } from '../utils/overdueUtils';
 import { CustomDateInput } from './CustomDateInput';
 import { OutlookImportModal } from './OutlookImport/OutlookImportModal';
+import { TasksBulkManagePanel } from './Tasks/TasksBulkManagePanel';
 import { Plus, Filter, Clock, X, Edit, Trash2, GripVertical, Calendar, Bug, FileText, CheckSquare, Layers, GitBranch, GitCommit, ChevronRight, ChevronDown, BarChart3, CalendarRange, Folder, Zap, CheckCircle2, AlertTriangle, ClipboardList } from 'lucide-react';
 import { toast } from './ui/ToastProvider';
 import {
@@ -1171,7 +1173,7 @@ function DroppableBacklogSection({
 export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, releases, setReleases, projectWorkflows, setProjectWorkflows: _setProjectWorkflows, permissionSchemes, currentUser }: TasksProps) => {
   const [selectedProject, setSelectedProject] = useState<string>('all');
   const [selectedSprint, setSelectedSprint] = useState<string>('all');
-  const [activeSubTab, setActiveSubTab] = useState<'summary' | 'backlog' | 'board' | 'timeline' | 'releases' | 'grooming'>('summary');
+  const [activeSubTab, setActiveSubTab] = useState<'summary' | 'backlog' | 'board' | 'timeline' | 'overdue' | 'releases' | 'grooming'>('summary');
   const [assigneeFilter, setAssigneeFilter] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<string>('default');
 
@@ -2175,6 +2177,32 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
         >
           <CalendarRange size={16} /> Timeline
         </button>
+        {(() => {
+          const overdueCount = filteredTasks.filter((t) => {
+            const proj = projects.find((p) => p.id === t.projectId);
+            const wf = projectWorkflows.find((w) => w.projectId === t.projectId);
+            return isTaskOverdue(t, new Date(), { project: proj, workflow: wf });
+          }).length;
+          return (
+            <button
+              onClick={() => setActiveSubTab('overdue')}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: activeSubTab === 'overdue' ? 'var(--text-primary)' : overdueCount > 0 ? 'var(--accent-danger)' : 'var(--text-secondary)',
+                borderBottom: activeSubTab === 'overdue' ? '2px solid #7C3AED' : '2px solid transparent',
+                padding: '0.5rem 1rem',
+                cursor: 'pointer',
+                fontWeight: activeSubTab === 'overdue' || overdueCount > 0 ? 600 : 400,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+              }}
+            >
+              <AlertTriangle size={16} /> Overdue ({overdueCount})
+            </button>
+          );
+        })()}
         {/* More dropdown for Releases and Grooming */}
         <div style={{ position: 'relative', marginLeft: '0.25rem' }}>
           <button
@@ -3835,6 +3863,18 @@ export const Tasks = ({ tasks, setTasks, projects, users, sprints, setSprints, r
             </div>
           </div>
         )
+      )}
+
+      {activeSubTab === 'overdue' && (
+        <TasksBulkManagePanel
+          tasks={tasks}
+          projects={myProjects}
+          users={users}
+          projectWorkflows={projectWorkflows}
+          permissionSchemes={permissionSchemes}
+          selectedProjectId={selectedProject}
+          currentUser={currentUser}
+        />
       )}
 
       {/* Task Add/Edit Modal */}

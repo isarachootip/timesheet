@@ -9,9 +9,9 @@ import {
   CheckSquare,
   MessageSquare,
 } from 'lucide-react';
-import type { Task, User } from '../../types';
+import type { Project, ProjectWorkflow, Task, User } from '../../types';
 import { formatToDDMMYYYY } from '../../utils';
-import { isTaskDueSoon, isTaskOverdue } from '../../utils/overdueUtils';
+import { isSupportBucketTask, isTaskDone, isTaskDueSoon, isTaskOverdue } from '../../utils/overdueUtils';
 
 export interface ChatNotificationItem {
   id: string;
@@ -25,7 +25,19 @@ export interface ChatNotificationItem {
   type?: 'chat' | 'system' | 'approval';
 }
 
-export const NotificationBell: React.FC<{ tasks: Task[]; currentUser: User }> = ({ tasks, currentUser }) => {
+interface NotificationBellProps {
+  tasks: Task[];
+  projects?: Project[];
+  projectWorkflows?: ProjectWorkflow[];
+  currentUser: User;
+}
+
+export const NotificationBell: React.FC<NotificationBellProps> = ({
+  tasks,
+  projects = [],
+  projectWorkflows = [],
+  currentUser,
+}) => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [chatNotifications, setChatNotifications] = useState<ChatNotificationItem[]>([]);
@@ -35,12 +47,24 @@ export const NotificationBell: React.FC<{ tasks: Task[]; currentUser: User }> = 
   today.setHours(0, 0, 0, 0);
   const in7Days = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-  const myTasks = tasks.filter((t) => t.assigneeId === currentUser.id && t.status !== 'Done' && t.endDate);
-  const overdue = myTasks.filter((t) => isTaskOverdue(t, today));
-  const dueSoon = myTasks.filter((t) => isTaskDueSoon(t, today));
+  const projectMap = new Map(projects.map((p) => [p.id, p]));
+  const workflowMap = new Map(projectWorkflows.map((w) => [w.projectId, w]));
+  const getCtx = (t: Task) => ({
+    project: projectMap.get(t.projectId),
+    workflow: workflowMap.get(t.projectId),
+  });
+
+  const myTasks = tasks.filter((t) => {
+    if (t.assigneeId !== currentUser.id || !t.endDate) return false;
+    const ctx = getCtx(t);
+    return !isTaskDone(t, ctx.project, ctx.workflow) && !isSupportBucketTask(t, ctx.project);
+  });
+  const overdue = myTasks.filter((t) => isTaskOverdue(t, today, getCtx(t)));
+  const dueSoon = myTasks.filter((t) => isTaskDueSoon(t, today, getCtx(t)));
   const dueThisWeek = myTasks.filter((t) => {
+    const ctx = getCtx(t);
     const d = new Date(t.endDate!);
-    return !isTaskOverdue(t, today) && !isTaskDueSoon(t, today) && d <= in7Days;
+    return !isTaskOverdue(t, today, ctx) && !isTaskDueSoon(t, today, ctx) && d <= in7Days;
   });
 
   const fetchNotifications = useCallback(async () => {

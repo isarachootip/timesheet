@@ -2,17 +2,39 @@ import React from 'react';
 import { Briefcase, TrendingUp, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Project } from '../../types';
+import type { ProjectScheduleState } from '../../utils/overdueUtils';
 import { EmptyState } from '../ui/EmptyState';
 import { StatusBadge, getStatusTone } from '../ui/StatusBadge';
 
 export interface ProjectHealthRow extends Project {
   progress: number;
-  daysRemaining: number | null;
+  schedule: ProjectScheduleState;
 }
 
 interface ProjectHealthTableProps {
   projects: ProjectHealthRow[];
 }
+
+const renderScheduleCell = (schedule: ProjectScheduleState): React.ReactNode => {
+  switch (schedule.kind) {
+    case 'ongoing':
+      return 'Ongoing';
+    case 'completed':
+      return (
+        <span data-testid="schedule-completed-badge" style={{ display: 'inline-flex', justifyContent: 'flex-end' }}>
+          <StatusBadge label="Completed" tone="success" />
+        </span>
+      );
+    case 'overdue':
+      return (
+        <span className="tabular-nums" style={{ color: 'var(--accent-danger)', fontWeight: 500 }}>
+          {schedule.days}d overdue
+        </span>
+      );
+    case 'days_left':
+      return <span className="tabular-nums">{schedule.days}d left</span>;
+  }
+};
 
 export const ProjectHealthTable: React.FC<ProjectHealthTableProps> = ({ projects }) => {
   const navigate = useNavigate();
@@ -70,7 +92,7 @@ export const ProjectHealthTable: React.FC<ProjectHealthTableProps> = ({ projects
                           style={{
                             height: '100%',
                             width: `${proj.progress}%`,
-                            backgroundColor: 'var(--accent-primary)',
+                            backgroundColor: proj.progress >= 100 ? 'var(--dot-success)' : 'var(--accent-primary)',
                             borderRadius: 'var(--radius-full)',
                             transition: 'width var(--transition-normal)',
                           }}
@@ -88,11 +110,7 @@ export const ProjectHealthTable: React.FC<ProjectHealthTableProps> = ({ projects
                     </span>
                   </td>
                   <td style={{ padding: '12px', fontSize: 'var(--fs-13)', color: 'var(--text-secondary)', whiteSpace: 'nowrap', textAlign: 'right' }}>
-                    {proj.daysRemaining === null
-                      ? 'Ongoing'
-                      : proj.daysRemaining < 0
-                        ? `${Math.abs(proj.daysRemaining)}d overdue`
-                        : `${proj.daysRemaining}d left`}
+                    {renderScheduleCell(proj.schedule)}
                   </td>
                 </tr>
               ))}

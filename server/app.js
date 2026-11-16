@@ -13,6 +13,7 @@ import systemRoutes from './routes/systemRoutes.js';
 import generalRoutes from './routes/generalRoutes.js';
 import noteRoutes from './routes/noteRoutes.js';
 import outlookRoutes from './routes/outlookRoutes.js';
+import bulkUpdateRoutes from './routes/bulkUpdateRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,6 +40,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 // Mount routes
 app.use(authRoutes);
 app.use(userRoutes);
+app.use(bulkUpdateRoutes);
 app.use(projectRoutes);
 app.use(taskRoutes);
 app.use(timesheetRoutes);

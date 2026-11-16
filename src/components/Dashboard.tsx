@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Calendar } from 'lucide-react';
-import type { PermissionScheme, Project, Task, TimesheetEntry, User } from '../types';
+import type { PermissionScheme, Project, ProjectWorkflow, Task, TimesheetEntry, User } from '../types';
 import { formatToDDMMYYYY } from '../utils';
-import { isTaskOverdue } from '../utils/overdueUtils';
+import { computeProjectHealthSchedule, isTaskDone, isTaskOverdue } from '../utils/overdueUtils';
 import { hasProjectPermission } from '../utils/projectPermissions';
 import { DashboardStatsBar } from './Dashboard/DashboardStatsBar';
 import { MyTasksPanel } from './Dashboard/MyTasksPanel';
@@ -14,6 +14,7 @@ interface DashboardProps {
   timesheets: TimesheetEntry[];
   currentUser: User;
   permissionSchemes?: PermissionScheme[];
+  projectWorkflows?: ProjectWorkflow[];
   onQuickCreateTask?: () => void;
 }
 
@@ -30,6 +31,7 @@ export const Dashboard = ({
   timesheets,
   currentUser,
   permissionSchemes = [],
+  projectWorkflows = [],
   onQuickCreateTask,
 }: DashboardProps) => {
   const [statusFilter, setStatusFilter] = useState<string>('All');
@@ -39,11 +41,27 @@ export const Dashboard = ({
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  const projectMap = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects]);
+  const workflowMap = useMemo(
+    () => new Map(projectWorkflows.map((w) => [w.projectId, w])),
+    [projectWorkflows]
+  );
+
+  const getTaskContext = (t: Task) => ({
+    project: projectMap.get(t.projectId),
+    workflow: workflowMap.get(t.projectId),
+  });
+
   const activeProjects = projects.filter(
     (p) => p.status === 'Active' && p.members.some((m) => m.userId === currentUser.id)
   );
-  const myActiveTasks = tasks.filter((t) => t.assigneeId === currentUser.id && t.status !== 'Done');
-  const overdueTasks = tasks.filter((t) => isTaskOverdue(t, today));
+
+  const myTasksAll = tasks.filter((t) => t.assigneeId === currentUser.id);
+  const myActiveTasks = myTasksAll.filter((t) => {
+    const ctx = getTaskContext(t);
+    return !isTaskDone(t, ctx.project, ctx.workflow);
+  });
+  const overdueTasks = myTasksAll.filter((t) => isTaskOverdue(t, today, getTaskContext(t)));
 
   const sevenDaysAgo = new Date(today);
   sevenDaysAgo.setDate(today.getDate() - 7);
@@ -55,7 +73,6 @@ export const Dashboard = ({
     })
     .reduce((sum, ts) => sum + ts.hours, 0);
 
-  const myTasksAll = tasks.filter((t) => t.assigneeId === currentUser.id);
   const myProjects = projects.filter((p) => myTasksAll.some((t) => t.projectId === p.id));
 
   const filteredForStatusList = myTasksAll.filter(
@@ -71,7 +88,7 @@ export const Dashboard = ({
   const myTasks = myTasksAll
     .filter((t) => projectFilter === 'All' || t.projectId === projectFilter)
     .filter((t) => statusFilter === 'All' || t.status === statusFilter)
-    .filter((t) => !onlyOverdue || isTaskOverdue(t, today))
+    .filter((t) => !onlyOverdue || isTaskOverdue(t, today, getTaskContext(t)))
     .sort((a, b) => {
       const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime();
       const timeB = new Date(b.updatedAt || b.createdAt || 0).getTime();
@@ -79,13 +96,12 @@ export const Dashboard = ({
     });
 
   const projectHealth = projects.map((proj) => {
+    const wf = workflowMap.get(proj.id);
     const projTasks = tasks.filter((t) => t.projectId === proj.id);
-    const done = projTasks.filter((t) => t.status === 'Done').length;
-    const progress = projTasks.length > 0 ? Math.round((done / projTasks.length) * 100) : 0;
-    const daysRemaining = proj.endDate
-      ? Math.ceil((new Date(proj.endDate).getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-      : null;
-    return { ...proj, progress, daysRemaining };
+    const doneCount = projTasks.filter((t) => isTaskDone(t, proj, wf)).length;
+    const progress = projTasks.length > 0 ? Math.round((doneCount / projTasks.length) * 100) : 0;
+    const schedule = computeProjectHealthSchedule(proj, progress, today);
+    return { ...proj, progress, schedule };
   });
 
   const canCreateTask = projects.some((p) =>
@@ -117,6 +133,7 @@ export const Dashboard = ({
         tasks={myTasks}
         myAllTasksCount={myTasksAll.length}
         projects={projects}
+        projectWorkflows={projectWorkflows}
         myProjects={myProjects}
         uniqueStatuses={uniqueStatuses}
         projectFilter={projectFilter}

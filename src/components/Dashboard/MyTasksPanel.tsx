@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Briefcase, Calendar, CheckSquare, Clock, Filter } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import type { Project, Task } from '../../types';
+import type { Project, ProjectWorkflow, Task } from '../../types';
 import { formatToDDMMYYYY } from '../../utils';
 import { getOverdueDays, isCriticalOverdue, isTaskOverdue } from '../../utils/overdueUtils';
 import { EmptyState } from '../ui/EmptyState';
@@ -11,6 +11,7 @@ interface MyTasksPanelProps {
   tasks: Task[];
   myAllTasksCount: number;
   projects: Project[];
+  projectWorkflows?: ProjectWorkflow[];
   myProjects: Project[];
   uniqueStatuses: string[];
   projectFilter: string;
@@ -40,6 +41,7 @@ export const MyTasksPanel: React.FC<MyTasksPanelProps> = ({
   tasks,
   myAllTasksCount,
   projects,
+  projectWorkflows = [],
   myProjects,
   uniqueStatuses,
   projectFilter,
@@ -171,9 +173,11 @@ export const MyTasksPanel: React.FC<MyTasksPanelProps> = ({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {visibleTasks.map((task) => {
             const proj = projects.find((p) => p.id === task.projectId);
-            const overdue = isTaskOverdue(task, today);
-            const critical = isCriticalOverdue(task, today);
-            const overdueDays = getOverdueDays(task, today);
+            const wf = projectWorkflows.find((w) => w.projectId === task.projectId);
+            const ctx = { project: proj, workflow: wf };
+            const overdue = isTaskOverdue(task, today, ctx);
+            const critical = isCriticalOverdue(task, today, ctx);
+            const overdueDays = getOverdueDays(task, today, ctx);
 
             return (
               <div
