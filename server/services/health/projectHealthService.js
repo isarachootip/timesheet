@@ -6,7 +6,7 @@ import {
   authenticateHealthUser,
   canUserBrowseProject,
 } from './projectHealthPermissions.js';
-import { analyzeProjectHealth as defaultAiAnalyzer } from './projectHealthAiService.js';
+import { runProjectHealthAiForSnapshot as defaultAiAnalyzer } from './projectHealthAiService.js';
 import {
   getHealthHistorySnapshots,
   getLatestAiAnalysisSnapshot,
