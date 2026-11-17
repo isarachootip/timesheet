@@ -1,5 +1,6 @@
 import express from 'express';
 import { pool, dbReady } from '../config/db.js';
+import { resolveTaskCompletedAt } from '../services/health/taskCompletionTracker.js';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -68,6 +69,7 @@ router.get('/api/tasks', async (req, res) => {
       parentId: t.parent_id, startDate: t.start_date, endDate: t.end_date,
       sprintId: t.sprint_id, releaseId: t.release_id, storyPoints: t.story_points || 0,
       issueType: t.issue_type || 'Task', updatedAt: t.updated_at || t.created_at,
+      completedAt: t.completed_at || undefined,
       outlookEventId: t.outlook_event_id || undefined
     }));
     res.json(tasks);
@@ -214,6 +216,7 @@ router.get('/api/initial-data', async (req, res) => {
       parentId: t.parent_id, startDate: t.start_date, endDate: t.end_date,
       sprintId: t.sprint_id, releaseId: t.release_id, storyPoints: t.story_points || 0,
       issueType: t.issue_type || 'Task', updatedAt: t.updated_at || t.created_at,
+      completedAt: t.completed_at || undefined,
       outlookEventId: t.outlook_event_id || undefined
     }));
 
@@ -334,7 +337,19 @@ async function processCommit(hash, message, author) {
         newStatus = columns[1] || 'In Progress';
       }
 
-      await pool.query('UPDATE tasks SET status = $1 WHERE id = $2', [newStatus, taskId]);
+      const nowIso = new Date().toISOString();
+      const nextCompletedAt = resolveTaskCompletedAt({
+        oldTask: task,
+        nextStatus: newStatus,
+        project: projRes.rows[0] || null,
+        nowIso,
+      });
+      await pool.query('UPDATE tasks SET status = $1, updated_at = $2, completed_at = $3 WHERE id = $4', [
+        newStatus,
+        nowIso,
+        nextCompletedAt,
+        taskId,
+      ]);
 
       const commitId = 'c_' + Math.random().toString(36).substr(2, 9);
       await pool.query(

@@ -2,6 +2,7 @@ import pg from 'pg';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
 import { deduplicateMilestones } from '../utils/deduplicateMilestones.js';
+import { runProjectHealthMigration } from '../migrations/projectHealthMigration.js';
 
 dotenv.config();
 
@@ -681,6 +682,8 @@ const initDB = async () => {
         );
       }
     }
+
+    await runProjectHealthMigration(client);
 
     client.release();
   } catch (err) {

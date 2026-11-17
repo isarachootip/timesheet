@@ -83,7 +83,8 @@ CREATE TABLE IF NOT EXISTS tasks (
     sprint_id VARCHAR(50) REFERENCES sprints(id) ON DELETE SET NULL,
     release_id VARCHAR(50) REFERENCES releases(id) ON DELETE SET NULL,
     story_points INTEGER DEFAULT 0,
-    issue_type VARCHAR(50) DEFAULT 'Task' -- 'Bug', 'Story', 'Task', 'Sub-task'
+    issue_type VARCHAR(50) DEFAULT 'Task', -- 'Bug', 'Story', 'Task', 'Sub-task'
+    completed_at VARCHAR(50)
 );
 
 -- 6. Task Templates Table
@@ -159,5 +160,24 @@ CREATE TABLE IF NOT EXISTS task_snapshots (
 
 CREATE INDEX IF NOT EXISTS idx_task_snapshots_baseline ON task_snapshots(baseline_id);
 CREATE INDEX IF NOT EXISTS idx_task_snapshots_task ON task_snapshots(task_id);
+
+-- 11. Project Health Snapshots
+CREATE TABLE IF NOT EXISTS project_health_snapshots (
+    id VARCHAR(50) PRIMARY KEY,
+    project_id VARCHAR(50) NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    snapshot_date VARCHAR(20) NOT NULL,
+    calculated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    health_score NUMERIC,
+    factor_scores JSONB NOT NULL DEFAULT '{}'::jsonb,
+    status VARCHAR(30) NOT NULL,
+    confidence VARCHAR(30) NOT NULL,
+    data_issues JSONB NOT NULL DEFAULT '[]'::jsonb,
+    ai_analysis JSONB,
+    ai_analyzed_at TIMESTAMP,
+    trigger_source VARCHAR(30) NOT NULL DEFAULT 'auto'
+);
+
+CREATE INDEX IF NOT EXISTS idx_project_health_snapshots_proj_calc
+ON project_health_snapshots (project_id, calculated_at DESC);
 
 

@@ -1,3 +1,5 @@
+import { resolveTaskCompletedAt } from './health/taskCompletionTracker.js';
+
 const PRIVILEGED_PROJECT_ROLES = new Set(['PM', 'Team Lead', 'Leader']);
 
 const parseMembers = (rawMembers) => {
@@ -67,7 +69,12 @@ export const executeBulkTasksUpdate = async (deps, userId, payload) => {
       projectIds.length > 0
         ? await db.query('SELECT * FROM projects WHERE id = ANY($1::varchar[])', [projectIds])
         : { rows: [] };
+    const workflowsRes =
+      projectIds.length > 0
+        ? await db.query('SELECT project_id, statuses FROM project_workflows WHERE project_id = ANY($1::varchar[])', [projectIds])
+        : { rows: [] };
     const projectMap = new Map(projectsRes.rows.map((p) => [p.id, p]));
+    const workflowMap = new Map(workflowsRes.rows.map((w) => [w.project_id, w]));
 
     const updatedIds = [];
     const skipped = [];
@@ -106,10 +113,18 @@ export const executeBulkTasksUpdate = async (deps, userId, payload) => {
 
       const nextStatus = patch.status !== undefined ? patch.status : task.status;
       const nextEndDate = patch.endDate !== undefined ? patch.endDate : task.end_date;
-      await db.query('UPDATE tasks SET status = $1, end_date = $2, updated_at = $3 WHERE id = $4', [
+      const nextCompletedAt = resolveTaskCompletedAt({
+        oldTask: task,
+        nextStatus,
+        project,
+        workflow: workflowMap.get(task.project_id) || null,
+        nowIso,
+      });
+      await db.query('UPDATE tasks SET status = $1, end_date = $2, updated_at = $3, completed_at = $4 WHERE id = $5', [
         nextStatus,
         nextEndDate,
         nowIso,
+        nextCompletedAt,
         taskId,
       ]);
       updatedIds.push(taskId);

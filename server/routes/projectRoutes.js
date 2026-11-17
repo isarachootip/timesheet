@@ -45,7 +45,7 @@ router.post('/api/projects/:projectId/baselines', async (req, res) => {
     );
 
     const tasksRes = await client.query(
-      `SELECT id, title, description, status, priority, estimated_hours, start_date, end_date, story_points, assignee_id, parent_id, sprint_id, release_id 
+      `SELECT id, title, description, status, priority, estimated_hours, start_date, end_date, story_points, assignee_id, parent_id, sprint_id, release_id, completed_at 
        FROM tasks WHERE project_id = $1`,
       [projectId]
     );
@@ -53,8 +53,8 @@ router.post('/api/projects/:projectId/baselines', async (req, res) => {
     for (const task of tasksRes.rows) {
       const snapshotId = generateId('snap');
       await client.query(
-        `INSERT INTO task_snapshots (id, baseline_id, task_id, title, description, status, priority, estimated_hours, start_date, end_date, story_points, assignee_id, parent_id, sprint_id, release_id)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+        `INSERT INTO task_snapshots (id, baseline_id, task_id, title, description, status, priority, estimated_hours, start_date, end_date, story_points, assignee_id, parent_id, sprint_id, release_id, completed_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
         [
           snapshotId,
           baselineId,
@@ -70,7 +70,8 @@ router.post('/api/projects/:projectId/baselines', async (req, res) => {
           task.assignee_id,
           task.parent_id,
           task.sprint_id,
-          task.release_id
+          task.release_id,
+          task.completed_at || null
         ]
       );
     }
@@ -112,22 +113,22 @@ router.put('/api/projects/:projectId/baselines/:baselineId/activate', async (req
       await client.query('DELETE FROM task_snapshots WHERE baseline_id = $1', [activeId]);
       
       const liveTasksRes = await client.query(
-        `SELECT id, title, description, status, priority, estimated_hours, start_date, end_date, story_points, assignee_id, parent_id, sprint_id, release_id 
+        `SELECT id, title, description, status, priority, estimated_hours, start_date, end_date, story_points, assignee_id, parent_id, sprint_id, release_id, completed_at 
          FROM tasks WHERE project_id = $1`,
         [projectId]
       );
       
       for (const t of liveTasksRes.rows) {
         await client.query(
-          `INSERT INTO task_snapshots (id, baseline_id, task_id, title, description, status, priority, estimated_hours, start_date, end_date, story_points, assignee_id, parent_id, sprint_id, release_id)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
-          [generateId('snap'), activeId, t.id, t.title, t.description || '', t.status, t.priority, t.estimated_hours || 0, t.start_date, t.end_date, t.story_points || 0, t.assignee_id, t.parent_id, t.sprint_id, t.release_id]
+          `INSERT INTO task_snapshots (id, baseline_id, task_id, title, description, status, priority, estimated_hours, start_date, end_date, story_points, assignee_id, parent_id, sprint_id, release_id, completed_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
+          [generateId('snap'), activeId, t.id, t.title, t.description || '', t.status, t.priority, t.estimated_hours || 0, t.start_date, t.end_date, t.story_points || 0, t.assignee_id, t.parent_id, t.sprint_id, t.release_id, t.completed_at || null]
         );
       }
     }
 
     const snapshotsRes = await client.query(
-      `SELECT task_id, title, description, status, priority, estimated_hours, start_date, end_date, story_points, assignee_id, parent_id, sprint_id, release_id 
+      `SELECT task_id, title, description, status, priority, estimated_hours, start_date, end_date, story_points, assignee_id, parent_id, sprint_id, release_id, completed_at 
        FROM task_snapshots WHERE baseline_id = $1`,
       [baselineId]
     );
@@ -143,8 +144,8 @@ router.put('/api/projects/:projectId/baselines/:baselineId/activate', async (req
       const createdAt = new Date().toISOString();
       for (const snap of snapshotsRes.rows) {
         await client.query(
-          `INSERT INTO tasks (id, project_id, assignee_id, title, description, status, priority, estimated_hours, created_at, start_date, end_date, story_points, parent_id, sprint_id, release_id, issue_type)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 'Task')
+          `INSERT INTO tasks (id, project_id, assignee_id, title, description, status, priority, estimated_hours, created_at, start_date, end_date, story_points, parent_id, sprint_id, release_id, issue_type, completed_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 'Task', $16)
            ON CONFLICT (id) DO UPDATE SET
              assignee_id = EXCLUDED.assignee_id,
              title = EXCLUDED.title,
@@ -157,7 +158,8 @@ router.put('/api/projects/:projectId/baselines/:baselineId/activate', async (req
              story_points = EXCLUDED.story_points,
              parent_id = EXCLUDED.parent_id,
              sprint_id = EXCLUDED.sprint_id,
-             release_id = EXCLUDED.release_id`,
+             release_id = EXCLUDED.release_id,
+             completed_at = EXCLUDED.completed_at`,
           [
             snap.task_id,
             projectId,
@@ -173,7 +175,8 @@ router.put('/api/projects/:projectId/baselines/:baselineId/activate', async (req
             snap.story_points || 0,
             snap.parent_id,
             snap.sprint_id,
-            snap.release_id
+            snap.release_id,
+            snap.completed_at || null
           ]
         );
       }
@@ -516,6 +519,8 @@ router.delete('/api/projects/:id', async (req, res) => {
         .map(m => m?.userId)
         .filter(uid => uid && !activeMemberIdsInOtherProjs.has(uid));
 
+      // 0. Delete project_health_snapshots
+      await client.query('DELETE FROM project_health_snapshots WHERE project_id = $1', [id]);
       // 1. Delete task_snapshots via project_baselines
       await client.query(
         `DELETE FROM task_snapshots WHERE baseline_id IN (SELECT id FROM project_baselines WHERE project_id = $1)`,

@@ -212,13 +212,14 @@ router.post('/api/clean-tasks', async (req, res) => {
 
     // Count existing records before deletion (for summary)
     const counts = {};
-    const tables = ['tasks', 'sprints', 'releases', 'timesheets', 'project_baselines', 'task_snapshots', 'task_commits'];
+    const tables = ['tasks', 'sprints', 'releases', 'timesheets', 'project_baselines', 'task_snapshots', 'task_commits', 'project_health_snapshots'];
     for (const table of tables) {
       const result = await pool.query(`SELECT COUNT(*) FROM ${table}`);
       counts[table] = parseInt(result.rows[0].count);
     }
 
     // Delete in correct order (respecting potential FK relationships)
+    await pool.query('DELETE FROM project_health_snapshots');
     await pool.query('DELETE FROM task_snapshots');
     await pool.query('DELETE FROM project_baselines');
     await pool.query('DELETE FROM task_commits');

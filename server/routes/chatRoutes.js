@@ -152,7 +152,7 @@ router.get('/api/users/:userId/chat-notifications', async (req, res) => {
     const result = await pool.query(`
       SELECT n.*, u.name as sender_name, u.avatar as sender_avatar, p.name as project_name
       FROM chat_notifications n
-      JOIN users u ON n.sender_id = u.id
+      LEFT JOIN users u ON n.sender_id = u.id
       JOIN projects p ON n.project_id = p.id
       WHERE n.user_id = $1
       ORDER BY n.created_at DESC
@@ -164,8 +164,8 @@ router.get('/api/users/:userId/chat-notifications', async (req, res) => {
       projectId: n.project_id,
       messageId: n.message_id,
       senderId: n.sender_id,
-      senderName: n.sender_name,
-      senderAvatar: n.sender_avatar,
+      senderName: n.sender_name || 'ChronoTrack Health',
+      senderAvatar: n.sender_avatar || undefined,
       projectName: n.project_name,
       text: n.text,
       isRead: n.is_read,

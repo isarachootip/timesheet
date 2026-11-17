@@ -1,6 +1,7 @@
 import express from 'express';
 import { pool } from '../config/db.js';
 import { checkPermission, validateTransition } from './projectRoutes.js';
+import { resolveTaskCompletedAt } from '../services/health/taskCompletionTracker.js';
 
 const router = express.Router();
 
@@ -43,10 +44,21 @@ router.post('/api/tasks', async (req, res) => {
     }
 
     const updatedAt = req.body.updatedAt || new Date().toISOString();
+    const [projRes, wfRes] = await Promise.all([
+      pool.query('SELECT custom_columns FROM projects WHERE id = $1', [projectId]),
+      pool.query('SELECT statuses FROM project_workflows WHERE project_id = $1', [projectId]),
+    ]);
+    const completedAt = resolveTaskCompletedAt({
+      oldTask,
+      nextStatus: status,
+      project: projRes.rows[0] || null,
+      workflow: wfRes.rows[0] || null,
+      nowIso: updatedAt,
+    });
 
     await pool.query(
-      `INSERT INTO tasks (id, project_id, assignee_id, title, description, status, priority, estimated_hours, created_at, parent_id, start_date, end_date, sprint_id, release_id, story_points, issue_type, updated_at, outlook_event_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+      `INSERT INTO tasks (id, project_id, assignee_id, title, description, status, priority, estimated_hours, created_at, parent_id, start_date, end_date, sprint_id, release_id, story_points, issue_type, updated_at, outlook_event_id, completed_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
        ON CONFLICT (id) DO UPDATE SET
          project_id = EXCLUDED.project_id,
          assignee_id = EXCLUDED.assignee_id,
@@ -64,7 +76,8 @@ router.post('/api/tasks', async (req, res) => {
          story_points = EXCLUDED.story_points,
          issue_type = EXCLUDED.issue_type,
          updated_at = EXCLUDED.updated_at,
-         outlook_event_id = COALESCE(EXCLUDED.outlook_event_id, tasks.outlook_event_id)`,
+         outlook_event_id = COALESCE(EXCLUDED.outlook_event_id, tasks.outlook_event_id),
+         completed_at = EXCLUDED.completed_at`,
       [
         id, 
         projectId, 
@@ -83,7 +96,8 @@ router.post('/api/tasks', async (req, res) => {
         storyPoints || 0,
         issueType || 'Task',
         updatedAt,
-        outlookEventId || null
+        outlookEventId || null,
+        completedAt
       ]
     );
     res.json({ success: true });
