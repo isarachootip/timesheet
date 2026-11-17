@@ -28,3 +28,17 @@ export const diffCalendarDays = (laterUtcMs, earlierUtcMs) =>
 export const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
 export const round2 = (value) => Math.round(value * 100) / 100;
+
+export const toIsoTimestampString = (input, fallbackIso = new Date().toISOString()) => {
+  if (!input) return fallbackIso;
+  if (input instanceof Date) {
+    return Number.isNaN(input.getTime()) ? fallbackIso : input.toISOString();
+  }
+  const str = String(input).trim();
+  if (!str) return fallbackIso;
+  if (str.length > 50) {
+    const parsed = new Date(str);
+    return Number.isNaN(parsed.getTime()) ? str.slice(0, 50) : parsed.toISOString();
+  }
+  return str;
+};

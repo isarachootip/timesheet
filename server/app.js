@@ -15,6 +15,7 @@ import noteRoutes from './routes/noteRoutes.js';
 import outlookRoutes from './routes/outlookRoutes.js';
 import bulkUpdateRoutes from './routes/bulkUpdateRoutes.js';
 import projectHealthRoutes from './routes/projectHealthRoutes.js';
+import { gzipJsonMiddleware } from './middleware/compressionMiddleware.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,7 +23,8 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 app.use(cors());
-app.use(express.json({ limit: '50mb' })); 
+app.use(express.json({ limit: '50mb' }));
+app.use(gzipJsonMiddleware);
 
 app.use(express.static(path.join(__dirname, '../dist'), {
   etag: false,

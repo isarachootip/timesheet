@@ -1,4 +1,5 @@
 import { isTaskDoneStatus, resolveWorkflowColumns } from '../services/health/taskRollupUtils.js';
+import { toIsoTimestampString } from '../services/health/dateUtils.js';
 import { DEFAULT_PROJECT_HEALTH_CONFIG } from '../config/projectHealthConfig.js';
 
 export const runProjectHealthMigration = async (client) => {
@@ -37,14 +38,18 @@ export const runProjectHealthMigration = async (client) => {
   const migId = 'backfill_tasks_completed_at_v1';
   const migDone = await client.query('SELECT id FROM migrations WHERE id = $1', [migId]);
   if (migDone.rows.length === 0) {
-    const [projectsRes, workflowsRes, tasksRes] = await Promise.all([
-      client.query('SELECT id, custom_columns FROM projects'),
-      client.query('SELECT project_id, statuses FROM project_workflows'),
-      client.query('SELECT id, project_id, status, updated_at, created_at FROM tasks WHERE completed_at IS NULL'),
-    ]);
+    const projectsRes = await client.query('SELECT id, custom_columns FROM projects');
+    const workflowsRes = await client.query('SELECT project_id, statuses FROM project_workflows');
+    const tasksRes = await client.query(
+      'SELECT id, project_id, status, updated_at, created_at FROM tasks WHERE completed_at IS NULL'
+    );
 
     const projectMap = new Map(projectsRes.rows.map((p) => [p.id, p]));
     const workflowMap = new Map(workflowsRes.rows.map((w) => [w.project_id, w]));
+    const nowFallbackIso = new Date().toISOString();
+
+    const taskIds = [];
+    const completedTimestamps = [];
 
     for (const task of tasksRes.rows) {
       const columns = resolveWorkflowColumns(
@@ -52,15 +57,27 @@ export const runProjectHealthMigration = async (client) => {
         workflowMap.get(task.project_id)
       );
       if (isTaskDoneStatus(task.status, columns, DEFAULT_PROJECT_HEALTH_CONFIG.terminalStatuses)) {
-        const fallbackCompletedAt = task.updated_at || task.created_at || new Date().toISOString();
-        await client.query('UPDATE tasks SET completed_at = $1 WHERE id = $2', [
-          String(fallbackCompletedAt),
-          task.id,
-        ]);
+        const rawFallback = task.updated_at || task.created_at || nowFallbackIso;
+        taskIds.push(String(task.id));
+        completedTimestamps.push(toIsoTimestampString(rawFallback, nowFallbackIso));
       }
     }
 
-    await client.query('INSERT INTO migrations (id) VALUES ($1)', [migId]);
-    console.log('✅ One-time migration: backfilled tasks.completed_at for existing Done tasks.');
+    if (taskIds.length > 0) {
+      await client.query(
+        `UPDATE tasks AS t
+         SET completed_at = v.completed_at
+         FROM UNNEST($1::varchar[], $2::varchar[]) AS v(id, completed_at)
+         WHERE t.id = v.id`,
+        [taskIds, completedTimestamps]
+      );
+    }
+
+    await client.query('INSERT INTO migrations (id) VALUES ($1) ON CONFLICT (id) DO NOTHING', [
+      migId,
+    ]);
+    console.log(
+      `✅ One-time migration: backfilled tasks.completed_at for ${taskIds.length} existing Done tasks.`
+    );
   }
 };

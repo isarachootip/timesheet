@@ -1,4 +1,5 @@
 import { DEFAULT_PROJECT_HEALTH_CONFIG } from '../../config/projectHealthConfig.js';
+import { toIsoTimestampString } from './dateUtils.js';
 import { isTaskDoneStatus, resolveWorkflowColumns } from './taskRollupUtils.js';
 
 export const resolveTaskCompletedAt = ({
@@ -20,9 +21,9 @@ export const resolveTaskCompletedAt = ({
     const prevCompleted = oldTask.completed_at ?? oldTask.completedAt ?? null;
     const prevIsDone = isTaskDoneStatus(oldTask.status, columns, terminal);
     if (prevIsDone && prevCompleted) {
-      return String(prevCompleted);
+      return toIsoTimestampString(prevCompleted, nowIso);
     }
   }
 
-  return nowIso;
+  return toIsoTimestampString(nowIso, new Date().toISOString());
 };
