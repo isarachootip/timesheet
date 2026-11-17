@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useLocation, Link } from 'react-router-dom';
-import { Users, Plus, X, Edit, Trash2, GitBranch, MessageSquare, LayoutGrid, List, Calendar } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { Plus, X, Trash2, LayoutGrid, List, Calendar } from 'lucide-react';
 import type { User, Project, ProjectStatus, ProjectRole, Task, PermissionScheme, ProjectWorkflow } from '../types';
-import { formatToDDMMYYYY } from '../utils';
 import { CustomDateInput } from './CustomDateInput';
 import { OutlookImportModal } from './OutlookImport/OutlookImportModal';
+import { ProjectCardItem } from './Projects/ProjectCardItem';
 import { ProjectsListView } from './Projects/ProjectsListView';
+import { useProjectTimesheetNavigate } from './Projects/useProjectTimesheetNavigate';
 import { toast } from './ui/ToastProvider';
 
 interface ProjectsProps {
@@ -302,8 +303,10 @@ export const Projects = ({
     setMembers(prev => prev.filter(m => m.userId !== userId));
   };
 
-  const getUserAvatar = (userId: string) => users.find(u => u.id === userId)?.avatar || '';
   const getUserName = (userId: string) => users.find(u => u.id === userId)?.name || 'Unknown';
+  const { handleSurfaceClick, handleSurfaceAuxClick, handleSurfaceKeyDown } =
+    useProjectTimesheetNavigate(currentUser);
+  const canDeleteProjects = currentUser?.globalRole === 'Admin' || currentUser?.globalRole === 'Manager';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -411,139 +414,29 @@ export const Projects = ({
       {viewMode === 'card' ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1.5rem' }}>
           {projects
-            .filter(project => 
-              currentUser?.globalRole === 'Admin' || 
-              currentUser?.globalRole === 'Manager' || 
+            .filter(project =>
+              currentUser?.globalRole === 'Admin' ||
+              currentUser?.globalRole === 'Manager' ||
               project.members?.some(m => m.userId === currentUser?.id)
             )
-            .map(project => {
-              const isHighlighted = highlightedProjectId === project.id;
-              return (
-                <div 
-                  key={project.id} 
-                  id={project.id}
-                  className="glass-panel hover-lift" 
-                  style={{ 
-                    padding: '1.5rem', 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    gap: '1.5rem',
-                    border: isHighlighted ? '2px solid var(--accent-primary)' : '1px solid transparent',
-                    boxShadow: isHighlighted ? '0 0 20px rgba(99, 102, 241, 0.4)' : undefined,
-                    transition: 'all 0.3s ease'
-                  }}
-                >
-                  <div className="flex-between" style={{ alignItems: 'flex-start' }}>
-                    <div>
-                      <h3 style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>{project.name}</h3>
-                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                        <span style={{ 
-                          fontSize: '0.75rem', 
-                          padding: '0.25rem 0.75rem', 
-                          borderRadius: 'var(--radius-full)', 
-                          background: project.status === 'Active' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                          color: project.status === 'Active' ? 'var(--accent-secondary)' : 'var(--accent-warning)',
-                          fontWeight: 500
-                        }}>
-                          {project.status}
-                        </span>
-                        <span style={{ 
-                          fontSize: '0.75rem', 
-                          padding: '0.25rem 0.75rem', 
-                          borderRadius: 'var(--radius-full)', 
-                          background: project.projectType === 'support' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(139, 92, 246, 0.1)',
-                          color: project.projectType === 'support' ? '#3b82f6' : '#8b5cf6',
-                          fontWeight: 500
-                        }}>
-                          {project.projectType === 'support' ? 'Support' : 'Development'}
-                        </span>
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                      {(currentUser?.globalRole === 'Admin' || currentUser?.globalRole === 'Manager' || project.members?.some(m => m.userId === currentUser?.id)) && (
-                        <Link to={`/chat?projectId=${project.id}`} title="Project Chat" style={{ color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.25rem' }} className="hover-lift">
-                          <MessageSquare size={16} />
-                        </Link>
-                      )}
-                      {canManageWorkflow(project) && (
-                        <>
-                          <button onClick={() => openWorkflowModal(project)} title="Configure Workflow" style={{ background: 'transparent', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                            <GitBranch size={16} />
-                          </button>
-                          <button onClick={() => openEditModal(project)} title="Edit Project" style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                            <Edit size={16} />
-                          </button>
-                        </>
-                      )}
-                      {(currentUser?.globalRole === 'Admin' || currentUser?.globalRole === 'Manager') && (
-                        <button onClick={() => handleDelete(project.id)} title="Delete Project" style={{ background: 'transparent', border: 'none', color: 'var(--accent-danger)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                          <Trash2 size={16} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.6 }}>
-                  {project.description}
-                </p>
-
-                <div style={{ marginTop: 'auto' }}>
-                  <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <Users size={14} /> Team ({project.members.length})
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    {project.members.length === 0 ? (
-                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>No members added yet</span>
-                    ) : (
-                      project.members.map((member, index) => (
-                        <img 
-                          key={member.userId} 
-                          src={getUserAvatar(member.userId)} 
-                          alt="Team member" 
-                          title={`${getUserName(member.userId)} (${member.role})`}
-                          style={{ 
-                            width: '32px', 
-                            height: '32px', 
-                            borderRadius: '50%', 
-                            border: '2px solid var(--bg-tertiary)',
-                            marginLeft: index > 0 ? '-10px' : '0',
-                            zIndex: project.members.length - index
-                          }} 
-                        />
-                      ))
-                    )}
-                  </div>
-                </div>
-
-                {/* Collapsible Project Milestones Checklist */}
-                {(() => {
-                  const projectTasks = tasks ? tasks.filter(t => t.projectId === project.id && !t.parentId) : [];
-                  if (projectTasks.length === 0) return null;
-                  return (
-                    <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-                      <details style={{ cursor: 'pointer' }}>
-                        <summary style={{ fontSize: '0.85rem', color: 'var(--accent-primary)', fontWeight: 500, outline: 'none' }}>
-                          Auto-Generated Plan ({projectTasks.length} Milestones)
-                        </summary>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem', maxHeight: '150px', overflowY: 'auto', paddingRight: '0.5rem' }}>
-                          {projectTasks.map(t => (
-                            <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', background: 'var(--bg-tertiary)', padding: '0.35rem 0.5rem', borderRadius: '4px' }}>
-                              <span style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px' }} title={t.title}>
-                                {t.title}
-                              </span>
-                              <span style={{ color: 'var(--text-secondary)' }}>
-                                {t.startDate ? `${formatToDDMMYYYY(t.startDate)} - ${t.endDate ? formatToDDMMYYYY(t.endDate) : ''}` : ''}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </details>
-                    </div>
-                  );
-                })()}
-              </div>
-            );
-          })}
+            .map(project => (
+              <ProjectCardItem
+                key={project.id}
+                project={project}
+                users={users}
+                tasks={tasks}
+                currentUser={currentUser}
+                isHighlighted={highlightedProjectId === project.id}
+                manageable={canManageWorkflow(project)}
+                canDelete={canDeleteProjects}
+                onCardClick={handleSurfaceClick}
+                onCardAuxClick={handleSurfaceAuxClick}
+                onCardKeyDown={handleSurfaceKeyDown}
+                onOpenWorkflowModal={openWorkflowModal}
+                onOpenEditModal={openEditModal}
+                onDeleteProject={handleDelete}
+              />
+            ))}
         </div>
       ) : (
         <ProjectsListView

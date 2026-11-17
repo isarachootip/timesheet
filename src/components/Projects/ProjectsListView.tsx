@@ -5,6 +5,7 @@ import { bulkUpdateProjects, type BulkProjectsPatch } from '../../services/bulkU
 import { toast } from '../ui/ToastProvider';
 import { ProjectListRow } from './ProjectListRow';
 import { ProjectsBulkActionBar } from './ProjectsBulkActionBar';
+import { useProjectTimesheetNavigate } from './useProjectTimesheetNavigate';
 
 interface ProjectsListViewProps {
   projects: Project[];
@@ -28,6 +29,8 @@ export const ProjectsListView: React.FC<ProjectsListViewProps> = ({
   const queryClient = useQueryClient();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { handleSurfaceClick, handleSurfaceAuxClick, handleSurfaceKeyDown } =
+    useProjectTimesheetNavigate(currentUser);
 
   const visibleProjects = projects.filter(
     (p) =>
@@ -115,6 +118,9 @@ export const ProjectsListView: React.FC<ProjectsListViewProps> = ({
                 onToggleSelect={(next) =>
                   setSelectedIds((prev) => (next ? [...prev, project.id] : prev.filter((id) => id !== project.id)))
                 }
+                onRowClick={handleSurfaceClick}
+                onRowAuxClick={handleSurfaceAuxClick}
+                onRowKeyDown={handleSurfaceKeyDown}
                 onOpenWorkflowModal={onOpenWorkflowModal}
                 onOpenEditModal={onOpenEditModal}
                 onDeleteProject={onDeleteProject}

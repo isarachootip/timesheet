@@ -13,6 +13,9 @@ interface ProjectListRowProps {
   checked: boolean;
   users: User[];
   onToggleSelect: (checked: boolean) => void;
+  onRowClick: (e: React.MouseEvent<HTMLElement>, project: Project) => void;
+  onRowAuxClick: (e: React.MouseEvent<HTMLElement>, project: Project) => void;
+  onRowKeyDown: (e: React.KeyboardEvent<HTMLElement>, project: Project) => void;
   onOpenWorkflowModal: (project: Project) => void;
   onOpenEditModal: (project: Project) => void;
   onDeleteProject: (id: string) => void;
@@ -27,6 +30,9 @@ export const ProjectListRow: React.FC<ProjectListRowProps> = ({
   checked,
   users,
   onToggleSelect,
+  onRowClick,
+  onRowAuxClick,
+  onRowKeyDown,
   onOpenWorkflowModal,
   onOpenEditModal,
   onDeleteProject,
@@ -36,14 +42,24 @@ export const ProjectListRow: React.FC<ProjectListRowProps> = ({
 
   return (
     <tr
+      tabIndex={0}
+      aria-label={`Log timesheet for project ${project.name}`}
+      onClick={(e) => onRowClick(e, project)}
+      onAuxClick={(e) => onRowAuxClick(e, project)}
+      onKeyDown={(e) => onRowKeyDown(e, project)}
       style={{
         borderBottom: '1px solid var(--border-color)',
         background: rowIndex % 2 === 0 ? 'transparent' : 'var(--bg-primary)',
+        cursor: 'pointer',
       }}
-      className="table-row-hover"
+      className="table-row-hover table-row-interactive"
     >
       {showCheckboxColumn && (
-        <td style={{ padding: '0.875rem 0.75rem' }}>
+        <td
+          data-no-row-nav="true"
+          onClick={(e) => e.stopPropagation()}
+          style={{ padding: '0.875rem 0.75rem' }}
+        >
           <input
             type="checkbox"
             aria-label={`Select project ${project.name}`}
@@ -105,7 +121,11 @@ export const ProjectListRow: React.FC<ProjectListRowProps> = ({
           )}
         </div>
       </td>
-      <td style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>
+      <td
+        data-no-row-nav="true"
+        onClick={(e) => e.stopPropagation()}
+        style={{ padding: '0.875rem 1rem', textAlign: 'right' }}
+      >
         <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', justifyContent: 'flex-end' }}>
           <Link to={`/chat?projectId=${project.id}`} title="Project Chat" style={{ color: 'var(--accent-primary)', padding: '0.25rem' }}>
             <MessageSquare size={16} />

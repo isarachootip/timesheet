@@ -33,6 +33,19 @@
   border-color: var(--border-strong);
 }
 
+.table-row-hover {
+  transition: background-color var(--transition-fast);
+}
+
+.table-row-hover:hover {
+  background-color: var(--bg-tertiary) !important;
+}
+
+.table-row-interactive:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: -2px;
+}
+
 /* Kanban Compatibility */
 .kanban-column .glass-panel h4 { font-size: var(--fs-14); line-height: 1.45; }
 .kanban-column .glass-panel p { font-size: var(--fs-13); line-height: 1.5; }

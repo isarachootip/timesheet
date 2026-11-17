@@ -1,10 +1,16 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Clock, Plus, CheckCircle2, Calendar as CalendarIcon, X, Trash2, ChevronLeft, ChevronRight, XCircle, Edit, Paperclip, ImageIcon, StickyNote } from 'lucide-react';
 import { format, isSameDay, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, isSameMonth } from 'date-fns';
 import type { TimesheetEntry, Project, Task, User, TimesheetStatus, PersonalNote } from '../types';
 import { sortTimesheetsByLastUpdate } from '../utils';
+import {
+  canLogTimesheetForStatus,
+  getLoggableProjects,
+  validateProjectTimesheetNavigation,
+} from '../utils/projectTimesheetNavigation';
+import type { TimesheetAutoOpenIntent } from '../schemas/timesheetNavigationSchema';
 import { PostItImportPickerModal } from './Timesheet/PostItImportPickerModal';
+import { useTimesheetAutoOpenLog } from './Timesheet/useTimesheetAutoOpenLog';
 import { toast } from './ui/ToastProvider';
 
 interface TimesheetProps {
@@ -61,32 +67,48 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
   const [importingNoteId, setImportingNoteId] = useState<string | null>(null);
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
-  const location = useLocation();
-  const hasAutoOpened = useRef(false);
+  const editingProjectId = useMemo(() => {
+    if (!editingEntryId) return undefined;
+    return timesheets.find((ts) => ts.id === editingEntryId)?.projectId;
+  }, [editingEntryId, timesheets]);
 
-  useEffect(() => {
-    if (location.state?.autoOpenLog && !hasAutoOpened.current) {
-      hasAutoOpened.current = true;
-      const { projectId: sProjId, taskId: sTaskId, taskTitle, workResults: sWorkResults, date: sDate } = location.state;
-      if (sDate) {
-        try {
-          const parsed = new Date(sDate);
-          if (!isNaN(parsed.getTime())) {
-            setSelectedDate(parsed);
-          }
-        } catch {
-          // ignore
-        }
-      }
+  const selectableProjects = useMemo(
+    () => getLoggableProjects(projects, currentUser, editingProjectId),
+    [projects, currentUser, editingProjectId]
+  );
+
+  const handleOpenWithIntent = useCallback(
+    (intent: TimesheetAutoOpenIntent, resolvedProjectId: string) => {
+      setViewMode('personal');
+      setEditingEntryId(null);
+      setIsPersonal(false);
+      setStartTime('');
+      setEndTime('');
+      setHours('');
+      setImageUrl('');
+      setEntryStatus('Pending');
+      setIsWfh(false);
+      setImportingNoteId(intent.noteId || null);
+
+      const targetDate = intent.date ? new Date(intent.date) : new Date();
+      const validDate = !Number.isNaN(targetDate.getTime()) ? targetDate : new Date();
+      setSelectedDate(validDate);
+      setCurrentMonth(validDate);
+
+      setProjectId(resolvedProjectId);
+      setTaskId(intent.taskId || '');
+      setDescription(intent.taskTitle || '');
+      setWorkResults(intent.workResults || '');
       setIsModalOpen(true);
-      setProjectId(sProjId || (projects.length > 0 ? projects[0].id : ''));
-      setTaskId(sTaskId || '');
-      setDescription(taskTitle || '');
-      if (sWorkResults) setWorkResults(sWorkResults);
-      // Clear location state to avoid reopening on reload
-      window.history.replaceState({}, document.title);
-    }
-  }, [location.state, projects]);
+    },
+    []
+  );
+
+  useTimesheetAutoOpenLog({
+    projects,
+    currentUser,
+    onOpenWithIntent: handleOpenWithIntent,
+  });
 
   // Filter project-specific tasks. Employees/Users only see tasks assigned to them or unassigned.
   const projectTasks = tasks.filter(t => {
@@ -214,8 +236,8 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
 
   const openLogModal = () => {
     resetForm();
-    if (projects.length > 0) {
-      setProjectId(projects[0].id);
+    if (selectableProjects.length > 0) {
+      setProjectId(selectableProjects[0].id);
     }
     setIsModalOpen(true);
   };
@@ -234,9 +256,15 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
       }
     }
     if (note.projectId) {
+      const targetProj = projects.find((p) => p.id === note.projectId);
+      const check = validateProjectTimesheetNavigation(targetProj, currentUser);
+      if (!check.allowed) {
+        toast.error(check.message);
+        return;
+      }
       setProjectId(note.projectId);
-    } else if (projects.length > 0) {
-      setProjectId(projects[0].id);
+    } else if (selectableProjects.length > 0) {
+      setProjectId(selectableProjects[0].id);
     }
     if (note.taskId) {
       setTaskId(note.taskId);
@@ -332,6 +360,11 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
     e.preventDefault();
     if (!isPersonal && !projectId) return toast.error('Project is required');
     if (!hours || !description) return toast.error('Hours and Description are required');
+    if (!editingEntryId && !isPersonal) {
+      const selectedProj = projects.find((p) => p.id === projectId);
+      const check = validateProjectTimesheetNavigation(selectedProj, currentUser);
+      if (!check.allowed) return toast.error(check.message);
+    }
 
     if (editingEntryId) {
       const existing = timesheets.find(ts => ts.id === editingEntryId);
@@ -1215,19 +1248,25 @@ export const Timesheet = ({ timesheets, setTimesheets, projects, tasks, currentU
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                     <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Project *</label>
                     <select 
+                      aria-label="Project"
                       value={projectId} 
                       onChange={e => { setProjectId(e.target.value); setTaskId(''); }}
                       style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
                       required
                     >
                       <option value="">Select Project...</option>
-                      {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                      {selectableProjects.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {canLogTimesheetForStatus(p.status) ? p.name : `${p.name} (${p.status})`}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                     <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Task</label>
                     <select 
+                      aria-label="Task"
                       value={taskId} 
                       onChange={e => setTaskId(e.target.value)}
                       style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.5rem', color: 'var(--text-primary)', outline: 'none' }}
