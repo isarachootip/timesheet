@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react';
 import { Calendar } from 'lucide-react';
 import type { PermissionScheme, Project, ProjectWorkflow, Task, TimesheetEntry, User } from '../types';
+import type { ProjectHealthSummaryItem } from '../types/projectHealth';
 import { formatToDDMMYYYY } from '../utils';
 import { computeProjectHealthSchedule, isTaskDone, isTaskOverdue } from '../utils/overdueUtils';
 import { hasProjectPermission } from '../utils/projectPermissions';
 import { DashboardStatsBar } from './Dashboard/DashboardStatsBar';
 import { MyTasksPanel } from './Dashboard/MyTasksPanel';
 import { ProjectHealthTable } from './Dashboard/ProjectHealthTable';
+import { deriveFallbackHealthSummary } from './ProjectHealth/healthUiUtils';
 
 interface DashboardProps {
   projects: Project[];
@@ -15,6 +17,7 @@ interface DashboardProps {
   currentUser: User;
   permissionSchemes?: PermissionScheme[];
   projectWorkflows?: ProjectWorkflow[];
+  projectHealthSummaries?: ProjectHealthSummaryItem[];
   onQuickCreateTask?: () => void;
 }
 
@@ -32,6 +35,7 @@ export const Dashboard = ({
   currentUser,
   permissionSchemes = [],
   projectWorkflows = [],
+  projectHealthSummaries = [],
   onQuickCreateTask,
 }: DashboardProps) => {
   const [statusFilter, setStatusFilter] = useState<string>('All');
@@ -95,13 +99,34 @@ export const Dashboard = ({
       return timeB - timeA;
     });
 
+  const healthSummaryMap = useMemo(
+    () => new Map(projectHealthSummaries.map((h) => [h.projectId, h])),
+    [projectHealthSummaries]
+  );
+
   const projectHealth = projects.map((proj) => {
     const wf = workflowMap.get(proj.id);
     const projTasks = tasks.filter((t) => t.projectId === proj.id);
     const doneCount = projTasks.filter((t) => isTaskDone(t, proj, wf)).length;
     const progress = projTasks.length > 0 ? Math.round((doneCount / projTasks.length) * 100) : 0;
     const schedule = computeProjectHealthSchedule(proj, progress, today);
-    return { ...proj, progress, schedule };
+    const apiHealth = healthSummaryMap.get(proj.id);
+    const fallback = deriveFallbackHealthSummary(
+      proj.status,
+      progress,
+      schedule.kind === 'overdue',
+      projTasks.length > 0
+    );
+
+    return {
+      ...proj,
+      progress,
+      schedule,
+      healthStatus: apiHealth ? apiHealth.status : fallback.status,
+      healthScore: apiHealth ? apiHealth.healthScore : fallback.healthScore,
+      healthTrend: apiHealth ? apiHealth.trend : 'NONE',
+      healthScoreDelta: apiHealth ? apiHealth.scoreDelta : null,
+    };
   });
 
   const canCreateTask = projects.some((p) =>

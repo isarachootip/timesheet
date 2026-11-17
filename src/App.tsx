@@ -13,6 +13,7 @@ import {
   useTimesheets,
   useUsers,
 } from './hooks/useAppQueries';
+import { useProjectsHealthSummary } from './hooks/useProjectHealth';
 import { useAppMutations } from './hooks/useAppMutations';
 import { usePersonalNotes } from './hooks/usePersonalNotes';
 import { Login } from './components/Login';
@@ -30,6 +31,11 @@ import type { Task, TimesheetEntry, User } from './types';
 import './index.css';
 
 const Dashboard = lazy(() => import('./components/Dashboard').then((m) => ({ default: m.Dashboard })));
+const ProjectHealthDetailPage = lazy(() =>
+  import('./components/ProjectHealth/ProjectHealthDetailPage').then((m) => ({
+    default: m.ProjectHealthDetailPage,
+  }))
+);
 const Projects = lazy(() => import('./components/Projects').then((m) => ({ default: m.Projects })));
 const Timesheet = lazy(() => import('./components/Timesheet').then((m) => ({ default: m.Timesheet })));
 const Tasks = lazy(() => import('./components/Tasks').then((m) => ({ default: m.Tasks })));
@@ -69,6 +75,7 @@ function AppContent() {
     return saved === 'dark' || saved === 'light' ? saved : 'light';
   });
   const [currentUser, setCurrentUser] = useState<User | null>(getStoredUser);
+  const { data: projectHealthSummaries = [] } = useProjectsHealthSummary(currentUser?.id);
   const [pendingTsTask, setPendingTsTask] = useState<Task | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
@@ -243,7 +250,8 @@ function AppContent() {
             ) : (
               <Suspense fallback={<PageSkeleton />}>
                 <Routes>
-                  <Route path="/" element={<Dashboard projects={projects} tasks={tasks} timesheets={timesheets} currentUser={currentUser} permissionSchemes={permissionSchemes} projectWorkflows={projectWorkflows} onQuickCreateTask={() => setIsQuickCreateOpen(true)} />} />
+                  <Route path="/" element={<Dashboard projects={projects} tasks={tasks} timesheets={timesheets} currentUser={currentUser} permissionSchemes={permissionSchemes} projectWorkflows={projectWorkflows} projectHealthSummaries={projectHealthSummaries} onQuickCreateTask={() => setIsQuickCreateOpen(true)} />} />
+                  <Route path="/projects/:id/health" element={<ProjectHealthDetailPage projects={projects} currentUser={currentUser} />} />
                   <Route path="/projects" element={<Projects projects={projects} setProjects={handleSetProjects} users={users} tasks={tasks} permissionSchemes={permissionSchemes} currentUser={currentUser} projectWorkflows={projectWorkflows} setProjectWorkflows={handleSetProjectWorkflows} />} />
                   <Route path="/project-plan" element={<ProjectPlan projects={projects} tasks={tasks} setTasks={handleSetTasks} users={users} taskTemplates={taskTemplates} permissionSchemes={permissionSchemes} currentUser={currentUser} fetchInitialData={refreshAll} />} />
                   <Route path="/tasks" element={<Tasks tasks={tasks} setTasks={handleSetTasks} projects={projects} users={users} sprints={sprints} setSprints={handleSetSprints} releases={releases} setReleases={handleSetReleases} projectWorkflows={projectWorkflows} setProjectWorkflows={handleSetProjectWorkflows} permissionSchemes={permissionSchemes} currentUser={currentUser} />} />

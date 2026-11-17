@@ -2,13 +2,19 @@ import React from 'react';
 import { Briefcase, TrendingUp, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Project } from '../../types';
+import type { HealthStatus, HealthTrendDirection } from '../../types/projectHealth';
 import type { ProjectScheduleState } from '../../utils/overdueUtils';
+import { HealthStatusBadge } from '../ProjectHealth/HealthStatusBadge';
 import { EmptyState } from '../ui/EmptyState';
-import { StatusBadge, getStatusTone } from '../ui/StatusBadge';
+import { StatusBadge } from '../ui/StatusBadge';
 
 export interface ProjectHealthRow extends Project {
   progress: number;
   schedule: ProjectScheduleState;
+  healthStatus: HealthStatus;
+  healthScore: number | null;
+  healthTrend: HealthTrendDirection;
+  healthScoreDelta: number | null;
 }
 
 interface ProjectHealthTableProps {
@@ -72,7 +78,8 @@ export const ProjectHealthTable: React.FC<ProjectHealthTableProps> = ({ projects
               {projects.map((proj) => (
                 <tr
                   key={proj.id}
-                  onClick={() => navigate(`/projects#${proj.id}`)}
+                  className="table-row-hover"
+                  onClick={() => navigate(`/projects/${proj.id}/health`)}
                   style={{
                     borderBottom: '1px solid var(--border-color)',
                     cursor: 'pointer',
@@ -83,7 +90,12 @@ export const ProjectHealthTable: React.FC<ProjectHealthTableProps> = ({ projects
                     {proj.name}
                   </td>
                   <td style={{ padding: '12px' }}>
-                    <StatusBadge label={proj.status} tone={getStatusTone(proj.status)} />
+                    <HealthStatusBadge
+                      status={proj.healthStatus}
+                      score={proj.healthScore}
+                      trend={proj.healthTrend}
+                      scoreDelta={proj.healthScoreDelta}
+                    />
                   </td>
                   <td style={{ padding: '12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

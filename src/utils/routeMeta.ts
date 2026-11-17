@@ -20,6 +20,13 @@ export const NAV_ROUTES: RouteMeta[] = [
 ];
 
 export const getRouteMeta = (pathname: string): RouteMeta => {
+  if (/^\/projects\/[^/]+\/health/.test(pathname)) {
+    return {
+      path: pathname,
+      title: 'Project Health',
+      subtitle: 'Factor breakdown, trend history, and AI risk analysis',
+    };
+  }
   const exact = NAV_ROUTES.find((route) => route.path === pathname);
   if (exact) return exact;
   const prefix = NAV_ROUTES.find((route) => route.path !== '/' && pathname.startsWith(route.path));

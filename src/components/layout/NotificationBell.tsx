@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  Activity,
   AlertCircle,
   AlertTriangle,
   Bell,
@@ -22,7 +23,7 @@ export interface ChatNotificationItem {
   text: string;
   isRead: boolean;
   createdAt: string;
-  type?: 'chat' | 'system' | 'approval';
+  type?: 'chat' | 'system' | 'approval' | 'health_alert';
 }
 
 interface NotificationBellProps {
@@ -96,12 +97,16 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
   const unreadChat = chatNotifications.filter((n) => !n.isRead);
   const total = overdue.length + dueSoon.length + dueThisWeek.length + unreadChat.length;
 
-  const handleMarkAsRead = async (notifId: string, projectId: string) => {
+  const handleMarkAsRead = async (notifId: string, projectId: string, type?: string) => {
     try {
       await fetch(`/api/chat-notifications/${notifId}/read`, { method: 'POST' });
       fetchNotifications();
       setOpen(false);
-      navigate(`/chat?projectId=${projectId}`);
+      if (type === 'health_alert') {
+        navigate(`/projects/${projectId}/health`);
+      } else {
+        navigate(`/chat?projectId=${projectId}`);
+      }
     } catch {
       // Ignore transient mark-read failure
     }
@@ -165,10 +170,11 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
                     <MessageSquare size={13} /> Chat & System ({unreadChat.length})
                   </div>
                   {unreadChat.map((n) => (
-                    <div key={n.id} className="notif-item" onClick={() => handleMarkAsRead(n.id, n.projectId)} style={{ cursor: 'pointer' }}>
+                    <div key={n.id} className="notif-item" onClick={() => handleMarkAsRead(n.id, n.projectId, n.type)} style={{ cursor: 'pointer' }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 'var(--fs-13)', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                           {n.type === 'system' && <AlertCircle size={13} color="var(--accent-danger)" />}
+                          {n.type === 'health_alert' && <Activity size={13} color="var(--accent-warning)" />}
                           {n.type === 'approval' && <CheckSquare size={13} color="var(--dot-success)" />}
                           <span>
                             <strong>{n.senderName}</strong> in #{n.projectName}
