@@ -11,6 +11,7 @@ export const buildDefaultProjectHealthConfig = (env = process.env) => ({
     effort: parseEnvNumber(env.HEALTH_WEIGHT_EFFORT, 0.20),
     momentum: parseEnvNumber(env.HEALTH_WEIGHT_MOMENTUM, 0.15),
     freshness: parseEnvNumber(env.HEALTH_WEIGHT_FRESHNESS, 0.15),
+    sprint: parseEnvNumber(env.HEALTH_WEIGHT_SPRINT, 0.15),
   },
   statusThresholds: {
     greenMin: parseEnvNumber(env.HEALTH_GREEN_MIN, 80),

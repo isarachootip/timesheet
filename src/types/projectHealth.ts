@@ -1,7 +1,13 @@
 export type HealthStatus = 'GREEN' | 'YELLOW' | 'RED' | 'COMPLETED';
 export type HealthConfidence = 'HIGH' | 'MEDIUM' | 'LOW';
 export type HealthTrendDirection = 'UP' | 'DOWN' | 'FLAT' | 'NONE';
-export type HealthFactorKey = 'schedule' | 'overdue' | 'effort' | 'momentum' | 'freshness';
+export type HealthFactorKey =
+  | 'schedule'
+  | 'overdue'
+  | 'effort'
+  | 'momentum'
+  | 'freshness'
+  | 'sprint';
 
 export interface HealthDataIssue {
   code: string;
@@ -15,6 +21,7 @@ export interface HealthFactorScores {
   effort: number | null;
   momentum: number | null;
   freshness: number | null;
+  sprint?: number | null;
 }
 
 export interface AiRecommendationItem {
@@ -40,6 +47,9 @@ export interface ProjectHealthSummaryItem {
   dataIssues: HealthDataIssue[];
   trend: HealthTrendDirection;
   scoreDelta: number | null;
+  aiSummary?: string | null;
+  aiTopAction?: string | null;
+  aiAnalyzedAt?: string | null;
 }
 
 export interface ProjectHealthDetail extends ProjectHealthSummaryItem {

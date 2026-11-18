@@ -1,7 +1,8 @@
 import React from 'react';
-import { Calendar, Clock, Check, Trash2, Edit3, Pin } from 'lucide-react';
+import { Check, Clock } from 'lucide-react';
 import type { PersonalNote } from '../../types';
 import { COLOR_THEMES, getDueStatus, isProjectNote } from './noteUtils';
+import { PostItCardActions } from './PostItCardActions';
 import { PostItDueBadge } from './PostItDueBadge';
 import { PostItProjectBadge } from './PostItProjectBadge';
 import { formatToDDMMYYYY } from '../../utils';
@@ -10,25 +11,29 @@ interface PostItCardProps {
   note: PersonalNote;
   projectName?: string;
   taskTitle?: string;
+  canConvertToTask?: boolean;
   onToggle: (id: string) => void;
   onEdit: (note: PersonalNote) => void;
   onDelete: (id: string) => void;
   onImportToTimesheet?: (note: PersonalNote) => void;
+  onConvertToTask?: (note: PersonalNote) => void;
 }
 
 export const PostItCard: React.FC<PostItCardProps> = ({
   note,
   projectName,
   taskTitle,
+  canConvertToTask = false,
   onToggle,
   onEdit,
   onDelete,
   onImportToTimesheet,
+  onConvertToTask,
 }) => {
   const theme = COLOR_THEMES[note.color || 'yellow'];
   const dueStatus = getDueStatus(note.dueDate, note.isCompleted);
   const isProject = isProjectNote(note);
-  const canImport = isProject && !note.timesheetId;
+  const canImportTimesheet = isProject && !note.timesheetId;
 
   return (
     <div
@@ -49,7 +54,6 @@ export const PostItCard: React.FC<PostItCardProps> = ({
       }}
       className="hover-lift"
     >
-      {/* Decorative semi-transparent tape strip on top */}
       <div
         style={{
           position: 'absolute',
@@ -64,48 +68,17 @@ export const PostItCard: React.FC<PostItCardProps> = ({
         }}
       />
 
-      {/* Header: Note Date & Actions */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', opacity: 0.85, fontWeight: 500 }}>
-          <Calendar size={13} />
-          <span>วันที่: {formatToDDMMYYYY(note.noteDate)}</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          {canImport && onImportToTimesheet && (
-            <button
-              onClick={() => onImportToTimesheet(note)}
-              title="นำเข้าสู่ Timesheet ประจำวัน"
-              style={{ background: 'rgba(6, 199, 85, 0.15)', border: 'none', cursor: 'pointer', padding: '4px 6px', borderRadius: 'var(--radius-sm)', color: '#15803d', display: 'flex', alignItems: 'center', gap: '4px', fontSize: 'var(--fs-12)', fontWeight: 600 }}
-            >
-              <Clock size={12} />
-              <span>ลงเวลา</span>
-            </button>
-          )}
-          <button
-            onClick={() => window.dispatchEvent(new CustomEvent('open-floating-note', { detail: { noteId: note.id } }))}
-            title="ปักหมุดลอยบนหน้าจอ"
-            style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px', borderRadius: '4px', color: theme.textColor, opacity: 0.75 }}
-          >
-            <Pin size={15} />
-          </button>
-          <button
-            onClick={() => onEdit(note)}
-            title="แก้ไข"
-            style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px', borderRadius: '4px', color: theme.textColor, opacity: 0.7 }}
-          >
-            <Edit3 size={15} />
-          </button>
-          <button
-            onClick={() => onDelete(note.id)}
-            title="ลบ"
-            style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px', borderRadius: '4px', color: '#ef4444', opacity: 0.85 }}
-          >
-            <Trash2 size={15} />
-          </button>
-        </div>
-      </div>
+      <PostItCardActions
+        note={note}
+        textColor={theme.textColor}
+        canConvertToTask={canConvertToTask}
+        canImportTimesheet={canImportTimesheet}
+        onConvertToTask={onConvertToTask}
+        onImportToTimesheet={onImportToTimesheet}
+        onEdit={onEdit}
+        onDelete={onDelete}
+      />
 
-      {/* Project & Logged Badges */}
       <PostItProjectBadge
         isProject={isProject}
         projectName={projectName}
@@ -113,9 +86,9 @@ export const PostItCard: React.FC<PostItCardProps> = ({
         isLogged={Boolean(note.timesheetId)}
       />
 
-      {/* Title & Checkbox */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
         <button
+          type="button"
           onClick={() => onToggle(note.id)}
           title={note.isCompleted ? 'ทำเครื่องหมายว่ายังไม่เสร็จ' : 'ทำเครื่องหมายว่าเสร็จแล้ว'}
           style={{
@@ -150,36 +123,13 @@ export const PostItCard: React.FC<PostItCardProps> = ({
         </h4>
       </div>
 
-      {/* Content / Memo */}
       {note.content && (
-        <p
-          style={{
-            margin: 0,
-            fontSize: '0.86rem',
-            lineHeight: 1.45,
-            opacity: 0.9,
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word',
-            flex: 1,
-          }}
-        >
+        <p style={{ margin: 0, fontSize: '0.86rem', lineHeight: 1.45, opacity: 0.9, whiteSpace: 'pre-wrap', wordBreak: 'break-word', flex: 1 }}>
           {note.content}
         </p>
       )}
 
-      {/* Footer: Due date */}
-      <div
-        style={{
-          marginTop: 'auto',
-          paddingTop: '0.5rem',
-          borderTop: `1px dashed ${theme.border}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '6px',
-        }}
-      >
+      <div style={{ marginTop: 'auto', paddingTop: '0.5rem', borderTop: `1px dashed ${theme.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.76rem', fontWeight: 600 }}>
           <Clock size={13} />
           <span>กำหนด: {note.dueDate ? formatToDDMMYYYY(note.dueDate) : 'ไม่ระบุ'}</span>

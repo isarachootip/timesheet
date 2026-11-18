@@ -1,21 +1,35 @@
-import React, { useState, useMemo } from 'react';
-import { Plus, Search, StickyNote } from 'lucide-react';
-import type { User, PersonalNote } from '../../types';
+import React, { useMemo, useState } from 'react';
+import { Plus, StickyNote } from 'lucide-react';
+import type { PermissionScheme, PersonalNote, Sprint, User } from '../../types';
 import { usePersonalNotes } from '../../hooks/usePersonalNotes';
-import { useProjects, useTasks } from '../../hooks/useAppQueries';
+import { usePermissionSchemes, useProjects, useSprints, useTasks } from '../../hooks/useAppQueries';
 import { filterAndSortNotes, type NoteCategoryFilter } from './noteUtils';
-import { PostItCard } from './PostItCard';
-import { NoteModal } from './NoteModal';
+import { canConvertNoteToTask } from './convertNoteToTaskUtils';
+import { ConvertNoteToTaskModal } from './ConvertNoteToTaskModal';
 import { ImportNoteToTimesheetModal } from './ImportNoteToTimesheetModal';
+import { NoteModal } from './NoteModal';
+import { NotesControlBar } from './NotesControlBar';
+import { PostItCard } from './PostItCard';
 
 interface PersonalNotesProps {
   currentUser: User;
+  permissionSchemes?: PermissionScheme[];
+  sprints?: Sprint[];
 }
 
-export const PersonalNotes: React.FC<PersonalNotesProps> = ({ currentUser }) => {
+export const PersonalNotes: React.FC<PersonalNotesProps> = ({
+  currentUser,
+  permissionSchemes: propSchemes,
+  sprints: propSprints,
+}) => {
   const { notes, isLoading, saveNote, toggleNote, deleteNote } = usePersonalNotes(currentUser.id);
   const { data: projects = [] } = useProjects();
   const { data: tasks = [] } = useTasks();
+  const { data: queriedSchemes = [] } = usePermissionSchemes({ enabled: !propSchemes });
+  const { data: queriedSprints = [] } = useSprints({ enabled: !propSprints });
+
+  const permissionSchemes = propSchemes ?? queriedSchemes;
+  const sprints = propSprints ?? queriedSprints;
 
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [categoryFilter, setCategoryFilter] = useState<NoteCategoryFilter>('all');
@@ -23,25 +37,21 @@ export const PersonalNotes: React.FC<PersonalNotesProps> = ({ currentUser }) => 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<PersonalNote | null>(null);
   const [importingNote, setImportingNote] = useState<PersonalNote | null>(null);
+  const [convertingNote, setConvertingNote] = useState<PersonalNote | null>(null);
 
   const projectMap = useMemo(() => new Map(projects.map((p) => [p.id, p.name])), [projects]);
   const taskMap = useMemo(() => new Map(tasks.map((t) => [t.id, t.title])), [tasks]);
 
-  const filteredNotes = useMemo(() => {
-    return filterAndSortNotes(notes, filter, search, categoryFilter);
-  }, [notes, filter, search, categoryFilter]);
+  const filteredNotes = useMemo(
+    () => filterAndSortNotes(notes, filter, search, categoryFilter),
+    [notes, filter, search, categoryFilter]
+  );
 
   const stats = useMemo(() => {
     const total = notes.length;
     const completed = notes.filter((n) => n.isCompleted).length;
-    const active = total - completed;
-    return { total, active, completed };
+    return { total, active: total - completed, completed };
   }, [notes]);
-
-  const handleEdit = (note: PersonalNote) => {
-    setEditingNote(note);
-    setIsModalOpen(true);
-  };
 
   const handleDelete = async (id: string) => {
     if (window.confirm('คุณต้องการลบ Post-it นี้ใช่หรือไม่?')) {
@@ -51,25 +61,23 @@ export const PersonalNotes: React.FC<PersonalNotesProps> = ({ currentUser }) => 
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      {/* Top Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(234,179,8,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <StickyNote size={22} color="#eab308" />
-            </div>
-            <div>
-              <h2 style={{ margin: 0, fontSize: 'var(--fs-20)', fontWeight: 700, color: 'var(--text-primary)' }}>
-                Personal Post-it
-              </h2>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                บันทึกช่วยจำส่วนตัวสำหรับ {currentUser.name}
-              </span>
-            </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+          <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(234,179,8,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <StickyNote size={22} color="#eab308" />
+          </div>
+          <div>
+            <h2 style={{ margin: 0, fontSize: 'var(--fs-20)', fontWeight: 700, color: 'var(--text-primary)' }}>
+              Personal Post-it
+            </h2>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              บันทึกช่วยจำส่วนตัวสำหรับ {currentUser.name}
+            </span>
           </div>
         </div>
 
         <button
+          type="button"
           onClick={() => { setEditingNote(null); setIsModalOpen(true); }}
           className="btn-primary hover-lift"
           style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1.25rem', borderRadius: 'var(--radius-md)', cursor: 'pointer' }}
@@ -79,67 +87,16 @@ export const PersonalNotes: React.FC<PersonalNotesProps> = ({ currentUser }) => 
         </button>
       </div>
 
-      {/* Control Bar: Search & Filter Tabs */}
-      <div className="glass-panel" style={{ padding: '0.75rem 1.1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.85rem' }}>
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* Status Tabs */}
-          <div style={{ display: 'flex', gap: '3px', background: 'var(--bg-tertiary)', padding: '2px', borderRadius: '6px' }}>
-            {(['all', 'active', 'completed'] as const).map((tab) => {
-              const isActive = filter === tab;
-              const labels = { all: `ทั้งหมด (${stats.total})`, active: `รอดำเนินการ (${stats.active})`, completed: `เสร็จสิ้น (${stats.completed})` };
-              return (
-                <button
-                  key={tab}
-                  onClick={() => setFilter(tab)}
-                  style={{
-                    padding: '0.35rem 0.75rem', borderRadius: '5px', border: 'none',
-                    background: isActive ? 'var(--accent-primary)' : 'transparent',
-                    color: isActive ? '#fff' : 'var(--text-secondary)', cursor: 'pointer',
-                    fontWeight: isActive ? 600 : 400, fontSize: '0.8rem',
-                  }}
-                >
-                  {labels[tab]}
-                </button>
-              );
-            })}
-          </div>
+      <NotesControlBar
+        filter={filter}
+        onChangeFilter={setFilter}
+        categoryFilter={categoryFilter}
+        onChangeCategoryFilter={setCategoryFilter}
+        search={search}
+        onChangeSearch={setSearch}
+        stats={stats}
+      />
 
-          {/* Category Tabs: Project vs Personal */}
-          <div style={{ display: 'flex', gap: '3px', background: 'var(--bg-tertiary)', padding: '2px', borderRadius: '6px' }}>
-            {(['all', 'project', 'personal'] as const).map((cat) => {
-              const isActive = categoryFilter === cat;
-              const catLabels = { all: 'ทุกประเภท', project: 'งานโครงการ', personal: 'งานส่วนตัว' };
-              return (
-                <button
-                  key={cat}
-                  onClick={() => setCategoryFilter(cat)}
-                  style={{
-                    padding: '0.35rem 0.75rem', borderRadius: '5px', border: 'none',
-                    background: isActive ? 'rgba(255,255,255,0.12)' : 'transparent',
-                    color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)', cursor: 'pointer',
-                    fontWeight: isActive ? 600 : 400, fontSize: '0.8rem',
-                  }}
-                >
-                  {catLabels[cat]}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div style={{ position: 'relative', width: '220px' }}>
-          <Search size={15} color="var(--text-muted)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
-          <input
-            type="text"
-            placeholder="ค้นหาเรื่อง หรือเนื้อหา..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ width: '100%', padding: '0.4rem 0.7rem 0.4rem 2rem', background: 'var(--bg-tertiary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', outline: 'none', fontSize: '0.82rem' }}
-          />
-        </div>
-      </div>
-
-      {/* Grid of Post-it notes */}
       {isLoading ? (
         <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>กำลังโหลด Post-it...</div>
       ) : filteredNotes.length === 0 ? (
@@ -151,7 +108,7 @@ export const PersonalNotes: React.FC<PersonalNotesProps> = ({ currentUser }) => 
           <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-secondary)', maxWidth: '360px' }}>
             กดปุ่มด้านล่างเพื่อจดบันทึกเรื่องสำคัญ วันที่ และกำหนดเวลาแล้วเสร็จ
           </p>
-          <button onClick={() => { setEditingNote(null); setIsModalOpen(true); }} className="btn-primary" style={{ marginTop: '0.5rem', padding: '0.55rem 1.1rem', borderRadius: 'var(--radius-md)' }}>
+          <button type="button" onClick={() => { setEditingNote(null); setIsModalOpen(true); }} className="btn-primary" style={{ marginTop: '0.5rem', padding: '0.55rem 1.1rem', borderRadius: 'var(--radius-md)' }}>
             + บันทึก Post-it แรกของคุณ
           </button>
         </div>
@@ -163,16 +120,17 @@ export const PersonalNotes: React.FC<PersonalNotesProps> = ({ currentUser }) => 
               note={note}
               projectName={note.projectId ? projectMap.get(note.projectId) : undefined}
               taskTitle={note.taskId ? taskMap.get(note.taskId) : undefined}
+              canConvertToTask={canConvertNoteToTask(note, currentUser, projects, permissionSchemes)}
               onToggle={toggleNote}
-              onEdit={handleEdit}
-              onDelete={(deleteId) => handleDelete(deleteId)}
-              onImportToTimesheet={(n) => setImportingNote(n)}
+              onEdit={(n) => { setEditingNote(n); setIsModalOpen(true); }}
+              onDelete={handleDelete}
+              onImportToTimesheet={setImportingNote}
+              onConvertToTask={setConvertingNote}
             />
           ))}
         </div>
       )}
 
-      {/* Note Modal */}
       <NoteModal
         isOpen={isModalOpen}
         noteToEdit={editingNote}
@@ -183,7 +141,6 @@ export const PersonalNotes: React.FC<PersonalNotesProps> = ({ currentUser }) => 
         currentUser={currentUser}
       />
 
-      {/* Import to Timesheet Modal */}
       <ImportNoteToTimesheetModal
         isOpen={Boolean(importingNote)}
         note={importingNote}
@@ -192,6 +149,17 @@ export const PersonalNotes: React.FC<PersonalNotesProps> = ({ currentUser }) => 
         projects={projects}
         tasks={tasks}
         onCompleteNote={toggleNote}
+      />
+
+      <ConvertNoteToTaskModal
+        isOpen={Boolean(convertingNote)}
+        note={convertingNote}
+        onClose={() => setConvertingNote(null)}
+        currentUser={currentUser}
+        projects={projects}
+        permissionSchemes={permissionSchemes}
+        tasks={tasks}
+        sprints={sprints}
       />
     </div>
   );

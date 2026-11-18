@@ -1,10 +1,11 @@
 import React from 'react';
-import { Briefcase, TrendingUp, Users } from 'lucide-react';
+import { Briefcase, Sparkles, TrendingUp, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Project } from '../../types';
 import type { HealthStatus, HealthTrendDirection } from '../../types/projectHealth';
 import type { ProjectScheduleState } from '../../utils/overdueUtils';
 import { HealthStatusBadge } from '../ProjectHealth/HealthStatusBadge';
+import { formatHealthTimestamp } from '../ProjectHealth/healthUiUtils';
 import { EmptyState } from '../ui/EmptyState';
 import { StatusBadge } from '../ui/StatusBadge';
 
@@ -15,6 +16,9 @@ export interface ProjectHealthRow extends Project {
   healthScore: number | null;
   healthTrend: HealthTrendDirection;
   healthScoreDelta: number | null;
+  aiSummary?: string | null;
+  aiTopAction?: string | null;
+  aiAnalyzedAt?: string | null;
 }
 
 interface ProjectHealthTableProps {
@@ -86,8 +90,38 @@ export const ProjectHealthTable: React.FC<ProjectHealthTableProps> = ({ projects
                     transition: 'background-color var(--transition-fast)',
                   }}
                 >
-                  <td style={{ padding: '12px', fontSize: 'var(--fs-14)', fontWeight: 500, color: 'var(--text-primary)' }}>
-                    {proj.name}
+                  <td style={{ padding: '12px', fontSize: 'var(--fs-14)', fontWeight: 500, color: 'var(--text-primary)', maxWidth: '380px' }}>
+                    <div>{proj.name}</div>
+                    {proj.aiSummary && (
+                      <div
+                        data-testid={`dashboard-ai-summary-${proj.id}`}
+                        title={
+                          proj.aiAnalyzedAt
+                            ? `วิเคราะห์ล่าสุด: ${formatHealthTimestamp(proj.aiAnalyzedAt)}`
+                            : undefined
+                        }
+                        style={{
+                          marginTop: '4px',
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '5px',
+                          fontSize: 'var(--fs-12)',
+                          fontWeight: 400,
+                          lineHeight: 1.4,
+                          color:
+                            proj.healthStatus === 'RED'
+                              ? 'var(--accent-danger)'
+                              : proj.healthStatus === 'YELLOW'
+                                ? 'var(--accent-warning)'
+                                : 'var(--text-secondary)',
+                        }}
+                      >
+                        <Sparkles size={12} style={{ marginTop: '2px', flexShrink: 0 }} />
+                        <span style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                          {proj.aiSummary}
+                        </span>
+                      </div>
+                    )}
                   </td>
                   <td style={{ padding: '12px' }}>
                     <HealthStatusBadge

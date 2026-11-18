@@ -1,7 +1,8 @@
 import { resolveProjectHealthConfig } from '../../config/projectHealthConfig.js';
 import { diffCalendarDays, round2, toUtcDayMs } from './dateUtils.js';
 import { parseProjectMembers } from './projectHealthPermissions.js';
-import { buildTaskRollup } from './taskRollupUtils.js';
+import { buildTaskRollup, resolveWorkflowColumns } from './taskRollupUtils.js';
+import { buildActiveSprintAiContext } from './sprintFactorCalculator.js';
 import { getHealthHistorySnapshots } from '../../repositories/projectHealthRepository.js';
 
 const PRIORITY_RANK = { Urgent: 4, High: 3, Medium: 2, Low: 1 };
@@ -28,12 +29,13 @@ export const buildProjectHealthAiContext = async (projectId, liveHealth, options
         : new Date();
   const todayUtcMs = toUtcDayMs(nowDate) ?? Date.now();
 
-  const [projectRes, workflowRes, tasksRes, timesheetsRes, usersRes, recentSnapshots] =
+  const [projectRes, workflowRes, tasksRes, timesheetsRes, sprintsRes, usersRes, recentSnapshots] =
     await Promise.all([
       db.query('SELECT * FROM projects WHERE id = $1', [projectId]),
       db.query('SELECT * FROM project_workflows WHERE project_id = $1', [projectId]),
       db.query('SELECT * FROM tasks WHERE project_id = $1', [projectId]),
       db.query('SELECT * FROM timesheets WHERE project_id = $1 AND COALESCE(is_personal, FALSE) = FALSE', [projectId]),
+      db.query('SELECT * FROM sprints WHERE project_id = $1', [projectId]),
       db.query('SELECT id, name FROM users'),
       getHealthHistorySnapshots(db, projectId, 4),
     ]);
@@ -52,6 +54,14 @@ export const buildProjectHealthAiContext = async (projectId, liveHealth, options
   const rawTaskMap = new Map(rawTasks.map((t) => [String(t.id), t]));
 
   const rollup = buildTaskRollup(project, workflow, rawTasks, config);
+  const columns = resolveWorkflowColumns(project, workflow);
+  const activeSprints = buildActiveSprintAiContext({
+    sprints: sprintsRes.rows,
+    rawTasks,
+    columns,
+    config,
+    todayUtcMs,
+  });
   const projectType = String(project.project_type || 'dev').toLowerCase();
 
   const overdueTasks = rollup.leafTasks
@@ -166,6 +176,7 @@ export const buildProjectHealthAiContext = async (projectId, liveHealth, options
       factorDetails: liveHealth.factorDetails,
     },
     dataIssues: liveHealth.dataIssues,
+    activeSprints,
     overdueTasks,
     inProgressTasks,
     milestoneHoursComparison,

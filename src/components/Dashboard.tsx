@@ -8,7 +8,7 @@ import { hasProjectPermission } from '../utils/projectPermissions';
 import { DashboardStatsBar } from './Dashboard/DashboardStatsBar';
 import { MyTasksPanel } from './Dashboard/MyTasksPanel';
 import { ProjectHealthTable } from './Dashboard/ProjectHealthTable';
-import { deriveFallbackHealthSummary } from './ProjectHealth/healthUiUtils';
+import { canUserTriggerHealthAi, deriveFallbackHealthSummary } from './ProjectHealth/healthUiUtils';
 
 interface DashboardProps {
   projects: Project[];
@@ -117,6 +117,7 @@ export const Dashboard = ({
       schedule.kind === 'overdue',
       projTasks.length > 0
     );
+    const canSeeAi = canUserTriggerHealthAi(currentUser, proj);
 
     return {
       ...proj,
@@ -126,6 +127,9 @@ export const Dashboard = ({
       healthScore: apiHealth ? apiHealth.healthScore : fallback.healthScore,
       healthTrend: apiHealth ? apiHealth.trend : 'NONE',
       healthScoreDelta: apiHealth ? apiHealth.scoreDelta : null,
+      aiSummary: canSeeAi ? apiHealth?.aiSummary ?? null : null,
+      aiTopAction: canSeeAi ? apiHealth?.aiTopAction ?? null : null,
+      aiAnalyzedAt: canSeeAi ? apiHealth?.aiAnalyzedAt ?? null : null,
     };
   });
 

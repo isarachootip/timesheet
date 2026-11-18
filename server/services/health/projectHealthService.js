@@ -5,11 +5,13 @@ import {
 import {
   authenticateHealthUser,
   canUserBrowseProject,
+  isUserPrivilegedOnProject,
 } from './projectHealthPermissions.js';
 import { runProjectHealthAiForSnapshot as defaultAiAnalyzer } from './projectHealthAiService.js';
 import {
   getHealthHistorySnapshots,
   getLatestAiAnalysisSnapshot,
+  getLatestAiSnapshotsByProjectIds,
   getLatestHealthSnapshot,
   getPreviousDistinctSnapshot,
   insertHealthSnapshot,
@@ -17,21 +19,25 @@ import {
 } from '../../repositories/projectHealthRepository.js';
 
 export const computeScoreTrend = (currentScore, previousScore) => {
-  if (
-    currentScore === null ||
-    currentScore === undefined ||
-    previousScore === null ||
-    previousScore === undefined
-  ) {
+  if (currentScore == null || previousScore == null) {
     return { trend: 'NONE', scoreDelta: null };
   }
   const delta = Math.round((Number(currentScore) - Number(previousScore)) * 100) / 100;
-  if (delta > 0) return { trend: 'UP', scoreDelta: delta };
-  if (delta < 0) return { trend: 'DOWN', scoreDelta: delta };
-  return { trend: 'FLAT', scoreDelta: 0 };
+  return { trend: delta > 0 ? 'UP' : delta < 0 ? 'DOWN' : 'FLAT', scoreDelta: delta };
 };
 
 const getDbFromDeps = async (deps) => deps?.db || (await import('../../config/db.js')).pool;
+
+const EMPTY_AI_PREVIEW = { aiSummary: null, aiTopAction: null, aiAnalyzedAt: null };
+
+const extractAiPreview = (aiSnap) => {
+  const ai = aiSnap?.aiAnalysis;
+  if (!ai || typeof ai !== 'object') return EMPTY_AI_PREVIEW;
+  const aiSummary = typeof ai.summary === 'string' && ai.summary.trim() ? ai.summary.trim() : null;
+  const rec = Array.isArray(ai.recommendations) ? ai.recommendations[0] : null;
+  const aiTopAction = rec && typeof rec.action === 'string' ? rec.action.trim() : null;
+  return { aiSummary, aiTopAction, aiAnalyzedAt: aiSnap?.aiAnalyzedAt || null };
+};
 
 export const getProjectHealthLatest = async (deps, projectId) => {
   const db = await getDbFromDeps(deps);
@@ -51,8 +57,10 @@ export const getProjectHealthLatest = async (deps, projectId) => {
     : await getLatestAiAnalysisSnapshot(db, projectId);
 
   const prevSnapshot = await getPreviousDistinctSnapshot(db, projectId, latestSnapshot.id);
-  const baselineScore = prevSnapshot ? prevSnapshot.healthScore : null;
-  const { trend, scoreDelta } = computeScoreTrend(liveHealth.healthScore, baselineScore);
+  const { trend, scoreDelta } = computeScoreTrend(
+    liveHealth.healthScore,
+    prevSnapshot ? prevSnapshot.healthScore : null
+  );
 
   return {
     ...liveHealth,
@@ -66,8 +74,7 @@ export const getProjectHealthLatest = async (deps, projectId) => {
 
 export const getProjectHealthHistoryList = async (deps, projectId, options = {}) => {
   const db = await getDbFromDeps(deps);
-  const limit = Number(options.limit) || 30;
-  return getHealthHistorySnapshots(db, projectId, limit);
+  return getHealthHistorySnapshots(db, projectId, Number(options.limit) || 30);
 };
 
 export const analyzeAndSaveProjectHealth = async (deps, projectId) => {
@@ -115,13 +122,14 @@ export const getAllVisibleProjectsHealth = async (deps, userId) => {
   const referenceDate = deps?.referenceDate || new Date();
   const { userId: uid, globalRole } = await authenticateHealthUser(db, userId);
 
-  const [projectsRes, workflowsRes, schemesRes, tasksRes, timesheetsRes, snapshotsRes] =
+  const [projectsRes, workflowsRes, schemesRes, tasksRes, timesheetsRes, sprintsRes, snapshotsRes] =
     await Promise.all([
       db.query('SELECT * FROM projects'),
       db.query('SELECT * FROM project_workflows'),
       db.query('SELECT * FROM permission_schemes'),
       db.query('SELECT * FROM tasks'),
       db.query('SELECT * FROM timesheets WHERE COALESCE(is_personal, FALSE) = FALSE'),
+      db.query('SELECT * FROM sprints'),
       db.query(
         `SELECT * FROM (
            SELECT *, ROW_NUMBER() OVER (PARTITION BY project_id ORDER BY calculated_at DESC) AS rn
@@ -142,20 +150,25 @@ export const getAllVisibleProjectsHealth = async (deps, userId) => {
     )
   );
 
-  const tasksByProj = new Map();
-  for (const t of tasksRes.rows) {
-    const arr = tasksByProj.get(t.project_id) || [];
-    arr.push(t);
-    tasksByProj.set(t.project_id, arr);
-  }
+  const aiByProj = await getLatestAiSnapshotsByProjectIds(
+    db,
+    visibleProjects.map((p) => String(p.id))
+  );
 
-  const tsByProj = new Map();
-  for (const ts of timesheetsRes.rows) {
-    const arr = tsByProj.get(ts.project_id) || [];
-    arr.push(ts);
-    tsByProj.set(ts.project_id, arr);
-  }
+  const groupRows = (rows) => {
+    const map = new Map();
+    for (const r of rows) {
+      const pid = r.project_id;
+      const arr = map.get(pid) || [];
+      arr.push(r);
+      map.set(pid, arr);
+    }
+    return map;
+  };
 
+  const tasksByProj = groupRows(tasksRes.rows);
+  const tsByProj = groupRows(timesheetsRes.rows);
+  const sprintsByProj = groupRows(sprintsRes.rows);
   const snapsByProj = new Map();
   for (const r of snapshotsRes.rows) {
     const arr = snapsByProj.get(r.project_id) || [];
@@ -169,11 +182,15 @@ export const getAllVisibleProjectsHealth = async (deps, userId) => {
       workflow: wfMap.get(project.id) || null,
       tasks: tasksByProj.get(project.id) || [],
       timesheets: tsByProj.get(project.id) || [],
+      sprints: sprintsByProj.get(project.id) || [],
       referenceDate,
     });
     const recentSnaps = snapsByProj.get(project.id) || [];
     const baselineSnap = recentSnaps.length >= 2 ? recentSnaps[1] : recentSnaps[0];
     const { trend, scoreDelta } = computeScoreTrend(health.healthScore, baselineSnap?.healthScore ?? null);
-    return { ...health, trend, scoreDelta };
+    const canSeeAi = isUserPrivilegedOnProject(globalRole, project, uid);
+    const aiFields = canSeeAi ? extractAiPreview(aiByProj.get(String(project.id))) : EMPTY_AI_PREVIEW;
+
+    return { ...health, trend, scoreDelta, ...aiFields };
   });
 };

@@ -7,6 +7,7 @@ import type {
   HealthStatus,
 } from '../../types/projectHealth';
 import {
+  formatFactorDetailHint,
   getConfidenceLabel,
   getScoreBarColor,
   HEALTH_FACTOR_META,
@@ -19,29 +20,6 @@ interface HealthFactorsGridProps {
   factorDetails: Record<string, Record<string, unknown>>;
   dataIssues: HealthDataIssue[];
 }
-
-const renderDetailHint = (key: string, details: Record<string, unknown> | undefined): string => {
-  if (!details) return '';
-  if (key === 'schedule' && typeof details.actualPercent === 'number' && typeof details.plannedPercent === 'number') {
-    const overdueTxt = Number(details.daysOverdue) > 0 ? ` · เลยกำหนด ${details.daysOverdue} วัน` : '';
-    return `จริง ${details.actualPercent}% vs แผน ${details.plannedPercent}%${overdueTxt}`;
-  }
-  if (key === 'overdue' && typeof details.overdueCount === 'number') {
-    return `เลยกำหนด ${details.overdueCount} จาก ${details.openCount ?? 0} งานที่ยังไม่เสร็จ`;
-  }
-  if (key === 'effort' && typeof details.actualHours === 'number') {
-    const earned = typeof details.earnedHours === 'number' ? `${details.earnedHours}h earned / ` : '';
-    return `${earned}${details.actualHours}h logged`;
-  }
-  if (key === 'momentum' && typeof details.actualRate === 'number') {
-    const req = typeof details.requiredRate === 'number' ? `${details.requiredRate}h/วัน` : 'เลยวันสิ้นสุด';
-    return `อัตราปิดงาน ${details.actualRate}h/วัน vs ต้องทำ ${req}`;
-  }
-  if (key === 'freshness' && typeof details.daysSinceUpdate === 'number') {
-    return `อัปเดตล่าสุดเมื่อ ${details.daysSinceUpdate} วันที่แล้ว`;
-  }
-  return '';
-};
 
 export const HealthFactorsGrid: React.FC<HealthFactorsGridProps> = ({
   status,
@@ -93,9 +71,11 @@ export const HealthFactorsGrid: React.FC<HealthFactorsGridProps> = ({
               gap: '12px',
             }}
           >
-            {HEALTH_FACTOR_META.map((meta) => {
-              const score = factors[meta.key];
-              const hint = renderDetailHint(meta.key, factorDetails[meta.key]);
+            {HEALTH_FACTOR_META.filter(
+              (meta) => !meta.optionalWhenNull || (factors[meta.key] !== null && factors[meta.key] !== undefined)
+            ).map((meta) => {
+              const score = factors[meta.key] ?? null;
+              const hint = formatFactorDetailHint(meta.key, factorDetails[meta.key]);
               return (
                 <div
                   key={meta.key}

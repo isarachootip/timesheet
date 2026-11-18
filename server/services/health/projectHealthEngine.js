@@ -1,6 +1,6 @@
 import { resolveProjectHealthConfig } from '../../config/projectHealthConfig.js';
 import { clamp, round2, toUtcDayMs } from './dateUtils.js';
-import { buildTaskRollup } from './taskRollupUtils.js';
+import { buildTaskRollup, resolveWorkflowColumns } from './taskRollupUtils.js';
 import {
   calculateEffortFactor,
   calculateFreshnessFactor,
@@ -9,8 +9,9 @@ import {
   calculateScheduleFactor,
   mergeDataIssues,
 } from './factorCalculators.js';
+import { calculateSprintFactor } from './sprintFactorCalculator.js';
 
-const FACTOR_KEYS = ['schedule', 'overdue', 'effort', 'momentum', 'freshness'];
+const FACTOR_KEYS = ['schedule', 'overdue', 'effort', 'momentum', 'freshness', 'sprint'];
 
 const resolveStatusFromScore = (score, thresholds) => {
   if (score >= thresholds.greenMin) return 'GREEN';
@@ -31,6 +32,7 @@ export const evaluateProjectHealth = (input, configOverrides = {}) => {
     workflow = null,
     tasks = [],
     timesheets = [],
+    sprints = [],
     referenceDate = new Date(),
   } = input;
 
@@ -44,6 +46,7 @@ export const evaluateProjectHealth = (input, configOverrides = {}) => {
   const calculatedAt = nowDate.toISOString();
 
   const rollup = buildTaskRollup(project, workflow, tasks, config);
+  const columns = resolveWorkflowColumns(project, workflow);
   const isStatusCompleted = String(project.status || '').trim().toLowerCase() === 'completed';
 
   if (isStatusCompleted || rollup.allTasksDone) {
@@ -60,6 +63,7 @@ export const evaluateProjectHealth = (input, configOverrides = {}) => {
         effort: null,
         momentum: null,
         freshness: null,
+        sprint: null,
       },
       factorDetails: {},
       dataIssues: [],
@@ -71,6 +75,7 @@ export const evaluateProjectHealth = (input, configOverrides = {}) => {
   const effortRes = calculateEffortFactor({ rollup, timesheets, config });
   const momentumRes = calculateMomentumFactor({ project, rollup, todayUtcMs, config });
   const freshnessRes = calculateFreshnessFactor({ tasks, timesheets, todayUtcMs, config });
+  const sprintRes = calculateSprintFactor({ sprints, rawTasks: tasks, columns, config, todayUtcMs });
 
   const factors = {
     schedule: scheduleRes.score,
@@ -78,6 +83,7 @@ export const evaluateProjectHealth = (input, configOverrides = {}) => {
     effort: effortRes.score,
     momentum: momentumRes.score,
     freshness: freshnessRes.score,
+    sprint: sprintRes.score,
   };
 
   const factorDetails = {
@@ -86,6 +92,7 @@ export const evaluateProjectHealth = (input, configOverrides = {}) => {
     effort: effortRes.details,
     momentum: momentumRes.details,
     freshness: freshnessRes.details,
+    sprint: sprintRes.details,
   };
 
   const dataIssues = mergeDataIssues([
@@ -94,6 +101,7 @@ export const evaluateProjectHealth = (input, configOverrides = {}) => {
     effortRes.issues,
     momentumRes.issues,
     freshnessRes.issues,
+    sprintRes.issues,
   ]);
 
   let weightedSum = 0;
@@ -133,10 +141,11 @@ export const calculateProjectHealth = async (projectId, options = {}) => {
     throw err;
   }
 
-  const [workflowRes, tasksRes, timesheetsRes] = await Promise.all([
+  const [workflowRes, tasksRes, timesheetsRes, sprintsRes] = await Promise.all([
     db.query('SELECT * FROM project_workflows WHERE project_id = $1', [projectId]),
     db.query('SELECT * FROM tasks WHERE project_id = $1', [projectId]),
     db.query('SELECT * FROM timesheets WHERE project_id = $1 AND COALESCE(is_personal, FALSE) = FALSE', [projectId]),
+    db.query('SELECT * FROM sprints WHERE project_id = $1', [projectId]),
   ]);
 
   return evaluateProjectHealth(
@@ -145,6 +154,7 @@ export const calculateProjectHealth = async (projectId, options = {}) => {
       workflow: workflowRes.rows[0] || null,
       tasks: tasksRes.rows,
       timesheets: timesheetsRes.rows,
+      sprints: sprintsRes.rows,
       referenceDate: options.referenceDate || new Date(),
     },
     options.config || {}

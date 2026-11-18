@@ -1,24 +1,10 @@
 import express from 'express';
 import { pool } from '../config/db.js';
+import noteLinkRoutes, { mapRowToNote } from './noteLinkRoutes.js';
 
 const router = express.Router();
 
-const mapRowToNote = (r) => ({
-  id: r.id,
-  userId: r.user_id,
-  title: r.title,
-  content: r.content || '',
-  noteDate: r.note_date,
-  dueDate: r.due_date || '',
-  color: r.color || 'yellow',
-  isCompleted: Boolean(r.is_completed),
-  workType: r.work_type || (r.project_id ? 'project' : 'personal'),
-  projectId: r.project_id || undefined,
-  taskId: r.task_id || undefined,
-  timesheetId: r.timesheet_id || undefined,
-  createdAt: r.created_at,
-  updatedAt: r.updated_at
-});
+router.use(noteLinkRoutes);
 
 // GET /api/notes - fetch notes for user
 router.get('/api/notes', async (req, res) => {
@@ -29,15 +15,15 @@ router.get('/api/notes', async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT * FROM personal_notes 
-       WHERE user_id = $1 
+      `SELECT * FROM personal_notes
+       WHERE user_id = $1
        ORDER BY is_completed ASC, due_date ASC NULLS LAST, created_at DESC`,
       [userId]
     );
-    res.json(result.rows.map(mapRowToNote));
+    return res.json(result.rows.map(mapRowToNote));
   } catch (err) {
     console.error('Error fetching personal notes:', err);
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 });
 
@@ -61,10 +47,10 @@ router.post('/api/notes', async (req, res) => {
 
   try {
     const result = await pool.query(
-      `INSERT INTO personal_notes 
+      `INSERT INTO personal_notes
         (id, user_id, title, content, note_date, due_date, color, is_completed, work_type, project_id, task_id, timesheet_id, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
-       ON CONFLICT (id) DO UPDATE SET 
+       ON CONFLICT (id) DO UPDATE SET
          title = EXCLUDED.title,
          content = EXCLUDED.content,
          note_date = EXCLUDED.note_date,
@@ -80,17 +66,17 @@ router.post('/api/notes', async (req, res) => {
       [noteId, userId, title.trim(), content || '', finalDate, dueDate || null, finalColor, finalCompleted, finalWorkType, projectId || null, taskId || null, timesheetId || null]
     );
 
-    res.json(mapRowToNote(result.rows[0]));
+    return res.json(mapRowToNote(result.rows[0]));
   } catch (err) {
     console.error('Error saving personal note:', err);
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 });
 
 // PATCH /api/notes/:id/toggle - toggle completion status
 router.patch('/api/notes/:id/toggle', async (req, res) => {
   const { id } = req.params;
-  const userId = req.headers['x-user-id'] || req.body.userId;
+  const userId = req.headers['x-user-id'] || req.body?.userId;
 
   if (!userId) {
     return res.status(400).json({ error: 'Missing user identification' });
@@ -98,9 +84,9 @@ router.patch('/api/notes/:id/toggle', async (req, res) => {
 
   try {
     const result = await pool.query(
-      `UPDATE personal_notes 
-       SET is_completed = NOT is_completed, updated_at = NOW() 
-       WHERE id = $1 AND user_id = $2 
+      `UPDATE personal_notes
+       SET is_completed = NOT is_completed, updated_at = NOW()
+       WHERE id = $1 AND user_id = $2
        RETURNING *`,
       [id, userId]
     );
@@ -109,42 +95,10 @@ router.patch('/api/notes/:id/toggle', async (req, res) => {
       return res.status(404).json({ error: 'Note not found or unauthorized' });
     }
 
-    res.json(mapRowToNote(result.rows[0]));
+    return res.json(mapRowToNote(result.rows[0]));
   } catch (err) {
     console.error('Error toggling personal note:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// PATCH /api/notes/:id/link-timesheet - link timesheet entry to note
-router.patch('/api/notes/:id/link-timesheet', async (req, res) => {
-  const { id } = req.params;
-  const userId = req.headers['x-user-id'] || req.body.userId;
-  const { timesheetId, markCompleted = true } = req.body;
-
-  if (!userId) {
-    return res.status(400).json({ error: 'Missing user identification' });
-  }
-
-  try {
-    const result = await pool.query(
-      `UPDATE personal_notes 
-       SET timesheet_id = $1, 
-           is_completed = CASE WHEN $2::boolean THEN TRUE ELSE is_completed END, 
-           updated_at = NOW() 
-       WHERE id = $3 AND user_id = $4 
-       RETURNING *`,
-      [timesheetId || null, Boolean(markCompleted), id, userId]
-    );
-
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Note not found or unauthorized' });
-    }
-
-    res.json(mapRowToNote(result.rows[0]));
-  } catch (err) {
-    console.error('Error linking timesheet to note:', err);
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 });
 
@@ -159,7 +113,7 @@ router.delete('/api/notes/:id', async (req, res) => {
 
   try {
     const result = await pool.query(
-      `DELETE FROM personal_notes WHERE id = $1 AND user_id = $2`,
+      'DELETE FROM personal_notes WHERE id = $1 AND user_id = $2',
       [id, userId]
     );
 
@@ -167,10 +121,10 @@ router.delete('/api/notes/:id', async (req, res) => {
       return res.status(404).json({ error: 'Note not found or unauthorized' });
     }
 
-    res.json({ success: true, id });
+    return res.json({ success: true, id });
   } catch (err) {
     console.error('Error deleting personal note:', err);
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 });
 

@@ -1,6 +1,6 @@
 export type HealthStatus = 'GREEN' | 'YELLOW' | 'RED' | 'COMPLETED';
 export type HealthConfidence = 'HIGH' | 'MEDIUM' | 'LOW';
-export type HealthFactorKey = 'schedule' | 'overdue' | 'effort' | 'momentum' | 'freshness';
+export type HealthFactorKey = 'schedule' | 'overdue' | 'effort' | 'momentum' | 'freshness' | 'sprint';
 
 export interface HealthDataIssue {
   code: string;
@@ -14,6 +14,7 @@ export interface HealthFactorScores {
   effort: number | null;
   momentum: number | null;
   freshness: number | null;
+  sprint?: number | null;
 }
 
 export interface ProjectHealthConfigOverrides {
@@ -45,6 +46,7 @@ export interface EvaluateProjectHealthInput {
   workflow?: Record<string, unknown> | null;
   tasks?: Array<Record<string, unknown>>;
   timesheets?: Array<Record<string, unknown>>;
+  sprints?: Array<Record<string, unknown>>;
   referenceDate?: Date | string;
 }
 

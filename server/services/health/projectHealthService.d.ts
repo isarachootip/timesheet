@@ -19,6 +19,14 @@ export interface ProjectHealthLatestResponse extends ProjectHealthResult {
   aiError?: string | null;
 }
 
+export interface ProjectHealthVisibleSummaryItem extends ProjectHealthResult {
+  trend: HealthTrendDirection;
+  scoreDelta: number | null;
+  aiSummary: string | null;
+  aiTopAction: string | null;
+  aiAnalyzedAt: string | null;
+}
+
 export interface ProjectHealthServiceDeps {
   db?: DbQueryable;
   referenceDate?: Date | string;
@@ -53,4 +61,4 @@ export function analyzeAndSaveProjectHealth(
 export function getAllVisibleProjectsHealth(
   deps: ProjectHealthServiceDeps,
   userId: string
-): Promise<Array<ProjectHealthResult & { trend: HealthTrendDirection; scoreDelta: number | null }>>;
+): Promise<ProjectHealthVisibleSummaryItem[]>;

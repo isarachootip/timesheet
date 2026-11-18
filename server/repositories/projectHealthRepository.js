@@ -37,6 +37,7 @@ export const mapSnapshotRow = (row) => {
       effort: null,
       momentum: null,
       freshness: null,
+      sprint: null,
     }),
     status: String(row.status),
     confidence: String(row.confidence),
@@ -130,6 +131,34 @@ export const hasScheduledSnapshotForDate = async (db, projectId, snapshotDate) =
     [projectId, snapshotDate]
   );
   return res.rows.length > 0;
+};
+
+export const hasAiSnapshotForDate = async (db, projectId, snapshotDate) => {
+  const res = await db.query(
+    `SELECT id FROM project_health_snapshots
+     WHERE project_id = $1 AND snapshot_date = $2 AND ai_analysis IS NOT NULL
+     LIMIT 1`,
+    [projectId, snapshotDate]
+  );
+  return res.rows.length > 0;
+};
+
+export const getLatestAiSnapshotsByProjectIds = async (db, projectIds = []) => {
+  if (!Array.isArray(projectIds) || projectIds.length === 0) return new Map();
+  const res = await db.query(
+    `SELECT * FROM (
+       SELECT *, ROW_NUMBER() OVER (PARTITION BY project_id ORDER BY calculated_at DESC) AS rn
+       FROM project_health_snapshots
+       WHERE project_id = ANY($1::varchar[]) AND ai_analysis IS NOT NULL
+     ) ranked WHERE rn = 1`,
+    [projectIds]
+  );
+  const map = new Map();
+  for (const row of res.rows) {
+    const mapped = mapSnapshotRow(row);
+    if (mapped) map.set(mapped.projectId, mapped);
+  }
+  return map;
 };
 
 export const insertPmHealthNotifications = async (

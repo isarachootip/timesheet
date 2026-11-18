@@ -10,6 +10,7 @@ export interface FactorDisplayMeta {
   label: string;
   weightLabel: string;
   description: string;
+  optionalWhenNull?: boolean;
 }
 
 export const HEALTH_FACTOR_META: FactorDisplayMeta[] = [
@@ -42,6 +43,13 @@ export const HEALTH_FACTOR_META: FactorDisplayMeta[] = [
     label: 'Data Freshness',
     weightLabel: '15%',
     description: 'ความสดใหม่ของการอัปเดตสถานะงานหรือบันทึก Timesheet ล่าสุด',
+  },
+  {
+    key: 'sprint',
+    label: 'Sprint Health',
+    weightLabel: '15%',
+    description: 'ความคืบหน้าของงานใน Active Sprint เทียบกรอบเวลาของ Sprint',
+    optionalWhenNull: true,
   },
 ];
 
@@ -125,6 +133,39 @@ export const formatHealthTimestamp = (iso: string | null | undefined): string =>
   const hh = String(parsed.getHours()).padStart(2, '0');
   const min = String(parsed.getMinutes()).padStart(2, '0');
   return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+};
+
+export const formatFactorDetailHint = (
+  key: string,
+  details: Record<string, unknown> | undefined
+): string => {
+  if (!details) return '';
+  if (key === 'schedule' && typeof details.actualPercent === 'number' && typeof details.plannedPercent === 'number') {
+    const overdueTxt = Number(details.daysOverdue) > 0 ? ` · เลยกำหนด ${details.daysOverdue} วัน` : '';
+    return `จริง ${details.actualPercent}% vs แผน ${details.plannedPercent}%${overdueTxt}`;
+  }
+  if (key === 'overdue' && typeof details.overdueCount === 'number') {
+    return `เลยกำหนด ${details.overdueCount} จาก ${details.openCount ?? 0} งานที่ยังไม่เสร็จ`;
+  }
+  if (key === 'effort' && typeof details.actualHours === 'number') {
+    const earned = typeof details.earnedHours === 'number' ? `${details.earnedHours}h earned / ` : '';
+    return `${earned}${details.actualHours}h logged`;
+  }
+  if (key === 'momentum' && typeof details.actualRate === 'number') {
+    const req = typeof details.requiredRate === 'number' ? `${details.requiredRate}h/วัน` : 'เลยวันสิ้นสุด';
+    return `อัตราปิดงาน ${details.actualRate}h/วัน vs ต้องทำ ${req}`;
+  }
+  if (key === 'freshness' && typeof details.daysSinceUpdate === 'number') {
+    return `อัปเดตล่าสุดเมื่อ ${details.daysSinceUpdate} วันที่แล้ว`;
+  }
+  if (key === 'sprint' && typeof details.totalTasks === 'number') {
+    const name = typeof details.sprintName === 'string' ? `${details.sprintName} · ` : '';
+    const days = typeof details.daysRemaining === 'number'
+      ? (details.daysRemaining < 0 ? ` · เลยกำหนด ${Math.abs(details.daysRemaining)} วัน` : ` · เหลือ ${details.daysRemaining} วัน`)
+      : '';
+  return `${name}เสร็จ ${details.doneTasks ?? 0}/${details.totalTasks} งาน${days}`;
+  }
+  return '';
 };
 
 export const deriveFallbackHealthSummary = (

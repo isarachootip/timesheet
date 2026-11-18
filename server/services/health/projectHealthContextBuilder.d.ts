@@ -31,10 +31,22 @@ export interface MilestoneHoursComparisonItem {
   varianceHours: number;
 }
 
+export interface ActiveSprintContextItem {
+  id: string;
+  name: string;
+  startDate: string | null;
+  endDate: string | null;
+  daysRemaining: number | null;
+  totalTasks: number;
+  doneTasks: number;
+  openTaskTitles: string[];
+}
+
 export interface ProjectHealthAiContext {
   project: Record<string, unknown>;
   health: Record<string, unknown>;
   dataIssues: ProjectHealthResult['dataIssues'];
+  activeSprints: ActiveSprintContextItem[];
   overdueTasks: OverdueTaskContextItem[];
   inProgressTasks: InProgressTaskContextItem[];
   milestoneHoursComparison: MilestoneHoursComparisonItem[];

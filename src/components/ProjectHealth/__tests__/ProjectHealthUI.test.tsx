@@ -159,5 +159,6 @@ describe('Step 4: Project Health Dashboard Table & Detail Page UI', () => {
     expect(screen.getByText('ยังไม่มีการบันทึก Timesheet ของทีมพัฒนา')).toBeTruthy();
     expect(screen.getByText('เร่งติดตามงานที่เลยกำหนด 2 รายการและให้ทีมลงเวลา')).toBeTruthy();
     expect(screen.getByTestId('ai-analyzed-at')).toBeTruthy();
+    expect(screen.queryByTestId('factor-card-sprint')).toBeNull();
   });
 });

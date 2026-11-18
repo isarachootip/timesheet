@@ -1,13 +1,16 @@
 import { calculateProjectHealth } from '../services/health/projectHealthEngine.js';
+import { runProjectHealthAiForSnapshot } from '../services/health/projectHealthAiService.js';
 import {
   getLatestHealthSnapshot,
+  hasAiSnapshotForDate,
   hasScheduledSnapshotForDate,
   insertHealthSnapshot,
   insertPmHealthNotifications,
 } from '../repositories/projectHealthRepository.js';
 
 const COLOR_STATUSES = new Set(['GREEN', 'YELLOW', 'RED']);
-const DEFAULT_CHECK_INTERVAL_MS = 60 * 60 * 1000; // Check hourly, run at most once per calendar day
+const RISK_STATUSES = new Set(['YELLOW', 'RED']);
+const DEFAULT_CHECK_INTERVAL_MS = 60 * 60 * 1000;
 
 export const shouldNotifyStatusColorChange = (previousStatus, nextStatus) => {
   if (!previousStatus || !nextStatus) return false;
@@ -15,8 +18,16 @@ export const shouldNotifyStatusColorChange = (previousStatus, nextStatus) => {
   return COLOR_STATUSES.has(previousStatus) && COLOR_STATUSES.has(nextStatus);
 };
 
+export const shouldAutoTriggerHealthAi = ({ previousStatus, nextStatus, hasTodayAi }) => {
+  if (!nextStatus || nextStatus === 'COMPLETED') return false;
+  if (shouldNotifyStatusColorChange(previousStatus, nextStatus)) return true;
+  if (RISK_STATUSES.has(nextStatus) && !hasTodayAi) return true;
+  return false;
+};
+
 export const runDailyProjectHealthJob = async (options = {}) => {
   const db = options.db || (await import('../config/db.js')).pool;
+  const aiAnalyzer = options.aiAnalyzer || runProjectHealthAiForSnapshot;
   const nowDate =
     options.referenceDate instanceof Date
       ? options.referenceDate
@@ -32,6 +43,7 @@ export const runDailyProjectHealthJob = async (options = {}) => {
   let processedCount = 0;
   let skippedCount = 0;
   let notificationsSent = 0;
+  let aiAnalyzedCount = 0;
 
   for (const project of activeProjectsRes.rows) {
     try {
@@ -47,10 +59,33 @@ export const runDailyProjectHealthJob = async (options = {}) => {
         referenceDate: nowDate,
       });
 
+      const hasTodayAi = await hasAiSnapshotForDate(db, project.id, snapshotDate);
+      let aiAnalysis = null;
+      if (
+        shouldAutoTriggerHealthAi({
+          previousStatus: previousSnapshot?.status,
+          nextStatus: liveHealth.status,
+          hasTodayAi,
+        })
+      ) {
+        try {
+          aiAnalysis = await aiAnalyzer(project.id, liveHealth, { db, referenceDate: nowDate });
+          if (aiAnalysis) aiAnalyzedCount += 1;
+        } catch (aiErr) {
+          console.warn(
+            `[ProjectHealthJob] AI analysis skipped for ${project.id}:`,
+            aiErr instanceof Error ? aiErr.message : aiErr
+          );
+        }
+      }
+
+      const nowIso = nowDate.toISOString();
       await insertHealthSnapshot(db, {
         ...liveHealth,
         snapshotDate,
-        calculatedAt: nowDate.toISOString(),
+        calculatedAt: nowIso,
+        aiAnalysis,
+        aiAnalyzedAt: aiAnalysis ? nowIso : null,
         triggerSource: 'scheduled',
       });
       processedCount += 1;
@@ -72,7 +107,7 @@ export const runDailyProjectHealthJob = async (options = {}) => {
     }
   }
 
-  return { snapshotDate, processedCount, skippedCount, notificationsSent };
+  return { snapshotDate, processedCount, skippedCount, notificationsSent, aiAnalyzedCount };
 };
 
 export const startProjectHealthScheduler = (options = {}) => {
